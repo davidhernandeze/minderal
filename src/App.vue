@@ -4,20 +4,21 @@
 
     <div class="flex">
       <div class="relative w-48 h-screen h-max-screen bg-gray-700 shadow-md px-2 pt-10">
-        <div class="text-xs">
+        <div class="text-xs font-bold">
           LOCAL DBS
         </div>
-        <ul class="mt-2">
+        <ul class="my-1">
           <li
-            v-for="database in databases"
+            v-for="database in metaDoc?.local_dbs"
             :key="database.id"
             class="py-1 px-2 w-full hover:bg-gray-800 cursor-pointer"
+            :class="database.id === currentDatabase?.id ? 'text-green-500' : ''"
             @click="selectDatabase(database)"
           >
             {{ database.name }}
           </li>
         </ul>
-        <div class="mt-2">
+        <div>
           <input
             v-if="isCreatingDatabase"
             ref="newDatabaseNameInput"
@@ -37,7 +38,19 @@
         </div>
       </div>
       <div class="relative flex-1 container max-w-2xl mx-auto px-4 pt-10">
-        <div class="text-green-400">db: {{ currentDatabase }}</div>
+        <div
+          v-if="currentDatabase"
+          class="text-green-400"
+        >
+          <span>db: {{ currentDatabase?.name }}</span>
+          <button
+            class="text-gray-100 bg-red-500 p-1 ml-2"
+            @click="deleteCurrentDatabase"
+          >
+            delete
+          </button>
+          <span class="ml-5">doc: {{ currentDoc?.name }}</span>
+        </div>
         <div class="flex flex-wrap gap-4 justify-center">
           <div
             v-for="doc in docs"
@@ -61,7 +74,10 @@
           </div>
         </div>
 
-        <div class="absolute mb-20 bottom-0 flex p-4 justify-center items-center w-full">
+        <div
+          v-if="currentDatabase"
+          class="absolute mb-20 bottom-0 flex p-4 justify-center items-center w-full"
+        >
           <input
             ref="mainInput"
             v-model="inputValue"
@@ -88,24 +104,24 @@ const mainInput = ref(null)
 const inputValue = ref('')
 const isRootDoc = ref(true)
 const docs = ref([])
-const databases = ref([])
+const { metaDoc } = db
 const currentDatabase = ref(null)
 const newDatabaseNameInput = ref(null)
 const newDatabaseName = ref('')
 const isCreatingDatabase = ref(false)
+const currentDoc = ref(null)
 
 onMounted(async () => {
-  mainInput.value.focus()
-  getDatabases()
+  if (currentDatabase.value) mainInput.value.focus()
+  await db.init()
+  if (!metaDoc.value.local_dbs.length) return
+  await selectDatabase(metaDoc.value.local_dbs[0])
 })
 
-function getDatabases () {
-  databases.value = db.getDatabases()
-}
-
-async function selectDatabase ({ id, name }) {
-  db.selectDatabase(id)
-  currentDatabase.value = name
+async function selectDatabase (database) {
+  if (!database) return
+  db.selectDatabase(database.id)
+  currentDatabase.value = database
   await fetchDocs()
 }
 
@@ -116,10 +132,19 @@ async function showCreateDatabaseInput () {
 }
 
 async function createDatabase () {
-  db.createDatabase(newDatabaseName.value)
+  await db.createDatabase(newDatabaseName.value)
   newDatabaseName.value = ''
   newDatabaseNameInput.value.blur()
-  getDatabases()
+  await selectDatabase(metaDoc.value.local_dbs[metaDoc.value.local_dbs.length - 1])
+}
+
+async function deleteCurrentDatabase () {
+  if (!currentDatabase.value) return
+  await db.deleteDatabase(currentDatabase.value.id)
+  docs.value = []
+  currentDatabase.value = null
+  if (!metaDoc.value.local_dbs.length) return
+  await selectDatabase(metaDoc.value.local_dbs[0])
 }
 
 async function createDoc () {
