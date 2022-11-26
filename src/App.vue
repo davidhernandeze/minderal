@@ -44,32 +44,40 @@
         >
           <span>db: {{ currentDatabase?.name }}</span>
           <button
-            class="text-gray-100 bg-red-500 p-1 ml-2"
+            class="text-gray-100 bg-red-500 px-1 ml-2 rounded"
             @click="deleteCurrentDatabase"
           >
             delete
           </button>
-          <span class="ml-5">doc: {{ currentDoc?.name }}</span>
+          <span
+            class="ml-5"
+            @click="currentDoc = null"
+          >
+            doc: {{ currentDoc?._id }}
+          </span>
         </div>
-        <div class="flex flex-wrap gap-4 justify-center">
+        <div class="flex flex-wrap gap-4 justify-center mt-4">
           <div
             v-for="doc in docs"
             :key="doc._id"
-            class="relative bg-gray-700 hover:bg-gray-800 w-64 h-24 p-4 mt-4"
+            class="relative bg-gray-700 hover:bg-gray-800 w-64 cursor-pointer rounded overflow-hidden"
+            @click="currentDoc = doc"
           >
             <div
-              class="absolute top-0 right-0 cursor-pointer p-2"
-              @click="deleteDoc(doc)"
+              class="absolute top-0 right-0 px-1 hover:text-white bg-red-500"
+              @click.stop="deleteDoc(doc)"
             >
-              X
+              x
             </div>
-            {{ doc.order }}
-            {{ doc.value }}
             <div
-              v-if="doc.is_root"
-              class="absolute text-xs text-green-200 top-0 left-0 p-1"
+              class="w-2/3 text-xs text-green-200 p-1 truncate"
             >
-              ROOT
+              <p>id: {{ doc._id }}</p>
+              <p>parent_id: {{ doc.parent_id }}</p>
+              <p>order: {{ doc.order }}</p>
+            </div>
+            <div class="p-2">
+              <p>{{ doc.value }}</p>
             </div>
           </div>
         </div>
@@ -151,8 +159,8 @@ async function createDoc () {
   const docsLength = docs.value.length
   await db.storeNewDoc({
     value: inputValue.value,
-    is_root: isRootDoc.value,
-    order: docsLength ? docs.value[docsLength - 1].order + 1 : 0
+    parent_id: currentDoc.value?._id ?? false,
+    order: docsLength ? docs.value[docsLength - 1].order + 100 : 0
   })
   inputValue.value = ''
   await fetchDocs()
@@ -164,7 +172,7 @@ async function deleteDoc (doc) {
 }
 
 async function fetchDocs () {
-  docs.value = await db.getAllDocs()
+  docs.value = await db.getRootDocs()
 }
 
 </script>

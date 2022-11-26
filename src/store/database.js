@@ -1,6 +1,9 @@
 import PouchDB from 'pouchdb-browser'
+import find from 'pouchdb-find'
 import { v4 as getId } from 'uuid'
 import { ref } from 'vue'
+
+PouchDB.plugin(find)
 
 const metaDatabase = new PouchDB('minderal')
 const metaDoc = ref(null)
@@ -13,7 +16,11 @@ function selectDatabase (id) {
 
 async function createDatabase (name) {
   const id = getId()
-  new PouchDB(id)
+  const newDatabase = new PouchDB(id)
+  await newDatabase.createIndex({
+    index: { fields: ['parent_id'] },
+    ddoc: 'by_parent'
+  })
   metaDoc.value.local_dbs.push({ id, name })
   await metaDatabase.put(metaDoc.value)
 }
@@ -51,9 +58,12 @@ async function init () {
   await initMetaDoc()
 }
 
-async function getAllDocs () {
-  const allDocs = await current.allDocs({ include_docs: true })
-  return allDocs.rows.map((doc) => doc.doc).sort((a, b) => a.order > b.order ? 1 : -1)
+async function getRootDocs () {
+  const allDocs = await current.find({
+    selector: { parent_id: false }
+  })
+  console.log(allDocs)
+  return allDocs.docs.sort((a, b) => a.order > b.order ? 1 : -1)
 }
 
 async function storeNewDoc (doc) {
@@ -70,7 +80,7 @@ export default {
   selectDatabase,
   createDatabase,
   deleteDatabase,
-  getAllDocs,
+  getRootDocs,
   storeNewDoc,
   deleteDoc
 }
