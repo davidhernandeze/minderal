@@ -1,73 +1,77 @@
 <template>
-  <transition name="slide">
+  <div class="relative w-48 h-screen h-max-screen bg-gray-700 shadow-md">
+    <div class="p-1">
+      minderal
+    </div>
     <div
-      class="z-50 fixed w-full sm:w-1/3 sm:relative xl:w-2/12 h-screen shadow-lg sm:text-xs"
-      style="background-color: #2C3339"
-      v-show="$store.state.workspace.isSidebarVisible"
+      v-for="(source, index) in sourcesDoc?.sources"
+      :key="source.id"
+      class="bg-gray-600 p-2"
     >
-      <div style="font-size: 0.9em">
-        <context-menu ref="folderMenu" :model="folderOptions"/>
+      <div class="text-xs font-bold uppercase">
+        {{ source.name }}
       </div>
-      <div class="flex items-center p-3 border-b border-gray-900">
-        <div class="w-5 h-5 mr-3 bg-green-400 cursor-pointer rounded-full flex justify-center items-center"/>
-        <div class="truncate">
-          {{ username }}
-        </div>
-        <icon class="ml-1" icon="chevron-down"></icon>
-        <div class="flex-1 flex justify-end ml-2">
-          <icon icon="search"></icon>
-        </div>
-      </div>
-      <div class="p-3">
-        <div
-          @click="$store.dispatch('openDocumentInTab', { tabIndex: $store.state.workspace.currentTabIndex, documentId: 'index' })"
-          @contextmenu="openFolderMenu($event, 'index')"
-          class="text-xss mb-2 cursor-pointer"
+      <ul class="my-1">
+        <li
+          v-for="database in source.databases"
+          :key="database.id"
+          class="py-1 px-2 w-full hover:bg-gray-800 cursor-pointer"
+          :class="database.id === currentDatabase?.id ? 'text-green-500' : ''"
+          @click="selectDatabase(database)"
         >
-          <icon icon="home"/>
-          MAIN
+          {{ database.name }}
+        </li>
+      </ul>
+      <div>
+        <input
+          v-if="isCreatingDatabase"
+          ref="newDatabaseNameInput"
+          v-model="newDatabaseName"
+          class="flex-1 focus:outline-none border-b bg-transparent"
+          type="text"
+          @blur="isCreatingDatabase = false"
+          @keyup.enter="createDatabase(index)"
+        >
+        <div
+          v-else
+          class="cursor-pointer text-xs font-bold"
+          @click="showDatabaseNameInput"
+        >
+          + CREATE DB
         </div>
-<!--        <sidebar-folder-->
-<!--          v-for="document in $store.state.workspace.documentTree['index']"-->
-<!--          :key="document._id"-->
-<!--          @contextmenu="openFolderMenu"-->
-<!--          :document="document"-->
-<!--          :depth="0"-->
-<!--        />-->
       </div>
     </div>
-  </transition>
+    <div
+      class="cursor-pointer text-xs font-bold mt-4"
+      @click="showCreateDatabaseInput"
+    >
+      + ADD REMOTE
+    </div>
+  </div>
 </template>
 
 <script setup>
-// import ContextMenu from 'primevue/contextmenu'
-import { isSidebarVisible } from '../composables/useWorkspace.js'
+import { nextTick, ref } from 'vue'
+import sourcesStore from '@/store/sources.js'
+import useDatabase from '@/composables/database.js'
 
-const hola = 'asd';
+const sourcesDoc = sourcesStore.doc
+
+const { selectDatabase, currentDatabase } = useDatabase()
+
+const newDatabaseNameInput = ref(null)
+const newDatabaseName = ref('')
+const isCreatingDatabase = ref(false)
+
+async function showDatabaseNameInput () {
+  isCreatingDatabase.value = true
+  await nextTick()
+  newDatabaseNameInput.value.focus()
+}
+
+async function createDatabase (sourceIndex) {
+  await sourcesStore.createDatabase(sourceIndex, newDatabaseName.value)
+  newDatabaseName.value = ''
+  newDatabaseNameInput.value.blur()
+}
 </script>
-
-<style lang="scss">
-  /* Enter and leave animations can use different */
-  /* durations and timing functions.              */
-  .slide-enter-active {
-    transition: all .3s ease;
-  }
-  .slide-leave-active {
-    transition: all .3s ease;
-  }
-  .slide-enter, .slide-leave-to {
-    transform: translateX(-100%);
-    position: absolute;
-  }
-
-  .p-contextmenu {
-    padding: 0.25em 0;
-    width: 12.5em;
-  }
-   .p-component {
-     font-size: 1em;
-     .pi {
-       font-size: 1em;
-     }
-   }
-</style>

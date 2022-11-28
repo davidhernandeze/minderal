@@ -6,6 +6,7 @@ module.exports = {
   ],
   rules: {
     'skipBlankLines': 'off',
-    'no-new': 'off'
+    'no-new': 'off',
+    'vue/multi-word-component-names': 'off'
   }
 }
