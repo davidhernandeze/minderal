@@ -11,6 +11,11 @@ const router = createRouter({
       name: 'workspace',
       component: () => import('@/components/Workspace.vue'),
       props: true
+    },
+    {
+      path: '/rtc',
+      name: 'rtc',
+      component: () => import('@/components/WebRTCSettings.vue')
     }
   ]
 })
