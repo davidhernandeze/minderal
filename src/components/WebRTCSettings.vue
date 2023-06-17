@@ -48,8 +48,16 @@
 
 <script setup>
 import { ref } from 'vue'
+import PouchDB from 'pouchdb-browser'
+import { v4 as getId } from 'uuid'
 
-const signalingServer = '192.168.100.125:5984'
+const signalingServer = 'http://192.168.100.125:5984'
+const docId = 'test_doc'
+
+const signalDatabase = new PouchDB(signalingServer + '/signaling')
+signalDatabase.allDocs().then((info) => {
+  console.log(info)
+})
 
 const message = ref()
 const offerString = ref()

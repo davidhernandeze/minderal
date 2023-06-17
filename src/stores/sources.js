@@ -10,7 +10,7 @@ const doc = ref(null)
 async function initSourcesDoc () {
   doc.value = await getOrCreateDoc(metaDatabase, SOURCES_DOC_ID)
   if (!doc.value.sources) {
-    doc.value.sources = [{
+    doc.value.databases = [{
       id: 'local',
       name: 'Local',
       databases: [],

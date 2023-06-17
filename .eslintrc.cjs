@@ -8,5 +8,8 @@ module.exports = {
     'skipBlankLines': 'off',
     'no-new': 'off',
     'vue/multi-word-component-names': 'off'
+  },
+  parserOptions: {
+    'ecmaVersion': 'latest'
   }
 }

@@ -1,63 +1,74 @@
 <template>
   <div class="relative w-48 h-screen h-max-screen bg-gray-700 shadow-md">
-    <div class="p-1">
-      minderal
+    <div class="p-2">
+      minderal2
     </div>
-    <div
-      v-for="(source, index) in sourcesDoc?.sources"
-      :key="source.id"
-      class="bg-gray-600 p-2"
-    >
-      <div class="text-xs font-bold uppercase">
-        {{ source.name }}
+    <div class="p-2">
+      <div class="text-xs uppercase">
+        DATABASES
       </div>
       <ul class="my-1">
         <li
-          v-for="database in source.databases"
+          v-for="database in databases"
           :key="database.id"
-          class="py-1 px-2 w-full hover:bg-gray-800 cursor-pointer"
-          :class="database.id === currentDatabase?.id ? 'text-green-500' : ''"
-          @click="selectDatabase(database)"
+          class="p-2 cursor-pointer rounded bg-gray-600 my-2 border border-gray-600 hover:border-gray-500 relative"
+          @click="metadataStore.openNewTab(database.id, database.name)"
         >
-          {{ database.name }}
+          <i class="fa-solid fa-circle h-2 text-green-400 absolute top-1 right-1" />
+          <div class="text-xs">
+            {{ database.name }}
+          </div>
+          <div class="flex gap-1 mt-2">
+            <div
+              class="rounded-full h-6 w-6 border border-green-600 text-green-600 flex justify-center items-center hover:text-green-400 hover:border-green-400"
+              @click.stop="console.log('asda')"
+            >
+              <i class="fa-light h-3 fa-pencil" />
+            </div>
+            <div
+              class="rounded-full h-6 w-6 border border-green-600 text-green-600 flex justify-center items-center hover:text-green-400 hover:border-green-400"
+              @click.stop="console.log('asda')"
+            >
+              <i class="fa-light h-3 fa-arrow-up-right-from-square" />
+            </div>
+            <div
+              class="rounded-full h-6 w-6 border border-green-600 text-green-600 flex justify-center items-center hover:text-green-400 hover:border-green-400"
+              @click.stop="metadataStore.deleteDatabase(database.id)"
+            >
+              <i class="fa-light h-3 fa-trash" />
+            </div>
+          </div>
         </li>
       </ul>
-      <div>
+      <div class="mt-4">
         <input
           v-if="isCreatingDatabase"
           ref="newDatabaseNameInput"
           v-model="newDatabaseName"
-          class="flex-1 focus:outline-none border-b bg-transparent"
+          class="w-full focus:outline-none border-b bg-transparent"
           type="text"
           @blur="isCreatingDatabase = false"
-          @keyup.enter="createDatabase(index)"
+          @keyup.enter="createDatabase()"
         >
         <div
           v-else
-          class="cursor-pointer text-xs font-bold"
+          class="cursor-pointer text-xs font-bold w-full bg-green-600 rounded px-2 py-1"
           @click="showDatabaseNameInput"
         >
           + CREATE DB
         </div>
       </div>
     </div>
-    <div
-      class="cursor-pointer text-xs font-bold mt-4"
-      @click="showCreateDatabaseInput"
-    >
-      + ADD REMOTE
-    </div>
   </div>
 </template>
 
 <script setup>
 import { nextTick, ref } from 'vue'
-import sourcesStore from '@/store/sources.js'
-import useDatabase from '@/composables/database.js'
+import { useMetadataStore } from '@/stores/metadata.js'
+import { storeToRefs } from 'pinia'
 
-const sourcesDoc = sourcesStore.doc
-
-const { selectDatabase, currentDatabase } = useDatabase()
+const metadataStore = useMetadataStore()
+const { databases } = storeToRefs(metadataStore)
 
 const newDatabaseNameInput = ref(null)
 const newDatabaseName = ref('')
@@ -69,9 +80,14 @@ async function showDatabaseNameInput () {
   newDatabaseNameInput.value.focus()
 }
 
-async function createDatabase (sourceIndex) {
-  await sourcesStore.createDatabase(sourceIndex, newDatabaseName.value)
+async function createDatabase () {
+  await metadataStore.createDatabase(newDatabaseName.value)
   newDatabaseName.value = ''
-  newDatabaseNameInput.value.blur()
 }
 </script>
+
+<style>
+html {
+    font-family: 'Nunito Regular', serif;
+}
+</style>
