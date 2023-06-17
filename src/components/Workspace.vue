@@ -15,7 +15,7 @@
 
     <div class="p-4">
       <div class="mt-2 mb-4 flex items-center">
-        <DocumentRoute :route="currentDocumentRoute" />
+        <DocumentRoute :route="currentDocumentRoute" @navigate="(documentId) => database.setCurrentDocument(documentId)" />
       </div>
 
       <div class="flex">
@@ -40,7 +40,7 @@
           v-for="document in documents"
           :key="document._id"
           class="relative bg-gray-700 hover:bg-gray-800 w-64 cursor-pointer rounded overflow-hidden"
-          @click="database.setCurrentDocument(document)"
+          @click="database.setCurrentDocument(document._id)"
         >
           <div
             class="absolute top-0 right-0 px-1 hover:text-white bg-red-500"
