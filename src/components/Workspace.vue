@@ -15,29 +15,24 @@
 
     <div class="p-4">
       <div class="mt-2 mb-4 flex items-center">
-        <DocumentRoute :route="currentDocumentRoute" @navigate="(documentId) => database.setCurrentDocument(documentId)" />
+        <DocumentRoute
+          :route="currentRoute"
+          @navigate="(documentId) => database.setCurrentDocument(documentId)"
+        />
       </div>
-
       <div class="flex">
-        <div
-          class="w-6 h-6 bg-gray-500 flex justify-center items-center rounded-full cursor-pointer"
-          @click="toggleSearch"
-        >
-          <i class="fa-solid h-4 fa-search" />
-        </div>
         <input
-          v-if="isSearchActive"
           ref="searchInput"
           v-model="searchQuery"
-          class="border border-gray-400 bg-transparent rounded ml-3 px-1"
+          class="border-none bg-transparent p-1 w-1/2 my-3 focus:outline-none"
           type="text"
-          @blur="toggleSearch"
+          placeholder="Search..."
         >
       </div>
 
       <div class="flex flex-wrap gap-4 justify-start mt-4 w-full">
         <div
-          v-for="document in documents"
+          v-for="document in filteredDocuments"
           :key="document._id"
           class="relative bg-gray-700 hover:bg-gray-800 w-64 cursor-pointer rounded overflow-hidden"
           @click="database.setCurrentDocument(document._id)"
@@ -78,16 +73,17 @@
 </template>
 
 <script setup>
-import { nextTick, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { getDatabaseConnection } from '@/functions/database.js'
 import DocumentRoute from '@/components/DocumentRoute.vue'
+import { useMagicKeys } from '@vueuse/core'
 
 const props = defineProps({ databaseId: { type: String, default: null } })
 
 const database = getDatabaseConnection(props.databaseId)
 const documents = database.documents
 const currentDocumentId = database.currentDocumentId
-const currentDocumentRoute = database.currentDocumentRoute
+const currentRoute = database.currentRoute
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -95,7 +91,18 @@ const currentDoc = ref(null)
 
 const searchInput = ref(null)
 const searchQuery = ref('')
-const isSearchActive = ref(false)
+
+const keys = useMagicKeys()
+const shiftCtrlA = keys['Ctrl+K']
+
+watch(shiftCtrlA, (v) => {
+  if (!v) return
+  searchInput.value.focus()
+})
+
+const filteredDocuments = computed(() => {
+  return documents.value.filter((doc) => doc.value?.toLowerCase().indexOf(searchQuery.value.toLowerCase()) > -1)
+})
 
 onMounted(async () => {
   if (database.value) mainInput.value.focus()
@@ -105,13 +112,6 @@ onMounted(async () => {
 async function createDocument () {
   await database.createDocument(inputValue.value)
   inputValue.value = ''
-}
-
-async function toggleSearch () {
-  isSearchActive.value = !isSearchActive.value
-  if (!isSearchActive.value) return
-  await nextTick()
-  searchInput.value.focus()
 }
 
 async function deleteDocument (document) {

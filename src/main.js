@@ -30,3 +30,5 @@ const pinia = createPinia()
 app.use(router)
 app.use(pinia)
 app.mount('#app')
+
+window.onkeydown = function (key) { if (key.ctrlKey === true) { key.preventDefault() } }

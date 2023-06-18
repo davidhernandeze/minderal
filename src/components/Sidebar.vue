@@ -52,10 +52,10 @@
         >
         <div
           v-else
-          class="cursor-pointer text-xs font-bold w-full bg-green-600 rounded px-2 py-1"
+          class="cursor-pointer text-xs font-bold w-full bg-blue-500 rounded p-2"
           @click="showDatabaseNameInput"
         >
-          + CREATE DB
+          CREATE DB
         </div>
       </div>
     </div>

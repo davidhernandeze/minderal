@@ -16,16 +16,14 @@ export function getDatabaseConnection (databaseId) {
   const database = new PouchDB(databaseId)
   const documents = ref([])
   const currentDocumentId = ref('')
-  const currentDocumentRoute = ref([])
-
-  console.log('init db conn')
+  const currentRoute = ref([])
 
   database.changes({
     since: 'now'
   }).on('change', function (change) {
     console.log(change)
   }).on('error', function (err) {
-    // handle errors
+    console.log(err)
   })
 
   async function fetchDocuments (parentId = currentDocumentId.value) {
@@ -47,7 +45,7 @@ export function getDatabaseConnection (databaseId) {
       })
       parentId = parentDocument.parent_id
     }
-    currentDocumentRoute.value = route.reverse()
+    currentRoute.value = route.reverse()
   }
 
   async function createDocument (value) {
@@ -73,7 +71,7 @@ export function getDatabaseConnection (databaseId) {
   return {
     id: databaseId,
     currentDocumentId,
-    currentDocumentRoute,
+    currentRoute,
     documents,
     fetchDocuments,
     setCurrentDocument,
