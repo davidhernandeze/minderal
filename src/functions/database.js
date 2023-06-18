@@ -1,6 +1,7 @@
 
 import PouchDB from 'pouchdb-browser'
 import { ref } from 'vue'
+import { types } from '@/enums/types.js'
 
 export async function getOrCreateDoc (database, id) {
   try {
@@ -41,7 +42,7 @@ export function getDatabaseConnection (databaseId) {
       const parentDocument = await database.get(parentId)
       route.push({
         id: parentId,
-        name: parentDocument.value
+        name: parentDocument.name
       })
       parentId = parentDocument.parent_id
     }
@@ -50,9 +51,12 @@ export function getDatabaseConnection (databaseId) {
 
   async function createDocument (value) {
     const docsLength = documents.value.length
+    const type = types.text
     await database.post({
       value,
+      name: '',
       type: 'text',
+      index_value: type.indexValue,
       parent_id: currentDocumentId.value ?? false,
       order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
     })

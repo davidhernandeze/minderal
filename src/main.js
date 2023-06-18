@@ -1,6 +1,7 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
+import Modal from '@/components/Modal.vue'
 import { createRouter, createWebHashHistory } from 'vue-router'
 import { createPinia } from 'pinia'
 import find from 'pouchdb-find'
@@ -12,12 +13,6 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes: [
     {
-      path: '/',
-      name: 'workspace',
-      component: () => import('@/components/Workspace2.vue'),
-      props: true
-    },
-    {
       path: '/rtc',
       name: 'rtc',
       component: () => import('@/components/WebRTCSettings.vue')
@@ -27,8 +22,12 @@ const router = createRouter({
 
 const app = createApp(App)
 const pinia = createPinia()
-app.use(router)
 app.use(pinia)
 app.mount('#app')
+app.component('Modal', Modal)
 
-window.onkeydown = function (key) { if (key.ctrlKey === true) { key.preventDefault() } }
+window.onkeydown = function (key) {
+  if (key.ctrlKey && key.key.toLowerCase() === 'k') {
+    key.preventDefault()
+  }
+}
