@@ -25,3 +25,9 @@ export const types = {
     indexValue: false
   }
 }
+
+export const getTypeList = () => {
+  return Object.entries(types).map((type) => {
+    return { index: type[0], ...type[1] }
+  })
+}

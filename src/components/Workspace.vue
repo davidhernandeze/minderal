@@ -68,7 +68,7 @@
       >Enter to save</span>
     </div>
 
-    <SelectTypeModal
+    <SelectWidgetModal
       :open-modal="isTypesModalOpen"
       @close="isTypesModalOpen = false"
       @select="selectType"
@@ -82,9 +82,8 @@ import { getDatabaseConnection } from '@/functions/database.js'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import WidgetWrapper from '@/components/WidgetWrapper.vue'
-import Modal from '@/components/Modal.vue'
 import { types } from '@/enums/types.js'
-import SelectTypeModal from '@/components/SelectTypeModal.vue'
+import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 
 const props = defineProps({ databaseId: { type: String, default: null } })
 

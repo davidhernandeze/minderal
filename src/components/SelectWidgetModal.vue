@@ -12,12 +12,12 @@
           >
         </div>
 
-        <div class="p-4 grid grid-cols-4 gap-2">
+        <div class="p-4 grid grid-cols-4 gap-2 mt-1">
           <button
-            v-for="(type, index) in types"
-            :key="index"
+            v-for="type in filteredTypes"
+            :key="type.index"
             class="flex items-center border rounded-full p-1 px-2 hover:bg-gray-700 cursor-pointer text-sm shadow-sm"
-            @click="isOpen = false; emits('select', index)"
+            @click="isOpen = false; emits('select', type.index)"
           >
             <i
               :class="type.icon"
@@ -31,8 +31,10 @@
   </Modal>
 </template>
 <script setup>
-import { types } from '@/enums/types.js'
-import { ref, watch } from 'vue'
+import { getTypeList } from '@/enums/types.js'
+import { computed, ref, watch } from 'vue'
+
+const typeList = getTypeList()
 
 const isOpen = ref(false)
 
@@ -52,6 +54,13 @@ watch(() => props.openModal, (value) => {
 
 watch(isOpen, () => {
   emits('close')
+})
+
+const filteredTypes = computed(() => {
+  return typeList.filter((type) => {
+    const searchableContent = type.index + ' ' + type.label
+    return searchableContent.toLowerCase().indexOf(searchTypeValue.value.toLowerCase()) > -1
+  })
 })
 
 </script>
