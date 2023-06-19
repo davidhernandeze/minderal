@@ -44,10 +44,16 @@
       class="absolute mb-20 bottom-0 flex justify-center items-center w-full"
     >
       <button
-        class="mx-2"
+        class="border p-2 focus:border-green-500 active:border-green-500 rounded mr-1"
         @click="isTypesModalOpen = true"
       >
-        Type
+        <span v-if="iconRerender">
+          <i
+            :class="selectedType.icon"
+            class="h-3 mr-2"
+          />
+        </span>
+        {{ selectedType.label }}
       </button>
       <input
         ref="mainInput"
@@ -56,49 +62,29 @@
         type="text"
         @keyup.enter="createDocument"
       >
-      <span class="ml-2 text-gray-100">Enter to save</span>
+      <span
+        class="ml-2 text-gray-100"
+        @click="createDocument"
+      >Enter to save</span>
     </div>
 
-    <Modal v-model:is-open="isTypesModalOpen">
-      <template #body>
-        <div class="text-gray-50 my-4">
-          <div class="flex items-center px-4">
-            <input
-              ref="searchTypeInput"
-              v-model="searchTypeValue"
-              class="text-gray-50 rounded text-md p-2 bg-gray-700 w-full"
-              type="text"
-              placeholder="Search widget..."
-              @keyup.enter="createDocument"
-            >
-          </div>
-
-          <div class="grid grid-cols-4">
-            <div
-              v-for="type in types"
-              class="flex items-center"
-            >
-              <i
-                :class="type.icon"
-                class="h-3 mr-2"
-              />
-              {{ type.label }}
-            </div>
-          </div>
-        </div>
-      </template>
-    </Modal>
+    <SelectTypeModal
+      :open-modal="isTypesModalOpen"
+      @close="isTypesModalOpen = false"
+      @select="selectType"
+    />
   </div>
 </template>
 
 <script setup>
-import { computed, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import { getDatabaseConnection } from '@/functions/database.js'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import WidgetWrapper from '@/components/WidgetWrapper.vue'
 import Modal from '@/components/Modal.vue'
 import { types } from '@/enums/types.js'
+import SelectTypeModal from '@/components/SelectTypeModal.vue'
 
 const props = defineProps({ databaseId: { type: String, default: null } })
 
@@ -117,9 +103,10 @@ const searchQuery = ref('')
 const keys = useMagicKeys()
 const shiftCtrlA = keys['Ctrl+K']
 
-const isTypesModalOpen = ref(true)
-const searchTypeInput = ref(null)
-const searchTypeValue = ref('')
+const isTypesModalOpen = ref(false)
+const selectedType = ref(types.text)
+const iconRerender = ref(true)
+const selectedTypeIndex = ref('text')
 
 watch(shiftCtrlA, (v) => {
   if (!v) return
@@ -142,7 +129,7 @@ onMounted(async () => {
 })
 
 async function createDocument () {
-  await database.createDocument(inputValue.value)
+  await database.createDocument(inputValue.value, selectedTypeIndex.value)
   inputValue.value = ''
 }
 
@@ -150,8 +137,12 @@ async function deleteDocument (document) {
   await database.deleteDocument(document)
 }
 
-async function loadAsyncComponents (name) {
-  const capitalized = name.charAt(0).toUpperCase() + name.slice(1)
-  return await import(`@/components/widgets/${capitalized}.vue`)
+async function selectType (typeIndex) {
+  iconRerender.value = false
+  selectedType.value = types[typeIndex]
+  selectedTypeIndex.value = typeIndex
+  isTypesModalOpen.value = false
+  await nextTick()
+  iconRerender.value = true
 }
 </script>
