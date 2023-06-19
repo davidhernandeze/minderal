@@ -1,7 +1,7 @@
 
 import PouchDB from 'pouchdb-browser'
 import { ref } from 'vue'
-import { types } from '@/enums/types.js'
+import { widgets } from '@/enums/widgets.js'
 
 export async function getOrCreateDoc (database, id) {
   try {

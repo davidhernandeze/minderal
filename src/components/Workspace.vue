@@ -49,11 +49,11 @@
       >
         <span v-if="iconRerender">
           <i
-            :class="selectedType.icon"
+            :class="selectedWidget.icon"
             class="h-3 mr-2"
           />
         </span>
-        {{ selectedType.label }}
+        {{ selectedWidget.label }}
       </button>
       <input
         ref="mainInput"
@@ -71,7 +71,7 @@
     <SelectWidgetModal
       :open-modal="isTypesModalOpen"
       @close="isTypesModalOpen = false"
-      @select="selectType"
+      @select="selectWidget"
     />
   </div>
 </template>
@@ -82,7 +82,7 @@ import { getDatabaseConnection } from '@/functions/database.js'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import WidgetWrapper from '@/components/WidgetWrapper.vue'
-import { types } from '@/enums/types.js'
+import { widgets } from '@/enums/widgets.js'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 
 const props = defineProps({ databaseId: { type: String, default: null } })
@@ -103,9 +103,8 @@ const keys = useMagicKeys()
 const shiftCtrlA = keys['Ctrl+K']
 
 const isTypesModalOpen = ref(false)
-const selectedType = ref(types.text)
+const selectedWidget = ref(widgets.text)
 const iconRerender = ref(true)
-const selectedTypeIndex = ref('text')
 
 watch(shiftCtrlA, (v) => {
   if (!v) return
@@ -128,7 +127,7 @@ onMounted(async () => {
 })
 
 async function createDocument () {
-  await database.createDocument(inputValue.value, selectedTypeIndex.value)
+  await database.createDocument(inputValue.value, selectedWidget.value.index)
   inputValue.value = ''
 }
 
@@ -136,11 +135,10 @@ async function deleteDocument (document) {
   await database.deleteDocument(document)
 }
 
-async function selectType (typeIndex) {
-  iconRerender.value = false
-  selectedType.value = types[typeIndex]
-  selectedTypeIndex.value = typeIndex
+async function selectWidget (widget) {
+  selectedWidget.value = widget
   isTypesModalOpen.value = false
+  iconRerender.value = false
   await nextTick()
   iconRerender.value = true
 }

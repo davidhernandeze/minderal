@@ -14,16 +14,16 @@
 
         <div class="p-4 grid grid-cols-4 gap-2 mt-1">
           <button
-            v-for="type in filteredTypes"
-            :key="type.index"
+            v-for="widget in filteredWidgets"
+            :key="widget.index"
             class="flex items-center border rounded-full p-1 px-2 hover:bg-gray-700 cursor-pointer text-sm shadow-sm"
-            @click="isOpen = false; emits('select', type.index)"
+            @click="isOpen = false; emits('select', widget)"
           >
             <i
-              :class="type.icon"
+              :class="widget.icon"
               class="h-3 mr-2"
             />
-            {{ type.label }}
+            {{ widget.label }}
           </button>
         </div>
       </div>
@@ -31,10 +31,10 @@
   </Modal>
 </template>
 <script setup>
-import { getTypeList } from '@/enums/types.js'
+import { getWidgetList } from '@/enums/widgets.js'
 import { computed, ref, watch } from 'vue'
 
-const typeList = getTypeList()
+const widgets = getWidgetList()
 
 const isOpen = ref(false)
 
@@ -56,8 +56,8 @@ watch(isOpen, () => {
   emits('close')
 })
 
-const filteredTypes = computed(() => {
-  return typeList.filter((type) => {
+const filteredWidgets = computed(() => {
+  return widgets.filter((type) => {
     const searchableContent = type.index + ' ' + type.label
     return searchableContent.toLowerCase().indexOf(searchTypeValue.value.toLowerCase()) > -1
   })

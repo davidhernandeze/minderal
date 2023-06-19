@@ -1,4 +1,4 @@
-export const types = {
+export const widgets = {
   text: {
     label: 'Text',
     icon: 'fa-solid fa-align-left',
@@ -26,8 +26,8 @@ export const types = {
   }
 }
 
-export const getTypeList = () => {
-  return Object.entries(types).map((type) => {
+export const getWidgetList = () => {
+  return Object.entries(widgets).map((type) => {
     return { index: type[0], ...type[1] }
   })
 }

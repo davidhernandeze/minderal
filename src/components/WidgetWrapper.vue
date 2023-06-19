@@ -14,7 +14,7 @@
 </template>
 <script setup>
 import { defineAsyncComponent } from 'vue'
-import { types } from '@/enums/types.js'
+import { widgets } from '@/enums/widgets.js'
 
 const props = defineProps({
   document: {
@@ -22,7 +22,7 @@ const props = defineProps({
     required: true
   }
 })
-const icon = types[props.document.type].icon
+const icon = widgets[props.document.type].icon
 const Widget = defineAsyncComponent(() => {
   const componentName = props.document.type.charAt(0).toUpperCase() + props.document.type.slice(1)
   return import(`./widgets/${componentName}.vue`)
