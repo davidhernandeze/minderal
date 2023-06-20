@@ -1,7 +1,6 @@
 
 import PouchDB from 'pouchdb-browser'
 import { ref } from 'vue'
-import { widgets } from '@/enums/widgets.js'
 
 export async function getOrCreateDoc (database, id) {
   try {
@@ -52,7 +51,7 @@ export function getDatabaseConnection (databaseId) {
   async function createDocument (value, widget) {
     const docsLength = documents.value.length
     await database.post({
-      value: widget.index === 'text' ? value : '',
+      value: widget.index === 'text' ? value : widget.defaultValue,
       name: widget.index === 'text' ? '' : value,
       type: widget.index,
       index_value: widget.indexValue,
@@ -61,6 +60,13 @@ export function getDatabaseConnection (databaseId) {
     })
     await fetchDocuments()
   }
+
+  async function updateDocument (document, value) {
+    document.value = value
+    await database.put(document)
+    await fetchDocuments()
+  }
+
   async function deleteDocument (document) {
     await database.remove(document)
     await fetchDocuments()
@@ -79,6 +85,7 @@ export function getDatabaseConnection (databaseId) {
     fetchDocuments,
     setCurrentDocument,
     createDocument,
+    updateDocument,
     deleteDocument
   }
 }

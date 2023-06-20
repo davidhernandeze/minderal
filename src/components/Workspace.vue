@@ -35,7 +35,8 @@
           v-for="document in filteredDocuments"
           :key="document._id"
           :document="document"
-          @click="navigate(document._id)"
+          @navigate="navigate"
+          @update="(value) => updateDocumentValue(document, value)"
         />
       </div>
     </div>
@@ -144,6 +145,10 @@ onMounted(async () => {
 async function createDocument () {
   await database.createDocument(inputValue.value, selectedWidget.value)
   inputValue.value = ''
+}
+
+async function updateDocumentValue (document, value) {
+  await database.updateDocument(document, value)
 }
 
 async function deleteDocument (document) {

@@ -17,7 +17,8 @@ export const widgets = {
   checkbox: {
     label: 'Checkbox',
     icon: 'fa-solid fa-square-check',
-    indexValue: false
+    indexValue: false,
+    defaultValue: false
   },
   audio: {
     label: 'Audio',
