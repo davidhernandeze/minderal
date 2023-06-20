@@ -17,7 +17,7 @@
       <div class="mt-2 mb-4 flex items-center">
         <DocumentRoute
           :route="currentRoute"
-          @navigate="(documentId) => database.setCurrentDocument(documentId)"
+          @navigate="navigate"
         />
       </div>
       <div class="flex">
@@ -35,7 +35,7 @@
           v-for="document in filteredDocuments"
           :key="document._id"
           :document="document"
-          @click="database.setCurrentDocument(document._id)"
+          @click="navigate(document._id)"
         />
       </div>
     </div>
@@ -85,7 +85,18 @@ import WidgetWrapper from '@/components/WidgetWrapper.vue'
 import { getWidgetList } from '@/enums/widgets.js'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 
-const props = defineProps({ databaseId: { type: String, default: null } })
+const props = defineProps({
+  databaseId: {
+    type: String,
+    required: true
+  },
+  documentId: {
+    type: String,
+    default: null
+  }
+})
+
+const emits = defineEmits(['navigate'])
 
 const database = getDatabaseConnection(props.databaseId)
 const documents = database.documents
@@ -123,6 +134,10 @@ const filteredDocuments = computed(() => {
 
 onMounted(async () => {
   if (database.value) mainInput.value.focus()
+  if (props.documentId) {
+    await database.setCurrentDocument(props.documentId)
+    return
+  }
   await database.fetchDocuments()
 })
 
@@ -141,5 +156,10 @@ async function selectWidget (widget) {
   iconRerender.value = false
   await nextTick()
   iconRerender.value = true
+}
+
+async function navigate (documentId) {
+  await database.setCurrentDocument(documentId)
+  emits('navigate', documentId)
 }
 </script>

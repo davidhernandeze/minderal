@@ -55,6 +55,13 @@ export const useMetadataStore = defineStore('metadata', () => {
     await metaDatabase.put(sourcesDoc)
   }
 
+  async function updateTabDocument (tabIndex, documentId) {
+    tabs.value[tabIndex].documentId = documentId
+    const sourcesDoc = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    sourcesDoc.tabs = tabs.value
+    await metaDatabase.put(sourcesDoc)
+  }
+
   async function closeTab (tabIndex) {
     const tabIndexToOpen = tabIndex - 1
     if (tabs.value[tabIndex].isOpen && tabIndexToOpen >= 0) {
@@ -66,5 +73,5 @@ export const useMetadataStore = defineStore('metadata', () => {
     await metaDatabase.put(sourcesDoc)
   }
 
-  return { databases, tabs, fetchMetadata, createDatabase, deleteDatabase, openNewTab, openTab, closeTab }
+  return { databases, tabs, fetchMetadata, createDatabase, deleteDatabase, openNewTab, openTab, updateTabDocument, closeTab }
 })
