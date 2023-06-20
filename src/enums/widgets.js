@@ -7,7 +7,8 @@ export const widgets = {
   folder: {
     label: 'Folder',
     icon: 'fa-solid fa-folder',
-    indexValue: false
+    indexValue: false,
+    hideHeader: true
   },
   link: {
     label: 'Link',
@@ -18,7 +19,8 @@ export const widgets = {
     label: 'Checkbox',
     icon: 'fa-solid fa-square-check',
     indexValue: false,
-    defaultValue: false
+    defaultValue: false,
+    hideHeader: true
   },
   audio: {
     label: 'Audio',

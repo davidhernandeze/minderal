@@ -4,8 +4,9 @@
     @click="clickAction"
   >
     <div class="flex justify-between">
+      <div v-if="widgetInfo.hideHeader" />
       <div
-        v-if="document.type !== 'folder'"
+        v-else
         class="flex-1 flex justify-start items-center text-gray-400 mb-2 truncate"
       >
         <i
@@ -16,7 +17,6 @@
           {{ document.name }}
         </div>
       </div>
-      <div v-else/>
       <Menu
         as="div"
         class="relative inline-block text-left"
@@ -81,6 +81,7 @@ const props = defineProps({
   }
 })
 const icon = widgets[props.document.type].icon
+const widgetInfo = widgets[props.document.type]
 const Widget = defineAsyncComponent(() => {
   const componentName = props.document.type.charAt(0).toUpperCase() + props.document.type.slice(1)
   return import(`./widgets/${componentName}.vue`)
