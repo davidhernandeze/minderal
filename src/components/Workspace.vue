@@ -44,7 +44,7 @@
       class="absolute mb-20 bottom-0 flex justify-center items-center w-full"
     >
       <button
-        class="border p-2 focus:border-green-500 active:border-green-500 rounded mr-1"
+        class="p-2 rounded mr-2 hover:bg-gray-600"
         @click="isTypesModalOpen = true"
       >
         <span v-if="iconRerender">
@@ -82,7 +82,7 @@ import { getDatabaseConnection } from '@/functions/database.js'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import WidgetWrapper from '@/components/WidgetWrapper.vue'
-import { widgets } from '@/enums/widgets.js'
+import { getWidgetList } from '@/enums/widgets.js'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 
 const props = defineProps({ databaseId: { type: String, default: null } })
@@ -103,7 +103,7 @@ const keys = useMagicKeys()
 const shiftCtrlA = keys['Ctrl+K']
 
 const isTypesModalOpen = ref(false)
-const selectedWidget = ref(widgets.text)
+const selectedWidget = ref(getWidgetList()[0])
 const iconRerender = ref(true)
 
 watch(shiftCtrlA, (v) => {
@@ -127,7 +127,7 @@ onMounted(async () => {
 })
 
 async function createDocument () {
-  await database.createDocument(inputValue.value, selectedWidget.value.index)
+  await database.createDocument(inputValue.value, selectedWidget.value)
   inputValue.value = ''
 }
 

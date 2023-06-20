@@ -1,5 +1,8 @@
 <template>
-  <Modal v-model:is-open="isOpen">
+  <Modal
+    v-model:is-open="isOpen"
+    @close="searchTypeValue = ''"
+  >
     <template #body>
       <div class="text-gray-50 my-4">
         <div class="flex items-center px-4">
@@ -12,12 +15,12 @@
           >
         </div>
 
-        <div class="p-4 grid grid-cols-4 gap-2 mt-1">
+        <div class="p-4 grid grid-cols-3 gap-2 mt-1">
           <button
             v-for="widget in filteredWidgets"
             :key="widget.index"
-            class="flex items-center border rounded-full p-1 px-2 hover:bg-gray-700 cursor-pointer text-sm shadow-sm"
-            @click="isOpen = false; emits('select', widget)"
+            class="flex items-center rounded-full p-1 px-3 hover:bg-gray-700 cursor-pointer text-md shadow-sm"
+            @click="isOpen = false; emits('select', widget); searchTypeValue = ''"
           >
             <i
               :class="widget.icon"
@@ -54,6 +57,7 @@ watch(() => props.openModal, (value) => {
 
 watch(isOpen, () => {
   emits('close')
+  searchTypeValue.value = ''
 })
 
 const filteredWidgets = computed(() => {

@@ -49,13 +49,13 @@ export function getDatabaseConnection (databaseId) {
     currentRoute.value = route.reverse()
   }
 
-  async function createDocument (value, type) {
+  async function createDocument (value, widget) {
     const docsLength = documents.value.length
     await database.post({
-      value: type === 'text' ? value : '',
-      name: type === 'text' ? '' : value,
-      type,
-      index_value: type.indexValue,
+      value: widget.index === 'text' ? value : '',
+      name: widget.index === 'text' ? '' : value,
+      type: widget.index,
+      index_value: widget.indexValue,
       parent_id: currentDocumentId.value ?? false,
       order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
     })

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-600 h-32 hover:bg-gray-800 rounded overflow-hidden relative cursor-pointer p-2 shadow-md">
+  <div class="bg-gray-600 h-28 hover:bg-gray-800 rounded overflow-hidden relative cursor-pointer p-2 shadow-md">
     <div class="flex justify-start items-center text-gray-400 mb-2">
       <i
         :class="icon"

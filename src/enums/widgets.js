@@ -23,6 +23,21 @@ export const widgets = {
     label: 'Audio',
     icon: 'fa-solid fa-microphone',
     indexValue: false
+  },
+  counter: {
+    label: 'Counter',
+    icon: 'fa-solid fa-plus-minus',
+    indexValue: false
+  },
+  countdown: {
+    label: 'Countdown',
+    icon: 'fa-solid fa-hourglass-half',
+    indexValue: false
+  },
+  todo: {
+    label: 'To-do',
+    icon: 'fa-solid fa-square-check',
+    indexValue: false
   }
 }
 
