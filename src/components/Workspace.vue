@@ -30,13 +30,14 @@
         >
       </div>
 
-      <div class="grid grid-cols-3 lg:grid-cols-4 gap-4 mt-4 w-full">
+      <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-4 w-full">
         <WidgetWrapper
           v-for="document in filteredDocuments"
           :key="document._id"
           :document="document"
           @navigate="navigate"
           @update="(value) => updateDocumentValue(document, value)"
+          @delete="deleteDocument"
         />
       </div>
     </div>
