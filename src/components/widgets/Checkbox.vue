@@ -15,7 +15,7 @@
 defineEmits(['update'])
 defineProps({
   document: {
-    type: Boolean,
+    type: Object,
     required: true
   }
 })

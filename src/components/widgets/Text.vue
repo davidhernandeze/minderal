@@ -7,7 +7,7 @@
 <script setup>
 defineProps({
   document: {
-    type: String,
+    type: Object,
     required: true
   }
 })
