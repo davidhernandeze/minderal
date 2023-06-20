@@ -1,12 +1,12 @@
 <template>
   <div class="text-xs">
-    {{ value }}
+    {{ document.value }}
   </div>
 </template>
 
 <script setup>
 defineProps({
-  value: {
+  document: {
     type: String,
     required: true
   }

@@ -1,13 +1,18 @@
 <template>
-  <div class="text-xs">
-    {{ value }}
+  <div class="flex justify-center h-full items-center box-border">
+    <div>
+      <div class="flex justify-center">
+        <i class="fa-solid fa-folder h-10 hover:h-11" />
+      </div>
+      <div>{{ document.name }}</div>
+    </div>
   </div>
 </template>
 
 <script setup>
 defineProps({
-  value: {
-    type: null,
+  document: {
+    type: Object,
     required: true
   }
 })

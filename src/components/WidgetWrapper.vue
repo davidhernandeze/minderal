@@ -4,7 +4,10 @@
     @click="clickAction"
   >
     <div class="flex justify-between">
-      <div class="flex-1 flex justify-start items-center text-gray-400 mb-2 truncate">
+      <div
+        v-if="document.type !== 'folder'"
+        class="flex-1 flex justify-start items-center text-gray-400 mb-2 truncate"
+      >
         <i
           :class="icon"
           class="h-3"
@@ -13,14 +16,19 @@
           {{ document.name }}
         </div>
       </div>
+      <div v-else/>
       <Menu
         as="div"
         class="relative inline-block text-left"
       >
         <div>
-          <MenuButton class="flex items-start" @click.stop="">
+          <MenuButton
+            class="flex items-start"
+            @click.stop
+          >
             <div
-              class="rounded-full p-1 text-gray-400 flex justify-center items-center hover:text-gray-100" >
+              class="rounded-full p-1 text-gray-400 flex justify-center items-center hover:text-gray-100"
+            >
               <i class="fa-solid h-3 fa-ellipsis-vertical" />
             </div>
           </MenuButton>
@@ -55,7 +63,7 @@
     </div>
     <div class="flex-1">
       <Widget
-        :value="document.value"
+        :document="document"
         @update="(value) => $emit('update', value)"
       />
     </div>
@@ -65,7 +73,7 @@
 import { defineAsyncComponent } from 'vue'
 import { widgets } from '@/enums/widgets.js'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
-const emits = defineEmits(['update', 'navigate', 'action'])
+const emits = defineEmits(['update', 'navigate', 'delete'])
 const props = defineProps({
   document: {
     type: Object,
