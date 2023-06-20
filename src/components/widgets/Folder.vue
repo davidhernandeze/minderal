@@ -7,7 +7,7 @@
 <script setup>
 defineProps({
   value: {
-    type: String,
+    type: null,
     required: true
   }
 })

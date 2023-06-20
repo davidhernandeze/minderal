@@ -1,5 +1,5 @@
 <template>
-  <div class="relative w-48 h-screen h-max-screen bg-gray-700 shadow-md">
+  <div class="relative hidden sm:block w-48 h-screen h-max-screen bg-gray-700 shadow-md">
     <div class="p-2">
       minderal2
     </div>

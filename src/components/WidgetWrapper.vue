@@ -43,7 +43,7 @@
                 <button
                   class="w-full text-left"
                   :class="[active ? 'bg-gray-700 text-gray-100' : 'text-gray-200', 'block px-4 py-2 text-sm']"
-                  @click="$emit(rowAction.action, document)"
+                  @click.stop="$emit(rowAction.action, document)"
                 >
                   {{ rowAction.label }}
                 </button>
