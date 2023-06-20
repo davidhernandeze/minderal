@@ -19,9 +19,10 @@ export function getDatabaseConnection (databaseId) {
   const currentRoute = ref([])
 
   database.changes({
-    since: 'now'
-  }).on('change', function (change) {
-    console.log(change)
+    since: 'now',
+    live: true
+  }).on('change', async function (change) {
+    await fetchDocuments()
   }).on('error', function (err) {
     console.log(err)
   })
