@@ -1,7 +1,7 @@
 <template>
   <div class="relative w-full h-full">
     <div class="p-4">
-      <div class="sticky top-0 bg-gray-700 z-10 pb-4 shadow-sm p-1">
+      <div class="sticky top-0 bg-gray-700 z-10 pb-4 shadow-sm">
         <div class="mt-1 mb-2 flex items-center">
           <DocumentRoute
             :route="currentRoute"
@@ -30,46 +30,50 @@
     </div>
     <div
       v-if="database"
-      class="fixed w-1/2 bottom-0 flex-center flex-wrap bg-gray-700 sm:px-4"
+      class="fixed w-full bottom-0 pb-0 p-3 mb-2"
     >
-      <div class="w-full sm:w-auto py-2">
-        <button
-          class="px-4 py-2 rounded mr-2 hover:bg-gray-600"
-          @click="isTypesModalOpen = true"
-        >
-          <span v-if="iconRerender">
-            <i
-              :class="selectedWidget.icon"
-              class="h-3 mr-2"
-            />
-          </span>
-          {{ selectedWidget.label }}
-        </button>
+      <div
+        class="flex-center flex-wrap bg-gray-700 shadow-md"
+      >
+        <div class="w-full sm:w-auto py-2">
+          <button
+            class="px-4 py-2 rounded mr-2 hover:bg-gray-600"
+            @click="isTypesModalOpen = true"
+          >
+            <span v-if="iconRerender">
+              <i
+                :class="selectedWidget.icon"
+                class="h-3 mr-2"
+              />
+            </span>
+            {{ selectedWidget.label }}
+          </button>
+        </div>
+        <div class="flex-1 p-2">
+          <input
+            ref="mainInput"
+            v-model="inputValue"
+            class="w-full text-gray-50 rounded text-md p-2 bg-gray-800"
+            type="text"
+            @keyup.enter="createDocument"
+          >
+        </div>
+        <div class="flex-center p-2">
+          <GenericButton
+            class="bg-indigo-600 hover:bg-indigo-500"
+            @click="createDocument"
+          >
+            Create
+          </GenericButton>
+        </div>
       </div>
-      <div class="flex-1 p-2">
-        <input
-          ref="mainInput"
-          v-model="inputValue"
-          class="w-full text-gray-50 rounded text-md p-2 bg-gray-800"
-          type="text"
-          @keyup.enter="createDocument"
-        >
-      </div>
-      <div class="flex-center p-2">
-        <GenericButton
-          class="bg-indigo-600 hover:bg-indigo-500"
-          @click="createDocument"
-        >
-          Create
-        </GenericButton>
-      </div>
-    </div>
 
-    <SelectWidgetModal
-      :open-modal="isTypesModalOpen"
-      @close="isTypesModalOpen = false"
-      @select="selectWidget"
-    />
+      <SelectWidgetModal
+        :open-modal="isTypesModalOpen"
+        @close="isTypesModalOpen = false"
+        @select="selectWidget"
+      />
+    </div>
   </div>
 </template>
 
