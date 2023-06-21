@@ -1,8 +1,8 @@
 <template>
   <div class="relative w-full h-full">
     <div class="p-4">
-      <div class="sticky top-0 bg-gray-700 z-10 pb-4 shadow-sm">
-        <div class="mt-1 mb-2 flex items-center">
+      <div class="sticky top-0 bg-gray-700 z-10 pb-4">
+        <div class="mt-2 mb-2 flex items-center">
           <DocumentRoute
             :route="currentRoute"
             @navigate="navigate"

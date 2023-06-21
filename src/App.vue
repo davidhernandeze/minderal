@@ -10,7 +10,7 @@
           <Tabs class="mt-1" />
           <div
             v-show="tabs.length > 0"
-            class="flex-1 overflow-y-auto bg-gray-700 rounded"
+            class="flex-1 overflow-y-auto bg-gray-700"
           >
             <WorkspaceManager />
           </div>
