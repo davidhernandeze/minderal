@@ -17,11 +17,18 @@
         />
       </div>
     </div>
+    <div
+      class="ml-3"
+      @click="useSidebar.showSidebar()"
+    >
+      connections
+    </div>
   </div>
 </template>
 <script setup>
 import { useMetadataStore } from '@/stores/metadata.js'
 import { storeToRefs } from 'pinia'
+import useSidebar from '@/composables/useSidebar.js'
 
 const metadataStore = useMetadataStore()
 const { tabs } = storeToRefs(metadataStore)

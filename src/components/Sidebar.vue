@@ -1,5 +1,11 @@
 <template>
-  <div class="relative hidden sm:block w-48 h-screen h-max-screen bg-gray-700 shadow-md">
+  <div
+    v-show="isSidebarVisible"
+    class="relative w-full sm:w-48 sm:block h-screen h-max-screen bg-gray-700 shadow-md"
+  >
+    <div @click="useSidebar.hideSidebar()" class="absolute right-0 top-0 p-1">
+      {{ '<<' }}
+    </div>
     <div class="p-2">
       minderal 2.0
     </div>
@@ -49,9 +55,11 @@ import { ref } from 'vue'
 import { useMetadataStore } from '@/stores/metadata.js'
 import { storeToRefs } from 'pinia'
 import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
+import useSidebar from '@/composables/useSidebar.js'
 
 const metadataStore = useMetadataStore()
 const { connections } = storeToRefs(metadataStore)
-
 const isConnectionSetupModalOpen = ref(false)
+
+const { isSidebarVisible } = useSidebar
 </script>

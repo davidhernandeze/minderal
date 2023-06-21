@@ -30,7 +30,7 @@
     </div>
     <div
       v-if="database"
-      class="absolute mb-20 bottom-0 flex-center w-full"
+      class="fixed sm:absolute bottom-0 flex-center w-full bg-gray-700"
     >
       <button
         class="p-2 rounded mr-2 hover:bg-gray-600"
