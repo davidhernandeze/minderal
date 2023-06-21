@@ -1,4 +1,4 @@
-
+import { useMetadataStore } from '@/stores/metadata.js'
 import PouchDB from 'pouchdb-browser'
 import { ref } from 'vue'
 
@@ -12,8 +12,10 @@ export async function getOrCreateDoc (database, id) {
   }
 }
 
-export function getDatabaseConnection (databaseId) {
-  const database = new PouchDB(databaseId)
+export async function getDatabaseConnection (databaseId) {
+  const databaseStore = useMetadataStore()
+  const databaseInfo = await databaseStore.getConnectionInfo(databaseId)
+  const database = new PouchDB(databaseInfo.connectionOptions)
   const documents = ref([])
   const currentDocumentId = ref('')
   const currentRoute = ref([])

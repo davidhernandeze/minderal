@@ -8,8 +8,13 @@ module.exports = {
     extend: {
       colors: {
         transparent: 'rgba(255, 255, 255, 0)',
+      },
+      fontSize: {
+        xss: '0.6rem'
       }
-    },
+    }
   },
-  plugins: [],
+  plugins: [
+    require('@tailwindcss/forms')
+  ],
 }

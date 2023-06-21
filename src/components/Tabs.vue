@@ -9,7 +9,7 @@
     >
       <span class="truncate text-xs">{{ tab.name }}</span>
       <div
-        class="h-3 w-3 rounded-full flex justify-center items-center hover:bg-gray-600"
+        class="h-3 w-3 rounded-full flex-center hover:bg-gray-600"
         @click.stop="metadataStore.closeTab(index)"
       >
         <i

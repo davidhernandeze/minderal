@@ -15,9 +15,9 @@ export const widgets = {
     icon: 'fa-solid fa-link',
     indexValue: true
   },
-  checkbox: {
-    label: 'Checkbox',
-    icon: 'fa-solid fa-square-check',
+  switch: {
+    label: 'Switch',
+    icon: 'fa-solid fa-toggle-on',
     indexValue: false,
     defaultValue: false,
     hideHeader: true

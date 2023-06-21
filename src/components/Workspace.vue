@@ -1,18 +1,5 @@
 <template>
   <div class="relative w-full h-full">
-    <div
-      v-if="database"
-      class="text-green-400 fixed top-0 right-0 m-1 text-xs"
-    >
-      <span>db: {{ database.id }}</span>
-      <span
-        class="ml-5"
-        @click="currentDoc = null"
-      >
-        doc: {{ currentDocumentId || 'root' }}
-      </span>
-    </div>
-
     <div class="p-4">
       <div class="mt-2 mb-4 flex items-center">
         <DocumentRoute
@@ -43,7 +30,7 @@
     </div>
     <div
       v-if="database"
-      class="absolute mb-20 bottom-0 flex justify-center items-center w-full"
+      class="absolute mb-20 bottom-0 flex-center w-full"
     >
       <button
         class="p-2 rounded mr-2 hover:bg-gray-600"
@@ -100,14 +87,12 @@ const props = defineProps({
 
 const emits = defineEmits(['navigate'])
 
-const database = getDatabaseConnection(props.databaseId)
+const database = await getDatabaseConnection(props.databaseId)
 const documents = database.documents
-const currentDocumentId = database.currentDocumentId
 const currentRoute = database.currentRoute
 
 const mainInput = ref(null)
 const inputValue = ref('')
-const currentDoc = ref(null)
 
 const searchInput = ref(null)
 const searchQuery = ref('')

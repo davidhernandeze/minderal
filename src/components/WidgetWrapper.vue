@@ -27,7 +27,7 @@
             @click.stop
           >
             <div
-              class="rounded-full p-1 text-gray-400 flex justify-center items-center hover:text-gray-100"
+              class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100"
             >
               <i class="fa-solid h-3 fa-ellipsis-vertical" />
             </div>

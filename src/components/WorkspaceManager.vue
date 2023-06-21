@@ -1,12 +1,14 @@
 <template>
-  <Workspace
-    v-for="(tab, index) in tabs"
-    v-show="tab.isOpen"
-    :key="tab.id"
-    :database-id="tab.databaseId"
-    :document-id="tab.documentId"
-    @navigate="(documentId) => updateTabDocument(index, documentId)"
-  />
+  <Suspense>
+    <Workspace
+      v-for="(tab, index) in tabs"
+      v-show="tab.isOpen"
+      :key="tab.id"
+      :database-id="tab.databaseId"
+      :document-id="tab.documentId"
+      @navigate="(documentId) => updateTabDocument(index, documentId)"
+    />
+  </Suspense>
 </template>
 
 <script setup>

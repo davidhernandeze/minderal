@@ -7,59 +7,72 @@ import { v4 as getId } from 'uuid'
 const META_DOC_ID = 'meta'
 export const useMetadataStore = defineStore('metadata', () => {
   const metaDatabase = new PouchDB('minderal')
-  const databases = ref([])
+  const connections = ref([])
   const tabs = ref([])
   async function fetchMetadata () {
     const sourcesDoc = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    sourcesDoc.databases ??= []
+    sourcesDoc.connections ??= []
     sourcesDoc.tabs ??= []
-    databases.value = sourcesDoc.databases
+    connections.value = sourcesDoc.connections
     tabs.value = sourcesDoc.tabs
   }
 
-  async function createDatabase (name) {
+  async function addConnection (name, host = null, username = null, password = null) {
     const id = getId()
-    const newDatabase = new PouchDB(id)
+    const options = { name }
+    if (host) {
+      options.name = `${host}/${options.name}`
+    }
+    if (username) {
+      options.auth = { username, password }
+    }
+    const optionsToStore = JSON.parse(JSON.stringify(options))
+    const newDatabase = new PouchDB(options)
     await newDatabase.createIndex({
       index: { fields: ['parent_id'] },
       ddoc: 'by_parent'
     })
-    databases.value.push({ id, name })
-    const sourcesDoc = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    sourcesDoc.databases = databases.value
-    await metaDatabase.put(sourcesDoc)
+    connections.value.push({ id, name, connectionOptions: optionsToStore })
+    const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    metaDocument.connections = connections.value
+    await metaDatabase.put(metaDocument)
+  }
+
+  async function getConnectionInfo (databaseId) {
+    const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    return metaDocument.connections.find((connection) => connection.id === databaseId)
   }
 
   async function deleteDatabase (id) {
-    const sourcesDoc = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    sourcesDoc.databases = sourcesDoc.databases.filter((db) => db.id !== id)
-    databases.value = sourcesDoc.databases
+    const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    metaDocument.databases = metaDocument.databases.filter((db) => db.id !== id)
+    connections.value = metaDocument.databases
     await new PouchDB(id).destroy()
-    await metaDatabase.put(sourcesDoc)
+    await metaDatabase.put(metaDocument)
   }
 
   async function openNewTab (databaseId, databaseName) {
     const id = getId()
     tabs.value.forEach(tab => { tab.isOpen = false })
     tabs.value.push({ id, name: databaseName, databaseId, documentId: null, isOpen: true })
-    const sourcesDoc = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    sourcesDoc.tabs = tabs.value
-    await metaDatabase.put(sourcesDoc)
+    const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    metaDocument.tabs = tabs.value
+    await metaDatabase.put(metaDocument)
   }
 
   async function openTab (tabIndex) {
     tabs.value.forEach(tab => { tab.isOpen = false })
     tabs.value[tabIndex].isOpen = true
-    const sourcesDoc = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    sourcesDoc.tabs = tabs.value
-    await metaDatabase.put(sourcesDoc)
+    const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    metaDocument.tabs = tabs.value
+    await metaDatabase.put(metaDocument)
   }
 
   async function updateTabDocument (tabIndex, documentId) {
     tabs.value[tabIndex].documentId = documentId
-    const sourcesDoc = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    sourcesDoc.tabs = tabs.value
-    await metaDatabase.put(sourcesDoc)
+    const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    metaDocument.tabs = tabs.value
+    await metaDatabase.put(metaDocument)
   }
 
   async function closeTab (tabIndex) {
@@ -68,10 +81,10 @@ export const useMetadataStore = defineStore('metadata', () => {
       tabs.value[tabIndexToOpen].isOpen = true
     }
     tabs.value.splice(tabIndex, 1)
-    const sourcesDoc = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    sourcesDoc.tabs = tabs.value
-    await metaDatabase.put(sourcesDoc)
+    const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    metaDocument.tabs = tabs.value
+    await metaDatabase.put(metaDocument)
   }
 
-  return { databases, tabs, fetchMetadata, createDatabase, deleteDatabase, openNewTab, openTab, updateTabDocument, closeTab }
+  return { connections, tabs, fetchMetadata, addConnection, getConnectionInfo, deleteDatabase, openNewTab, openTab, updateTabDocument, closeTab }
 })
