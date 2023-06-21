@@ -4,12 +4,13 @@
     class="relative w-full sm:w-48 sm:block h-screen h-max-screen bg-gray-700 shadow-md"
   >
     <div
-      class="absolute right-0 top-0 p-1"
+      v-show="tabs.length > 0"
+      class="absolute right-0 top-0 p-2 cursor-pointer text-gray-400 hover:text-gray-50 text-xs"
       @click="useSidebar.hideSidebar()"
     >
-      {{ '<<' }}
+      <i class="fa-light fa-times" />
     </div>
-    <div class="p-2">
+    <div class="p-2 text-xs">
       minderal 2.0
     </div>
     <div class="p-2">
@@ -22,7 +23,7 @@
           v-for="connection in connections"
           :key="connection.id"
           class="p-2 cursor-pointer rounded bg-gray-600 my-2 border border-gray-600 hover:border-gray-500 relative flex items-center justify-between"
-          @click="metadataStore.openNewTab(connection.id, connection.name)"
+          @click="openNewTab(connection.id, connection.name)"
         >
           <div class="flex items-center">
             <i class="fa-solid fa-circle h-2 text-green-400 mr-2" />
@@ -61,8 +62,13 @@ import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
 import useSidebar from '@/composables/useSidebar.js'
 
 const metadataStore = useMetadataStore()
-const { connections } = storeToRefs(metadataStore)
+const { connections, tabs } = storeToRefs(metadataStore)
 const isConnectionSetupModalOpen = ref(false)
 
 const { isSidebarVisible } = useSidebar
+
+function openNewTab (connectionId, connectionName) {
+  metadataStore.openNewTab(connectionId, connectionName)
+  useSidebar.onTabOpen()
+}
 </script>

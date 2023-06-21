@@ -1,23 +1,23 @@
 <template>
   <div class="relative w-full h-full">
     <div class="p-4">
-      <div class="mt-2 mb-4 flex items-center">
-        <DocumentRoute
-          :route="currentRoute"
-          @navigate="navigate"
-        />
-      </div>
-      <div class="flex">
+      <div class="sticky top-0 bg-gray-700 z-10 pb-4 shadow-sm p-1">
+        <div class="mt-1 mb-2 flex items-center">
+          <DocumentRoute
+            :route="currentRoute"
+            @navigate="navigate"
+          />
+        </div>
         <input
           ref="searchInput"
           v-model="searchQuery"
-          class="border-none bg-transparent p-1 w-1/2 my-3 focus:outline-none"
+          class="border-none bg-transparent p-1 pl-0 focus:outline-none w-full"
           type="text"
           placeholder="Search..."
         >
       </div>
 
-      <div class="grid grid-cols-1 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-4 w-full">
+      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full mb-20">
         <WidgetWrapper
           v-for="document in filteredDocuments"
           :key="document._id"
@@ -30,31 +30,39 @@
     </div>
     <div
       v-if="database"
-      class="fixed sm:absolute bottom-0 flex-center w-full bg-gray-700"
+      class="fixed w-1/2 bottom-0 flex-center flex-wrap bg-gray-700 sm:px-4"
     >
-      <button
-        class="p-2 rounded mr-2 hover:bg-gray-600"
-        @click="isTypesModalOpen = true"
-      >
-        <span v-if="iconRerender">
-          <i
-            :class="selectedWidget.icon"
-            class="h-3 mr-2"
-          />
-        </span>
-        {{ selectedWidget.label }}
-      </button>
-      <input
-        ref="mainInput"
-        v-model="inputValue"
-        class="text-gray-50 rounded text-md p-2 w-96 bg-gray-800"
-        type="text"
-        @keyup.enter="createDocument"
-      >
-      <span
-        class="ml-2 text-gray-100"
-        @click="createDocument"
-      >Enter to save</span>
+      <div class="w-full sm:w-auto py-2">
+        <button
+          class="px-4 py-2 rounded mr-2 hover:bg-gray-600"
+          @click="isTypesModalOpen = true"
+        >
+          <span v-if="iconRerender">
+            <i
+              :class="selectedWidget.icon"
+              class="h-3 mr-2"
+            />
+          </span>
+          {{ selectedWidget.label }}
+        </button>
+      </div>
+      <div class="flex-1 p-2">
+        <input
+          ref="mainInput"
+          v-model="inputValue"
+          class="w-full text-gray-50 rounded text-md p-2 bg-gray-800"
+          type="text"
+          @keyup.enter="createDocument"
+        >
+      </div>
+      <div class="flex-center p-2">
+        <GenericButton
+          class="bg-indigo-600 hover:bg-indigo-500"
+          @click="createDocument"
+        >
+          Create
+        </GenericButton>
+      </div>
     </div>
 
     <SelectWidgetModal
@@ -73,6 +81,7 @@ import { useMagicKeys } from '@vueuse/core'
 import WidgetWrapper from '@/components/WidgetWrapper.vue'
 import { getWidgetList } from '@/enums/widgets.js'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
+import GenericButton from '@/components/GenericButton.vue'
 
 const props = defineProps({
   databaseId: {

@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-800 w-full h-10 overflow-hidden flex">
+  <div class="bg-gray-800 w-full h-10 overflow-x-hidden flex">
     <div
       v-for="(tab, index) in tabs"
       :key="tab.id"
@@ -18,10 +18,11 @@
       </div>
     </div>
     <div
-      class="ml-3"
+      v-show="!isSidebarVisible"
+      class="p-2 rounded-t w-8 flex-center cursor-pointer mr-0.5"
       @click="useSidebar.showSidebar()"
     >
-      connections
+      <i class="fa-light h-3 fa-add" />
     </div>
   </div>
 </template>
@@ -32,4 +33,6 @@ import useSidebar from '@/composables/useSidebar.js'
 
 const metadataStore = useMetadataStore()
 const { tabs } = storeToRefs(metadataStore)
+
+const { isSidebarVisible } = useSidebar
 </script>
