@@ -60,7 +60,6 @@ import Modal from '@/components/Modal.vue'
 import SwitchInput from '@/components/SwitchInput.vue'
 import TextInput from '@/components/TextInput.vue'
 import GenericButton from '@/components/GenericButton.vue'
-import PouchDB from 'pouchdb-browser'
 import { useMetadataStore } from '@/stores/metadata.js'
 
 const emits = defineEmits(['close', 'select'])

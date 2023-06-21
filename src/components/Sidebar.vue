@@ -3,7 +3,10 @@
     v-show="isSidebarVisible"
     class="relative w-full sm:w-48 sm:block h-screen h-max-screen bg-gray-700 shadow-md"
   >
-    <div @click="useSidebar.hideSidebar()" class="absolute right-0 top-0 p-1">
+    <div
+      class="absolute right-0 top-0 p-1"
+      @click="useSidebar.hideSidebar()"
+    >
       {{ '<<' }}
     </div>
     <div class="p-2">
