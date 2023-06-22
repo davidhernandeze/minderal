@@ -2,16 +2,20 @@ import { useMetadataStore } from '@/stores/metadata.js'
 import PouchDB from 'pouchdb-browser'
 import { ref } from 'vue'
 
-export function useDatabase (databaseId) {
+export function useDatabase (databaseId, documentId = '') {
   let database
   const metadataStore = useMetadataStore()
+  const connectionDone = ref(false)
   metadataStore.getConnectionInfo(databaseId).then(async (info) => {
     database = new PouchDB(info.connectionOptions)
+    await fetchCurrentDocument()
     await fetchDocuments()
     listenForChanges()
+    connectionDone.value = true
   })
+  const currentDocumentId = ref(documentId)
+  const currentDocument = ref()
   const documents = ref([])
-  const currentDocumentId = ref('')
   const currentRoute = ref([])
 
   function listenForChanges () {
@@ -25,9 +29,13 @@ export function useDatabase (databaseId) {
     })
   }
 
-  async function fetchDocuments (parentId = currentDocumentId.value) {
+  async function fetchCurrentDocument () {
+    if (!currentDocumentId.value) return
+    currentDocument.value = await database.get(currentDocumentId.value)
+  }
+  async function fetchDocuments () {
     const allDocs = await database.find({
-      selector: { parent_id: parentId ?? false }
+      selector: { parent_id: currentDocumentId.value ?? false }
     })
     documents.value = allDocs.docs.sort((a, b) => a.order > b.order ? 1 : -1)
     await fetchCurrentDocumentRoute()
@@ -78,10 +86,10 @@ export function useDatabase (databaseId) {
 
   return {
     id: databaseId,
-    currentDocumentId,
+    currentDocument,
     currentRoute,
     documents,
-    fetchDocuments,
+    connectionDone,
     setCurrentDocument,
     createDocument,
     updateDocument,

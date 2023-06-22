@@ -10,22 +10,17 @@
       <input
         ref="searchInput"
         v-model="searchQuery"
-        class="border-none bg-transparent p-1 pl-0 focus:outline-none w-full"
+        class="border-none bg-transparent p-1 pl-0 focus:outline-none outline-none w-full rounded focus:ring-0"
         type="text"
         placeholder="Search..."
       >
     </div>
-    <div class="grow-0 overflow-y-auto">
-      <div class="pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-        <WidgetWrapper
-          v-for="document in filteredDocuments"
-          :key="document._id"
-          :document="document"
-          @navigate="navigate"
-          @update="(value) => updateDocumentValue(document, value)"
-          @delete="deleteDocument"
-        />
-      </div>
+    <div class="flex-1 overflow-y-auto">
+      <ExpandedWidget
+        v-if="connectionDone"
+        :expanded="true"
+        @navigate="navigate"
+      />
     </div>
     <div
       class="grow-0 pb-0 p-3"
@@ -76,10 +71,9 @@
 </template>
 
 <script setup>
-import { computed, nextTick, ref, watch } from 'vue'
+import { defineAsyncComponent, nextTick, provide, ref, watch } from 'vue'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
-import WidgetWrapper from '@/components/WidgetWrapper.vue'
 import { getWidgetList } from '@/enums/widgets.js'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
@@ -92,14 +86,14 @@ const props = defineProps({
   },
   documentId: {
     type: String,
-    default: null
+    default: ''
   }
 })
 
 const emits = defineEmits(['navigate'])
 
-const database = useDatabase(props.databaseId)
-const { documents, currentRoute } = database
+const database = useDatabase(props.databaseId, props.documentId)
+const { currentRoute, currentDocument, connectionDone } = database
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -114,32 +108,26 @@ const isTypesModalOpen = ref(false)
 const selectedWidget = ref(getWidgetList()[0])
 const iconRerender = ref(true)
 
+provide('database', database)
+provide('searchQuery', searchQuery)
+
+const ExpandedWidget = defineAsyncComponent(() => {
+  let type = 'folder'
+  if (props.documentId) {
+    type = currentDocument.value.type
+  }
+  const componentName = type.charAt(0).toUpperCase() + type.slice(1)
+  return import(`./widgets/${componentName}.vue`)
+})
+
 watch(shiftCtrlA, (v) => {
   if (!v) return
   searchInput.value.focus()
 })
 
-const filteredDocuments = computed(() => {
-  return documents.value.filter((doc) => {
-    let searchableContent = doc.name
-    if (doc.index_value) {
-      searchableContent += ' ' + doc.value
-    }
-    return searchableContent.toLowerCase().indexOf(searchQuery.value.toLowerCase()) > -1
-  })
-})
-
 async function createDocument () {
   await database.createDocument(inputValue.value, selectedWidget.value)
   inputValue.value = ''
-}
-
-async function updateDocumentValue (document, value) {
-  await database.updateDocument(document, value)
-}
-
-async function deleteDocument (document) {
-  await database.deleteDocument(document)
 }
 
 async function selectWidget (widget) {

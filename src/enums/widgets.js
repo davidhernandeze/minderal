@@ -8,7 +8,8 @@ export const widgets = {
     label: 'Folder',
     icon: 'fa-solid fa-folder',
     indexValue: false,
-    hideHeader: true
+    hideHeader: true,
+    expandable: true
   },
   link: {
     label: 'Link',
@@ -40,7 +41,8 @@ export const widgets = {
   todo: {
     label: 'To-do',
     icon: 'fa-solid fa-square-check',
-    indexValue: false
+    indexValue: false,
+    expandable: true
   }
 }
 

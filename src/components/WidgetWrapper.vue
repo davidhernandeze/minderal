@@ -87,8 +87,10 @@ const Widget = defineAsyncComponent(() => {
   return import(`./widgets/${componentName}.vue`)
 })
 
+const widget = widgets[props.document.type]
+
 function clickAction () {
-  if (props.document.type === 'folder') {
+  if (widget.expandable) {
     emits('navigate', props.document._id)
   }
 }
