@@ -1,23 +1,22 @@
 <template>
-  <div class="relative w-full h-full">
-    <div class="p-4">
-      <div class="sticky top-0 bg-gray-700 z-10 pb-4">
-        <div class="mt-2 mb-2 flex items-center">
-          <DocumentRoute
-            :route="currentRoute"
-            @navigate="navigate"
-          />
-        </div>
-        <input
-          ref="searchInput"
-          v-model="searchQuery"
-          class="border-none bg-transparent p-1 pl-0 focus:outline-none w-full"
-          type="text"
-          placeholder="Search..."
-        >
+  <div class="h-full flex flex-col bg-gray-700 p-4">
+    <div class="grow-0 bg-gray-700 z-10 mb-2">
+      <div class="flex items-center">
+        <DocumentRoute
+          :route="currentRoute"
+          @navigate="navigate"
+        />
       </div>
-
-      <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4 w-full mb-20">
+      <input
+        ref="searchInput"
+        v-model="searchQuery"
+        class="border-none bg-transparent p-1 pl-0 focus:outline-none w-full"
+        type="text"
+        placeholder="Search..."
+      >
+    </div>
+    <div class="grow-0 overflow-y-auto">
+      <div class="pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         <WidgetWrapper
           v-for="document in filteredDocuments"
           :key="document._id"
@@ -29,11 +28,10 @@
       </div>
     </div>
     <div
-      v-if="database"
-      class="fixed w-full bottom-0 pb-0 p-3 mb-2"
+      class="grow-0 pb-0 p-3"
     >
       <div
-        class="flex-center flex-wrap bg-gray-700 shadow-md"
+        class="flex-center flex-wrap bg-gray-700 shadow-lg rounded"
       >
         <div class="w-full sm:w-auto py-2">
           <button
@@ -78,14 +76,14 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onMounted, ref, watch } from 'vue'
-import { getDatabaseConnection } from '@/functions/database.js'
+import { computed, nextTick, ref, watch } from 'vue'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import WidgetWrapper from '@/components/WidgetWrapper.vue'
 import { getWidgetList } from '@/enums/widgets.js'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
+import { useDatabase } from '@/composables/useDatabase.js'
 
 const props = defineProps({
   databaseId: {
@@ -100,9 +98,8 @@ const props = defineProps({
 
 const emits = defineEmits(['navigate'])
 
-const database = await getDatabaseConnection(props.databaseId)
-const documents = database.documents
-const currentRoute = database.currentRoute
+const database = useDatabase(props.databaseId)
+const { documents, currentRoute } = database
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -130,15 +127,6 @@ const filteredDocuments = computed(() => {
     }
     return searchableContent.toLowerCase().indexOf(searchQuery.value.toLowerCase()) > -1
   })
-})
-
-onMounted(async () => {
-  if (database.value) mainInput.value.focus()
-  if (props.documentId) {
-    await database.setCurrentDocument(props.documentId)
-    return
-  }
-  await database.fetchDocuments()
 })
 
 async function createDocument () {

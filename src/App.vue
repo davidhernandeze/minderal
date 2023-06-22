@@ -1,21 +1,18 @@
 <template>
-  <div class="h-screen w-screen bg-gray-900 text-gray-100">
-    <div class="flex">
-      <Sidebar />
-      <div
-        :class="[isSidebarVisible ? 'hidden sm:block' : 'block']"
-        class="w-full bg-gray-800 p-2 pr-0 h-screen"
-      >
-        <div class="flex flex-col h-full">
-          <Tabs class="mt-1" />
-          <div
-            v-show="tabs.length > 0"
-            class="flex-1 overflow-y-auto bg-gray-700"
-          >
-            <WorkspaceManager />
-          </div>
-        </div>
-      </div>
+  <div
+    v-if="true"
+    class="max-h-screen h-screen bg-gray-800 text-gray-100 flex"
+  >
+    <Sidebar class="flex-none" />
+    <div
+      :class="[isSidebarVisible ? 'hidden sm:block' : 'block']"
+      class="w-full pl-2 pr-0 pb-0"
+    >
+      <Tabs class="h-[5vh] pt-1" />
+      <WorkspaceManager
+        v-show="tabs.length > 0"
+        class="h-[95vh]"
+      />
     </div>
   </div>
 </template>
@@ -44,6 +41,7 @@ onBeforeMount(async () => {
 <style>
 
 html {
+    background-color: green;
     font-family: 'Selawk Light', serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;

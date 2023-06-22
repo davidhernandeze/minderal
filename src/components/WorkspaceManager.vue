@@ -1,5 +1,5 @@
 <template>
-  <Suspense>
+  <div>
     <Workspace
       v-for="(tab, index) in tabs"
       v-show="tab.isOpen"
@@ -8,7 +8,7 @@
       :document-id="tab.documentId"
       @navigate="(documentId) => updateTabDocument(index, documentId)"
     />
-  </Suspense>
+  </div>
 </template>
 
 <script setup>

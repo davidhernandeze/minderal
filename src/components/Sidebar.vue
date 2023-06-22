@@ -1,7 +1,7 @@
 <template>
   <div
     v-show="isSidebarVisible"
-    class="relative w-full sm:w-48 sm:block h-screen h-max-screen bg-gray-700 shadow-md"
+    class="relative w-full sm:w-48 sm:block h-max-screen bg-gray-700 shadow-md"
   >
     <div
       v-show="tabs.length > 0"

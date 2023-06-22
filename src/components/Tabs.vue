@@ -1,5 +1,5 @@
 <template>
-  <div class="bg-gray-800 w-full h-10 overflow-x-hidden flex">
+  <div class="w-full flex">
     <div
       v-for="(tab, index) in tabs"
       :key="tab.id"
