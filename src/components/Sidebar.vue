@@ -6,7 +6,7 @@
     <div
       v-show="tabs.length > 0"
       class="absolute right-0 top-0 p-2 cursor-pointer text-gray-400 hover:text-gray-50 text-xs"
-      @click="useSidebar.hideSidebar()"
+      @click="sidebarStore.hideSidebar()"
     >
       <i class="fa-light fa-times" />
     </div>
@@ -59,16 +59,16 @@ import { ref } from 'vue'
 import { useMetadataStore } from '@/stores/metadata.js'
 import { storeToRefs } from 'pinia'
 import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
-import useSidebar from '@/composables/useSidebar.js'
+import sidebarStore from '@/stores/sidebar.js'
 
 const metadataStore = useMetadataStore()
 const { connections, tabs } = storeToRefs(metadataStore)
 const isConnectionSetupModalOpen = ref(false)
 
-const { isSidebarVisible } = useSidebar
+const { isSidebarVisible } = sidebarStore
 
 function openNewTab (connectionId, connectionName) {
   metadataStore.openNewTab(connectionId, connectionName)
-  useSidebar.onTabOpen()
+  sidebarStore.onTabOpen()
 }
 </script>

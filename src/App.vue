@@ -22,18 +22,16 @@ import Tabs from '@/components/Tabs.vue'
 import { useMetadataStore } from '@/stores/metadata.js'
 import { onBeforeMount } from 'vue'
 import WorkspaceManager from '@/components/WorkspaceManager.vue'
-import useSidebar from '@/composables/useSidebar.js'
+import sidebarStore from '@/stores/sidebar.js'
 import { storeToRefs } from 'pinia'
 
-const { isSidebarVisible } = useSidebar
+const { isSidebarVisible } = sidebarStore
 
 const metadataStore = useMetadataStore()
 const { tabs } = storeToRefs(metadataStore)
 
-const { fetchMetadata } = useMetadataStore()
-
 onBeforeMount(async () => {
-  await fetchMetadata()
+  await metadataStore.fetchMetadata()
 })
 
 </script>

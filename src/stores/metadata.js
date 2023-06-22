@@ -3,19 +3,18 @@ import { ref } from 'vue'
 import PouchDB from 'pouchdb-browser'
 import { getOrCreateDoc } from '@/functions/database.js'
 import { v4 as getId } from 'uuid'
-import useSidebar from '@/composables/useSidebar.js'
+import sidebarStore from '@/stores/sidebar.js'
 
 const META_DOC_ID = 'meta'
 export const useMetadataStore = defineStore('metadata', () => {
   const metaDatabase = new PouchDB('minderal')
   const connections = ref([])
   const tabs = ref([])
-  const { isSidebarVisible } = useSidebar
   async function fetchMetadata () {
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     metaDocument.connections ??= []
     metaDocument.tabs ??= []
-    isSidebarVisible.value = metaDocument.tabs.length < 1
+    if (metaDocument.tabs.length < 1) sidebarStore.showSidebar()
     connections.value = metaDocument.connections
     tabs.value = metaDocument.tabs
   }
@@ -86,7 +85,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     tabs.value.splice(tabIndex, 1)
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     metaDocument.tabs = tabs.value
-    isSidebarVisible.value = metaDocument.tabs.length === 0
+    if (metaDocument.tabs.length === 0) sidebarStore.showSidebar()
     await metaDatabase.put(metaDocument)
   }
 

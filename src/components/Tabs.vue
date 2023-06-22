@@ -20,7 +20,7 @@
     <div
       v-show="!isSidebarVisible"
       class="p-2 rounded-t w-8 flex-center cursor-pointer mr-0.5"
-      @click="useSidebar.showSidebar()"
+      @click="sidebarStore.showSidebar()"
     >
       <i class="fa-light h-3 fa-add" />
     </div>
@@ -29,10 +29,10 @@
 <script setup>
 import { useMetadataStore } from '@/stores/metadata.js'
 import { storeToRefs } from 'pinia'
-import useSidebar from '@/composables/useSidebar.js'
+import sidebarStore from '@/stores/sidebar.js'
 
 const metadataStore = useMetadataStore()
 const { tabs } = storeToRefs(metadataStore)
 
-const { isSidebarVisible } = useSidebar
+const { isSidebarVisible } = sidebarStore
 </script>

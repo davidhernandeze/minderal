@@ -1,25 +1,25 @@
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { useWindowSize } from '@vueuse/core'
 
 const { width } = useWindowSize()
-const isSidebarVisible = ref(width.value >= 640)
+const isVisible = ref(width.value >= 640)
 
 function showSidebar () {
-  isSidebarVisible.value = true
+  isVisible.value = true
 }
 
 function hideSidebar () {
-  isSidebarVisible.value = false
+  isVisible.value = false
 }
 
 function onTabOpen () {
   if (width.value < 640) {
-    isSidebarVisible.value = false
+    hideSidebar()
   }
 }
 
 export default {
-  isSidebarVisible,
+  isSidebarVisible: computed(() => isVisible.value),
   showSidebar,
   hideSidebar,
   onTabOpen
