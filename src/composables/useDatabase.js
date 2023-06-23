@@ -8,10 +8,8 @@ export function useDatabase (databaseId, documentId = '') {
   const connectionDone = ref(false)
   metadataStore.getConnectionInfo(databaseId).then(async (info) => {
     database = new PouchDB(info.connectionOptions)
-    await fetchCurrentDocument()
-    await fetchDocuments()
+    fetch()
     listenForChanges()
-    connectionDone.value = true
   })
   const currentDocumentId = ref(documentId)
   const currentDocument = ref()
@@ -27,6 +25,12 @@ export function useDatabase (databaseId, documentId = '') {
     }).on('error', function (err) {
       console.log(err)
     })
+  }
+
+  async function fetch () {
+    await fetchCurrentDocument()
+    await fetchDocuments()
+    connectionDone.value = true
   }
 
   async function fetchCurrentDocument () {
@@ -80,8 +84,9 @@ export function useDatabase (databaseId, documentId = '') {
   }
 
   async function setCurrentDocument (documentId) {
+    connectionDone.value = false
     currentDocumentId.value = documentId
-    await fetchDocuments()
+    await fetch()
   }
 
   return {

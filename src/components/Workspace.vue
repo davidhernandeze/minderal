@@ -18,7 +18,6 @@
     <div class="flex-1 overflow-y-auto">
       <ExpandedWidget
         v-if="connectionDone"
-        :expanded="true"
         @navigate="navigate"
       />
     </div>
@@ -71,10 +70,11 @@
 </template>
 
 <script setup>
-import { defineAsyncComponent, nextTick, provide, ref, watch } from 'vue'
+import { nextTick, provide, ref, watch } from 'vue'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import { getWidgetList } from '@/enums/widgets.js'
+import ExpandedWidget from '@/components/ExpandedWidget.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
 import { useDatabase } from '@/composables/useDatabase.js'
@@ -93,7 +93,7 @@ const props = defineProps({
 const emits = defineEmits(['navigate'])
 
 const database = useDatabase(props.databaseId, props.documentId)
-const { currentRoute, currentDocument, connectionDone } = database
+const { currentRoute, connectionDone } = database
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -110,15 +110,6 @@ const iconRerender = ref(true)
 
 provide('database', database)
 provide('searchQuery', searchQuery)
-
-const ExpandedWidget = defineAsyncComponent(() => {
-  let type = 'folder'
-  if (props.documentId) {
-    type = currentDocument.value.type
-  }
-  const componentName = type.charAt(0).toUpperCase() + type.slice(1)
-  return import(`./widgets/${componentName}.vue`)
-})
 
 watch(shiftCtrlA, (v) => {
   if (!v) return
