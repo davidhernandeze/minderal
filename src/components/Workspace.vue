@@ -22,6 +22,7 @@
       />
     </div>
     <div
+      v-show="true"
       class="grow-0 pb-0 p-3"
     >
       <div
@@ -70,10 +71,10 @@
 </template>
 
 <script setup>
-import { nextTick, provide, ref, watch } from 'vue'
+import { computed, nextTick, provide, ref, watch } from 'vue'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
-import { getWidgetList } from '@/enums/widgets.js'
+import { getWidgetList, widgets } from '@/enums/widgets.js'
 import ExpandedWidget from '@/components/ExpandedWidget.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
@@ -93,7 +94,7 @@ const props = defineProps({
 const emits = defineEmits(['navigate'])
 
 const database = useDatabase(props.databaseId, props.documentId)
-const { currentRoute, connectionDone } = database
+const { currentRoute, connectionDone, currentDocument } = database
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -114,6 +115,10 @@ provide('searchQuery', searchQuery)
 watch(shiftCtrlA, (v) => {
   if (!v) return
   searchInput.value.focus()
+})
+
+const showMainInput = computed(() => {
+  return widgets[currentDocument.type]?.showMainInput
 })
 
 async function createDocument () {

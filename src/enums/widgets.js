@@ -9,7 +9,8 @@ export const widgets = {
     icon: 'fa-solid fa-folder',
     indexValue: false,
     hideHeader: true,
-    expandable: true
+    expandable: true,
+    showMainInput: true
   },
   link: {
     label: 'Link',
