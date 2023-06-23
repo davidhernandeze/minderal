@@ -41,7 +41,7 @@ export const widgets = {
   },
   todo: {
     label: 'To-do',
-    icon: 'fa-solid fa-square-check',
+    icon: 'fa-solid fa-list-check',
     indexValue: false,
     expandable: true,
     defaultValue: []
