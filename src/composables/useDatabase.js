@@ -78,12 +78,12 @@ export function useDatabase (databaseId, documentId = '') {
   async function updateDocument (document, value) {
     document.value = value
     await database.put(document)
-    await fetchDocuments()
+    await fetch()
   }
 
   async function deleteDocument (document) {
     await database.remove(document)
-    await fetchDocuments()
+    await fetch()
   }
 
   async function setCurrentDocument (documentId) {

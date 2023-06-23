@@ -22,7 +22,7 @@
       />
     </div>
     <div
-      v-show="true"
+      v-show="showMainInput"
       class="grow-0 pb-0 p-3"
     >
       <div
@@ -118,7 +118,11 @@ watch(shiftCtrlA, (v) => {
 })
 
 const showMainInput = computed(() => {
-  return widgets[currentDocument.type]?.showMainInput
+  let type = 'folder'
+  if (currentDocument.value) {
+    type = currentDocument.value.type
+  }
+  return widgets[type].showMainInput
 })
 
 async function createDocument () {

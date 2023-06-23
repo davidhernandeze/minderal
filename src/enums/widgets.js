@@ -43,7 +43,8 @@ export const widgets = {
     label: 'To-do',
     icon: 'fa-solid fa-square-check',
     indexValue: false,
-    expandable: true
+    expandable: true,
+    defaultValue: []
   }
 }
 

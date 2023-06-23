@@ -3,7 +3,7 @@
     :expanded="true"
     :document="document"
     @navigate="(documentId) => $emit('navigate', documentId)"
-    @update="(value) => updateDocumentValue(widget, value)"
+    @update="(value) => database.updateDocument(document, value)"
   />
 </template>
 <script setup>
