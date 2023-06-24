@@ -14,6 +14,7 @@
         class="h-[95vh]"
       />
     </div>
+    <div class="text-gray-600 text-xs fixed bottom-0 m-2">v0.1</div>
   </div>
 </template>
 <script setup>
