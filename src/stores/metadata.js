@@ -78,8 +78,8 @@ export const useMetadataStore = defineStore('metadata', () => {
   }
 
   async function closeTab (tabIndex) {
-    const tabIndexToOpen = tabIndex - 1
-    if (tabs.value[tabIndex].isOpen && tabIndexToOpen >= 0) {
+    const tabIndexToOpen = tabIndex === 0 ? tabIndex + 1 : tabIndex - 1
+    if (tabs.value[tabIndex].isOpen && tabIndexToOpen >= 0 && tabs.value.length > 1) {
       tabs.value[tabIndexToOpen].isOpen = true
     }
     tabs.value.splice(tabIndex, 1)
