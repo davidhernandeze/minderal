@@ -42,7 +42,7 @@ export function useDatabase (databaseId, documentId = '') {
   }
   async function fetchDocuments () {
     const allDocs = await database.find({
-      selector: { parent_id: currentDocumentId.value ?? false }
+      selector: { parent_id: currentDocumentId.value ?? '' }
     })
     documents.value = allDocs.docs.sort((a, b) => a.order > b.order ? 1 : -1)
     await fetchCurrentDocumentRoute()
@@ -69,7 +69,7 @@ export function useDatabase (databaseId, documentId = '') {
       name: widget.index === 'text' ? '' : value,
       type: widget.index,
       index_value: widget.indexValue,
-      parent_id: currentDocumentId.value ?? false,
+      parent_id: currentDocumentId.value ?? '',
       order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
     })
     await fetchDocuments()
