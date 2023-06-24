@@ -71,7 +71,7 @@
 </template>
 
 <script setup>
-import { computed, nextTick, provide, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import { getWidgetList, widgets } from '@/enums/widgets.js'
@@ -142,4 +142,8 @@ async function navigate (documentId) {
   await database.setCurrentDocument(documentId)
   emits('navigate', documentId)
 }
+
+onBeforeUnmount(async () => {
+  await database.closeConnection()
+})
 </script>

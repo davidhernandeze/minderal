@@ -92,6 +92,10 @@ export function useDatabase (databaseId, documentId = '') {
     await fetch()
   }
 
+  async function closeConnection () {
+    await database.close()
+  }
+
   return {
     id: databaseId,
     currentDocument,
@@ -101,6 +105,7 @@ export function useDatabase (databaseId, documentId = '') {
     setCurrentDocument,
     createDocument,
     updateDocument,
-    deleteDocument
+    deleteDocument,
+    closeConnection
   }
 }
