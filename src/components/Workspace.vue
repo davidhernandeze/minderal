@@ -15,7 +15,7 @@
         placeholder="Search..."
       >
     </div>
-    <div class="flex-1 overflow-y-auto">
+    <div class="flex-1 overflow-y-auto pb-36">
       <ExpandedWidget
         v-if="connectionDone"
         @navigate="navigate"
@@ -23,44 +23,48 @@
     </div>
     <div
       v-show="showMainInput"
-      class="grow-0 pb-0 p-3"
+      class="fixed right-0 bottom-0 p-3 pb-0 w-full flex justify-center"
     >
       <div
-        class="flex-center flex-wrap bg-gray-700 shadow-lg rounded"
+        :class="{ 'sm:pl-48': isSidebarVisible }"
+        class="w-full max-w-3xl"
       >
-        <div class="w-full sm:w-auto py-2">
-          <button
-            class="px-4 py-2 rounded mr-2 hover:bg-gray-600"
-            @click="isTypesModalOpen = true"
-          >
-            <span v-if="iconRerender">
-              <i
-                :class="selectedWidget.icon"
-                class="h-3 mr-2"
-              />
-            </span>
-            {{ selectedWidget.label }}
-          </button>
-        </div>
-        <div class="flex-1 p-2">
-          <input
-            ref="mainInput"
-            v-model="inputValue"
-            class="w-full text-gray-50 rounded text-md p-2 bg-gray-800"
-            type="text"
-            @keyup.enter="createDocument"
-          >
-        </div>
-        <div class="flex-center p-2">
-          <GenericButton
-            class="bg-indigo-600 hover:bg-indigo-500"
-            @click="createDocument"
-          >
-            Create
-          </GenericButton>
+        <div
+          class="flex-center p-1 py-2 flex-wrap bg-gray-700 shadow-lg rounded"
+        >
+          <div class="w-full sm:w-auto py-2">
+            <button
+              class="px-4 py-2 rounded mr-2 hover:bg-gray-600"
+              @click="isTypesModalOpen = true"
+            >
+              <span v-if="iconRerender">
+                <i
+                  :class="selectedWidget.icon"
+                  class="h-3 mr-2"
+                />
+              </span>
+              {{ selectedWidget.label }}
+            </button>
+          </div>
+          <div class="flex-1 p-2">
+            <input
+              ref="mainInput"
+              v-model="inputValue"
+              class="w-full text-gray-50 rounded text-md p-2 bg-gray-800"
+              type="text"
+              @keyup.enter="createDocument"
+            >
+          </div>
+          <div class="flex-center p-2">
+            <GenericButton
+              class="bg-indigo-600 hover:bg-indigo-500"
+              @click="createDocument"
+            >
+              Create
+            </GenericButton>
+          </div>
         </div>
       </div>
-
       <SelectWidgetModal
         :open-modal="isTypesModalOpen"
         @close="isTypesModalOpen = false"
@@ -79,6 +83,7 @@ import ExpandedWidget from '@/components/ExpandedWidget.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
 import { useDatabase } from '@/composables/useDatabase.js'
+import sidebarStore from '@/stores/sidebar.js'
 
 const props = defineProps({
   databaseId: {
@@ -108,6 +113,8 @@ const shiftCtrlA = keys['Ctrl+K']
 const isTypesModalOpen = ref(false)
 const selectedWidget = ref(getWidgetList()[0])
 const iconRerender = ref(true)
+
+const { isSidebarVisible } = sidebarStore
 
 provide('database', database)
 provide('searchQuery', searchQuery)
