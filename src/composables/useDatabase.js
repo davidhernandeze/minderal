@@ -19,18 +19,28 @@ export function useDatabase (databaseId, documentId = '') {
   function listenForChanges () {
     database.changes({
       since: 'now',
-      live: true
+      live: true,
+      include_docs: true
     }).on('change', async function (change) {
-      await fetchDocuments()
+      if (change.id !== currentDocumentId.value && change.doc.parent_id !== currentDocumentId.value) return
+      await fetch()
     }).on('error', function (err) {
       console.log(err)
     })
   }
 
   async function fetch () {
+    console.log('fetching...')
     await fetchCurrentDocument()
     await fetchDocuments()
     connectionDone.value = true
+
+    // database.query('shorts/parent').then(function (res) {
+    //   console.log(res)
+    // }).catch(function (err) {
+    //   console.log('???')
+    //   console.log(err)
+    // })
   }
 
   async function fetchCurrentDocument () {

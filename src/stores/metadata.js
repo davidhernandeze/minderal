@@ -34,6 +34,18 @@ export const useMetadataStore = defineStore('metadata', () => {
       index: { fields: ['parent_id'] },
       ddoc: 'by_parent'
     })
+    // const byParentDesignDoc = {
+    //   _id: '_design/shorts',
+    //   views: {
+    //     parent: {
+    //       map: function (doc) {
+    //         emit(doc.parent_id);
+    //       }.toString()
+    //     }
+    //   }
+    // }
+    // await newDatabase.put(byParentDesignDoc)
+
     connections.value.push({ id, name, connectionOptions: optionsToStore })
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     metaDocument.connections = connections.value

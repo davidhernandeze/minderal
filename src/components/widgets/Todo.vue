@@ -34,6 +34,7 @@
         class="border-none bg-transparent p-1 focus:outline-none outline-none rounded focus:ring-0"
         type="text"
         placeholder="New item"
+        @keyup.enter="addItem"
       >
       <GenericButton @click="addItem">
         Add
@@ -54,7 +55,10 @@
               @input="check(index)"
             >
           </div>
-          <div class="text-xl ml-4 break-all">
+          <div
+            :class="{'line-through': item.checked}"
+            class="text-xl ml-4 break-words"
+          >
             {{ item.value }}
           </div>
         </div>
