@@ -52,9 +52,18 @@ export const useMetadataStore = defineStore('metadata', () => {
     await metaDatabase.put(metaDocument)
   }
 
-  async function getConnectionInfo (databaseId) {
+  async function removeConnection (connectionId) {
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    return metaDocument.connections.find((connection) => connection.id === databaseId)
+    tabs.value = tabs.value.filter(tab => tab.connectionId !== connectionId)
+    metaDocument.tabs = tabs.value
+    connections.value = connections.value.filter(connection => connection.id !== connectionId)
+    metaDocument.connections = connections.value
+    await metaDatabase.put(metaDocument)
+  }
+
+  async function getConnectionInfo (connectionId) {
+    const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
+    return metaDocument.connections.find((connection) => connection.id === connectionId)
   }
 
   async function deleteDatabase (id) {
@@ -65,10 +74,10 @@ export const useMetadataStore = defineStore('metadata', () => {
     await metaDatabase.put(metaDocument)
   }
 
-  async function openNewTab (databaseId, databaseName) {
+  async function openNewTab (connectionId, databaseName) {
     const id = getId()
     tabs.value.forEach(tab => { tab.isOpen = false })
-    tabs.value.push({ id, name: databaseName, databaseId, documentId: null, isOpen: true })
+    tabs.value.push({ id, name: databaseName, connectionId, documentId: null, isOpen: true })
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     metaDocument.tabs = tabs.value
     await metaDatabase.put(metaDocument)
@@ -101,5 +110,5 @@ export const useMetadataStore = defineStore('metadata', () => {
     await metaDatabase.put(metaDocument)
   }
 
-  return { connections, tabs, fetchMetadata, addConnection, getConnectionInfo, deleteDatabase, openNewTab, openTab, updateTabDocument, closeTab }
+  return { connections, tabs, fetchMetadata, addConnection, removeConnection, getConnectionInfo, deleteDatabase, openNewTab, openTab, updateTabDocument, closeTab }
 })

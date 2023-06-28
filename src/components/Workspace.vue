@@ -1,5 +1,11 @@
 <template>
   <div class="h-full flex flex-col bg-gray-700 p-4">
+    <div
+      v-if="currentDocument"
+      class="fixed top-0 right-0 text-green-200 text-xss"
+    >
+      {{ currentDocument._id }}
+    </div>
     <div class="grow-0 bg-gray-700 z-10 mb-2">
       <div class="flex items-center">
         <DocumentRoute
@@ -86,7 +92,7 @@ import { useDatabase } from '@/composables/useDatabase.js'
 import sidebarStore from '@/stores/sidebar.js'
 
 const props = defineProps({
-  databaseId: {
+  connectionId: {
     type: String,
     required: true
   },
@@ -98,7 +104,7 @@ const props = defineProps({
 
 const emits = defineEmits(['navigate'])
 
-const database = useDatabase(props.databaseId, props.documentId)
+const database = useDatabase(props.connectionId, props.documentId)
 const { currentRoute, connectionDone, currentDocument } = database
 
 const mainInput = ref(null)

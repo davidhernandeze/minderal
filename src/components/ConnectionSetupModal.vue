@@ -3,7 +3,10 @@
     v-model:is-open="isOpen"
   >
     <template #body>
-      <div class="text-gray-200 text-xl">
+      <form
+        class="text-gray-200 text-xl"
+        @keyup.enter.once="addConnection"
+      >
         <h1 class="mb-1">
           Connection Setup
         </h1>
@@ -11,12 +14,14 @@
           If the database doesn't exists, it will be created automatically.
         </div>
         <TextInput
-          v-model:value="databaseName"
+          v-model:value="form.name"
+          :disabled="isEdition"
           label="Database Name"
           type="text"
           class="my-3"
         />
         <SwitchInput
+          v-show="!isEdition"
           v-model:model-value="isRemoteConnection"
           class="my-2"
           label="Remote connection"
@@ -24,33 +29,43 @@
 
         <div v-show="isRemoteConnection">
           <TextInput
-            v-model:value="host"
+            v-model:value="form.host"
             label="Host"
             type="text"
             class="my-2"
           />
           <div class="grid grid-cols-1 sm:grid-cols-2">
             <TextInput
-              v-model:value="username"
+              v-model:value="form.username"
               label="User"
               type="text"
               class="my-2"
             />
             <TextInput
-              v-model:value="password"
+              v-model:value="form.password"
               label="Password"
               type="password"
               class="my-2"
             />
           </div>
         </div>
-      </div>
-      <GenericButton
-        class="bg-indigo-600 hover:bg-indigo-500 mt-6"
-        @click="addConnection"
-      >
-        Connect
-      </GenericButton>
+        <div v-if="!isEdition">
+          <GenericButton
+            class="bg-indigo-600 hover:bg-indigo-500 mt-6"
+            @click="addConnection"
+          >
+            Connect
+          </GenericButton>
+        </div>
+        <div v-else>
+          <GenericButton
+            class="bg-transparent hover:bg-red-500 mt-6 focus:ring-0 focus:outline-none"
+            @click="removeConnection"
+          >
+            Disconnect
+          </GenericButton>
+        </div>
+      </form>
     </template>
   </Modal>
 </template>
@@ -67,33 +82,58 @@ const props = defineProps({
   openModal: {
     required: true,
     type: Boolean
+  },
+  connection: {
+    default: null,
+    type: Object
   }
 })
 
 const isOpen = ref(props.openModal)
 
 const metadataStore = useMetadataStore()
+const form = ref({})
 const isRemoteConnection = ref(false)
-const host = ref('https://db.minderal.com')
-const databaseName = ref('')
-const username = ref('')
-const password = ref('')
+const isEdition = ref(false)
+const connectionId = ref()
+resetForm()
 
 async function addConnection () {
+  const localForm = form.value
   if (isRemoteConnection.value) {
-    await metadataStore.addConnection(databaseName.value, host.value, username.value, password.value)
+    await metadataStore.addConnection(localForm.name, localForm.host, localForm.username, localForm.password)
   } else {
-    await metadataStore.addConnection(databaseName.value)
+    await metadataStore.addConnection(localForm.name)
   }
   isOpen.value = false
 }
 
+async function removeConnection () {
+  await metadataStore.removeConnection(connectionId.value)
+  isOpen.value = false
+}
+
 watch(() => props.openModal, (value) => {
-  if (value) isOpen.value = true
+  if (!value) {
+    resetForm()
+  } else {
+    isOpen.value = true
+  }
 })
 
-watch(isOpen, () => {
-  emits('close')
+function resetForm () {
+  form.value = { host: 'db.minderal.com' }
+  isRemoteConnection.value = false
+}
+
+watch(() => props.connection, (value) => {
+  isEdition.value = !!value
+  form.value = { ...value?.connectionOptions }
+  if (value) connectionId.value = value.id
+})
+
+watch(isOpen, (value) => {
+  if (!value) emits('close')
 })
 
 </script>

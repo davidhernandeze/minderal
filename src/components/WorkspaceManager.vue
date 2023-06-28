@@ -4,7 +4,7 @@
       v-for="(tab, index) in tabs"
       v-show="tab.isOpen"
       :key="tab.id"
-      :database-id="tab.databaseId"
+      :connection-id="tab.connectionId"
       :document-id="tab.documentId"
       @navigate="(documentId) => updateTabDocument(index, documentId)"
     />

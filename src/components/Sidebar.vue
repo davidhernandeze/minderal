@@ -33,7 +33,7 @@
           </div>
           <div
             class="rounded-full h-6 w-6 text-gray-400 hover:text-gray-50 flex-center"
-            @click.stop="console.log('asda')"
+            @click.stop="openConnectionSetup(connection)"
           >
             <i class="fa-light h-3 fa-gear" />
           </div>
@@ -49,7 +49,8 @@
     </div>
     <ConnectionSetupModal
       :open-modal="isConnectionSetupModalOpen"
-      @close="isConnectionSetupModalOpen = false"
+      :connection="connectionOnEdit"
+      @close="isConnectionSetupModalOpen = false; connectionOnEdit = null"
     />
   </div>
 </template>
@@ -66,9 +67,15 @@ const { connections, tabs } = storeToRefs(metadataStore)
 const isConnectionSetupModalOpen = ref(false)
 
 const { isSidebarVisible } = sidebarStore
+const connectionOnEdit = ref(null)
 
 function openNewTab (connectionId, connectionName) {
   metadataStore.openNewTab(connectionId, connectionName)
   sidebarStore.onTabOpen()
+}
+
+function openConnectionSetup (connection) {
+  connectionOnEdit.value = connection
+  isConnectionSetupModalOpen.value = true
 }
 </script>
