@@ -116,7 +116,7 @@ async function addConnection () {
   } else {
     await metadataStore.addConnection(localForm.name)
   }
-  isOpen.value = false
+  // isOpen.value = false
 }
 
 async function removeConnection () {
