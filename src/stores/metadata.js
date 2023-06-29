@@ -53,9 +53,12 @@ export const useMetadataStore = defineStore('metadata', () => {
   }
 
   async function removeConnection (connectionId) {
+    let tabIndexToClose
+    do {
+      tabIndexToClose = tabs.value.findIndex(tab => tab.connectionId === connectionId)
+      if (tabIndexToClose !== -1) await closeTab(tabIndexToClose)
+    } while (tabIndexToClose !== -1)
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    tabs.value = tabs.value.filter(tab => tab.connectionId !== connectionId)
-    metaDocument.tabs = tabs.value
     connections.value = connections.value.filter(connection => connection.id !== connectionId)
     metaDocument.connections = connections.value
     await metaDatabase.put(metaDocument)

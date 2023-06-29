@@ -2,11 +2,11 @@ import { useMetadataStore } from '@/stores/metadata.js'
 import PouchDB from 'pouchdb-browser'
 import { ref } from 'vue'
 
-export function useDatabase (databaseId, documentId = '') {
+export function useDatabase (connectionId, documentId = '') {
   let database
   const metadataStore = useMetadataStore()
   const connectionDone = ref(false)
-  metadataStore.getConnectionInfo(databaseId).then(async (info) => {
+  metadataStore.getConnectionInfo(connectionId).then(async (info) => {
     database = new PouchDB(info.connectionOptions)
     await fetch()
     listenForChanges()
@@ -107,7 +107,7 @@ export function useDatabase (databaseId, documentId = '') {
   }
 
   return {
-    id: databaseId,
+    id: connectionId,
     currentDocument,
     currentRoute,
     documents,

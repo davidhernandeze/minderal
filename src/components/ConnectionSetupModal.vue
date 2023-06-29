@@ -122,7 +122,7 @@ watch(() => props.openModal, (value) => {
 })
 
 function resetForm () {
-  form.value = { host: 'db.minderal.com' }
+  form.value = { host: 'https://db.minderal.com' }
   isRemoteConnection.value = false
 }
 
