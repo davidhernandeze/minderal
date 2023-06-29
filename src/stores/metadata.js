@@ -46,18 +46,14 @@ export const useMetadataStore = defineStore('metadata', () => {
     // }
     // await newDatabase.put(byParentDesignDoc)
 
-    connections.value.push({ id, name, connectionOptions: optionsToStore })
+    connections.value.push({ id, name, host, connectionOptions: optionsToStore })
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     metaDocument.connections = connections.value
     await metaDatabase.put(metaDocument)
   }
 
   async function removeConnection (connectionId) {
-    let tabIndexToClose
-    do {
-      tabIndexToClose = tabs.value.findIndex(tab => tab.connectionId === connectionId)
-      if (tabIndexToClose !== -1) await closeTab(tabIndexToClose)
-    } while (tabIndexToClose !== -1)
+    await closeAllConnectionTabs(connectionId)
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     connections.value = connections.value.filter(connection => connection.id !== connectionId)
     metaDocument.connections = connections.value
@@ -69,11 +65,13 @@ export const useMetadataStore = defineStore('metadata', () => {
     return metaDocument.connections.find((connection) => connection.id === connectionId)
   }
 
-  async function deleteDatabase (id) {
+  async function deleteDatabase (connectionId) {
+    await closeAllConnectionTabs(connectionId)
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
-    metaDocument.databases = metaDocument.databases.filter((db) => db.id !== id)
-    connections.value = metaDocument.databases
-    await new PouchDB(id).destroy()
+    metaDocument.connections = metaDocument.connections.filter((connection) => connection.id !== connectionId)
+    connections.value = metaDocument.connections
+    const connection = await getConnectionInfo(connectionId)
+    await new PouchDB(connection.name).destroy()
     await metaDatabase.put(metaDocument)
   }
 
@@ -99,6 +97,14 @@ export const useMetadataStore = defineStore('metadata', () => {
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     metaDocument.tabs = tabs.value
     await metaDatabase.put(metaDocument)
+  }
+
+  async function closeAllConnectionTabs (connectionId) {
+    let tabIndexToClose
+    do {
+      tabIndexToClose = tabs.value.findIndex(tab => tab.connectionId === connectionId)
+      if (tabIndexToClose !== -1) await closeTab(tabIndexToClose)
+    } while (tabIndexToClose !== -1)
   }
 
   async function closeTab (tabIndex) {

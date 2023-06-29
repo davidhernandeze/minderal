@@ -4,14 +4,14 @@
       :for="inputId"
       class="block text-sm font-medium"
     >{{ label }}</label>
-    <div class="mt-1 relative rounded-md shadow-sm">
+    <div class="mt-1 relative rounded-md shadow-sm pr-4">
       <input
         :id="inputId"
         :type="type"
         :value="value"
         :placeholder="placeholder"
         :disabled="disabled"
-        class="block pr-10 focus:outline-none sm:text-sm rounded-md bg-gray-900"
+        class="w-full block pr-10 focus:outline-none sm:text-sm rounded-md bg-gray-900"
         :class="[error ? 'text-red-900 border-red-300 placeholder-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500', disabled ? 'text-gray-400' : '']"
         :aria-invalid="!!error"
         :aria-describedby="errorAreaId"

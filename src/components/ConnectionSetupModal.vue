@@ -18,7 +18,7 @@
           :disabled="isEdition"
           label="Database Name"
           type="text"
-          class="my-3"
+          class="my-3 w-full"
         />
         <SwitchInput
           v-show="!isEdition"
@@ -28,21 +28,24 @@
         />
 
         <div v-show="isRemoteConnection">
-          <TextInput
-            v-model:value="form.host"
-            label="Host"
-            type="text"
-            class="my-2"
-          />
           <div class="grid grid-cols-1 sm:grid-cols-2">
             <TextInput
+              v-model:value="form.host"
+              :disabled="isEdition"
+              label="Host"
+              type="text"
+              class="col-span-2"
+            />
+            <TextInput
               v-model:value="form.username"
+              :disabled="isEdition"
               label="User"
               type="text"
               class="my-2"
             />
             <TextInput
               v-model:value="form.password"
+              v-show="!isEdition"
               label="Password"
               type="password"
               class="my-2"
@@ -59,7 +62,15 @@
         </div>
         <div v-else>
           <GenericButton
-            class="bg-transparent hover:bg-red-500 mt-6 focus:ring-0 focus:outline-none"
+            v-if="!isRemoteConnection"
+            class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-none mr-2"
+            @click="deleteDatabase"
+          >
+            <i class="fa-solid fa-triangle-exclamation h-3 mr-2" />
+            Delete Database
+          </GenericButton>
+          <GenericButton
+            class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-none"
             @click="removeConnection"
           >
             Disconnect
@@ -113,6 +124,11 @@ async function removeConnection () {
   isOpen.value = false
 }
 
+async function deleteDatabase () {
+  await metadataStore.deleteDatabase(connectionId.value)
+  isOpen.value = false
+}
+
 watch(() => props.openModal, (value) => {
   if (!value) {
     resetForm()
@@ -128,8 +144,15 @@ function resetForm () {
 
 watch(() => props.connection, (value) => {
   isEdition.value = !!value
-  form.value = { ...value?.connectionOptions }
-  if (value) connectionId.value = value.id
+  form.value.name = value?.name
+  if (value) {
+    connectionId.value = value.id
+    if (value.host) {
+      isRemoteConnection.value = true
+      form.value.host = value.host
+      form.value.username = value.connectionOptions?.auth?.username
+    }
+  }
 })
 
 watch(isOpen, (value) => {
