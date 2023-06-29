@@ -10,7 +10,7 @@
 defineProps({
   type: {
     type: String,
-    default: 'submit'
+    default: 'button'
   }
 })
 </script>
