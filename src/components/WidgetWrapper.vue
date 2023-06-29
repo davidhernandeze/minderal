@@ -1,6 +1,6 @@
 <template>
   <div
-    class="flex flex-col bg-gray-600 h-28 rounded overflow-hidden relative cursor-pointer p-2 shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
+    class="flex overflow-visible flex-col bg-gray-600 h-28 rounded relative cursor-pointer p-2 shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
     @click="clickAction"
   >
     <div class="flex justify-between">
@@ -41,7 +41,7 @@
           leave-from-class="transform opacity-100 scale-100"
           leave-to-class="transform opacity-0 scale-95"
         >
-          <MenuItems class="fixed -translate-x-12 z-10 w-22 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-none">
+          <MenuItems class="absolute -translate-x-12 z-10 w-22 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-none">
             <div>
               <MenuItem
                 v-for="rowAction in rowActions"

@@ -15,7 +15,7 @@
           >
         </div>
 
-        <div class="p-4 grid grid-cols-3 gap-2 mt-1">
+        <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
           <button
             v-for="widget in filteredWidgets"
             :key="widget.index"
