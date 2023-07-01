@@ -61,7 +61,7 @@
         </transition>
       </Menu>
     </div>
-    <div class="flex-1">
+    <div class="flex-1 overflow-hidden">
       <Widget
         :document="document"
         @update="(value) => $emit('update', value)"
