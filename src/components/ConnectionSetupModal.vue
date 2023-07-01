@@ -4,14 +4,14 @@
   >
     <template #body>
       <form
-        class="text-gray-200 text-xl"
+        class="text-gray-200 text-xl "
         @keyup.enter.once="addConnection"
       >
         <h1 class="mb-1">
           Connection Setup
         </h1>
         <div class="text-sm">
-          If the database doesn't exists, it will be created automatically.
+          If local database doesn't exists, it will be created automatically.
         </div>
         <TextInput
           v-model:value="form.name"
@@ -28,27 +28,27 @@
         />
 
         <div v-show="isRemoteConnection">
-          <div class="grid grid-cols-1 sm:grid-cols-2">
+          <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6">
             <TextInput
               v-model:value="form.host"
               :disabled="isEdition"
               label="Host"
               type="text"
-              class="col-span-2"
+              class="sm:col-span-4"
             />
             <TextInput
               v-model:value="form.username"
               :disabled="isEdition"
               label="User"
               type="text"
-              class="my-2"
+              class="sm:col-span-3"
             />
             <TextInput
-              v-model:value="form.password"
               v-show="!isEdition"
+              v-model:value="form.password"
               label="Password"
               type="password"
-              class="my-2"
+              class="sm:col-span-3"
             />
           </div>
         </div>
@@ -116,7 +116,7 @@ async function addConnection () {
   } else {
     await metadataStore.addConnection(localForm.name)
   }
-  // isOpen.value = false
+  isOpen.value = false
 }
 
 async function removeConnection () {

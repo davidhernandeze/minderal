@@ -4,7 +4,7 @@
       :for="inputId"
       class="block text-sm font-medium"
     >{{ label }}</label>
-    <div class="mt-1 relative rounded-md shadow-sm pr-4">
+    <div class="mt-1 relative rounded-md shadow-sm">
       <input
         :id="inputId"
         :type="type"
