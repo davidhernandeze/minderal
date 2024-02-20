@@ -47,14 +47,14 @@ export const widgets = {
     indexValue: false,
     previewComponent: 'Text.vue'
   },
-  todo: {
-    label: 'To-do',
+  checklist: {
+    label: 'Checklist',
     icon: 'fa-solid fa-list-check',
     indexValue: false,
     expandable: true,
     defaultValue: [],
-    previewComponent: 'Todo/TodoPreview.vue',
-    expandedComponent: 'Todo/TodoExpanded.vue'
+    previewComponent: 'Checklist/ChecklistPreview.vue',
+    expandedComponent: 'Checklist/ChecklistExpanded.vue'
   }
 }
 
