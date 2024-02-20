@@ -8,7 +8,7 @@
     </div>
     <div class="grow-0 bg-gray-700 z-10 mb-2">
       <div class="flex items-center">
-        <DocumentRoute
+        <DocRoute
           :route="currentRoute"
           @navigate="navigate"
         />
@@ -79,7 +79,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
-import DocumentRoute from '@/components/DocumentRoute.vue'
+import DocRoute from '@/components/DocRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import { getWidgetList, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
@@ -154,6 +154,7 @@ async function selectWidget (widget) {
 }
 
 async function navigate (docId) {
+  console.log(docId)
   emits('navigate', docId)
 }
 

@@ -78,7 +78,7 @@ export const useMetadataStore = defineStore('metadata', () => {
   async function openNewTab (connectionId, databaseName) {
     const id = getId()
     tabs.value.forEach(tab => { tab.isOpen = false })
-    tabs.value.push({ id, name: databaseName, connectionId, documentId: null, isOpen: true })
+    tabs.value.push({ id, name: databaseName, connectionId, documentId: '', isOpen: true })
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     metaDocument.tabs = tabs.value
     await metaDatabase.put(metaDocument)

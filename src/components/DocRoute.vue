@@ -15,16 +15,16 @@
         <i class="fa-solid fa-home mr-1" />
       </li>
       <li
-        v-for="folder in route"
-        :key="folder.id"
-        @click="$emit('navigate', folder.id)"
+        v-for="doc in route"
+        :key="doc.id"
+        @click="$emit('navigate', doc.id)"
       >
         <div class="flex items-center">
           <i class="fa-solid fa-angle-right text-gray-400 mx-2" />
           <a
             href="#"
             class="text-sm font-medium text-gray-500 hover:text-gray-100 truncate"
-          >{{ folder.name }}</a>
+          >{{ doc.name }}</a>
         </div>
       </li>
     </ol>

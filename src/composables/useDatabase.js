@@ -23,13 +23,14 @@ export function useDatabase (connectionId, documentId = '') {
       live: true,
       include_docs: true
     }).on('change', async function (change) {
+      // To-do cases: delete/modify the current doc, delete/modify a doc in the route
       if (change.id === currentDocumentId.value) {
         await fetchCurrentDocument()
         return
       }
       const docIndex = documents.value.findIndex(doc => change.id === doc._id)
       const exists = docIndex !== -1
-      let isChild = change.doc.parent_id === currentDocumentId.value
+      let isChild = (change.doc?.parent_id || '') === currentDocumentId.value
       if (change.doc?._deleted) {
         isChild = (documents.value?.[docIndex]?.parent_id || '') === currentDocumentId.value
       }
@@ -59,7 +60,7 @@ export function useDatabase (connectionId, documentId = '') {
   }
 
   async function fetchCurrentDocument () {
-    if (!currentDocumentId.value) {
+    if (currentDocumentId.value === '') {
       currentDocument.value = null
       return
     }
