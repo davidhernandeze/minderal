@@ -29,7 +29,10 @@ export function useDatabase (connectionId, documentId = '') {
       }
       const docIndex = documents.value.findIndex(doc => change.id === doc._id)
       const exists = docIndex !== -1
-      const isChild = (documents.value?.[docIndex]?.parent_id || '') === currentDocumentId.value
+      let isChild = change.doc.parent_id === currentDocumentId.value
+      if (change.doc?._deleted) {
+        isChild = (documents.value?.[docIndex]?.parent_id || '') === currentDocumentId.value
+      }
 
       if (!isChild) return
 
@@ -97,7 +100,6 @@ export function useDatabase (connectionId, documentId = '') {
       parent_id: currentDocumentId.value ?? '',
       order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
     })
-    await fetchDocuments()
   }
 
   async function updateDocument (doc, value) {
