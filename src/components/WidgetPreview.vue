@@ -4,7 +4,7 @@
     @click="clickAction"
   >
     <div class="flex justify-between">
-      <div v-if="widgetInfo.hideHeader" />
+      <div v-if="widgetProps.hideHeader" />
       <div
         v-else
         class="flex-1 flex justify-start items-center text-gray-400 mb-2 truncate"
@@ -13,9 +13,13 @@
           :class="icon"
           class="h-3"
         />
-        <div class="text-xs ml-2">
-          {{ document.name }}
-        </div>
+        <input
+          v-model="renameInput"
+          class="text-xs ml-2 bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-none"
+          @click.stop
+          @focus="e => startNameEdition(e)"
+          @blur="endNameEdition"
+        >
       </div>
       <Menu
         as="div"
@@ -51,7 +55,7 @@
                 <button
                   class="w-full text-left"
                   :class="[active ? 'bg-gray-700 text-gray-100' : 'text-gray-200', 'block px-4 py-2 text-sm']"
-                  @click.stop="$emit(rowAction.action, document)"
+                  @click.stop="rowAction.onClick"
                 >
                   {{ rowAction.label }}
                 </button>
@@ -63,42 +67,69 @@
     </div>
     <div class="flex-1 overflow-hidden">
       <Widget
-        :document="document"
-        @update="(value) => $emit('update', value)"
+        :doc="doc"
+        @update="newValue => db.updateDocument(doc, newValue)"
       />
     </div>
   </div>
 </template>
 <script setup>
-import { defineAsyncComponent } from 'vue'
-import { widgets } from '@/enums/widgets.js'
+import { defineAsyncComponent, inject, ref } from 'vue'
+import { getWidgetProps } from '@/enums/widgets.js'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
-const emits = defineEmits(['update', 'navigate', 'delete'])
+import { Doc } from '@/types.js'
+
 const props = defineProps({
-  document: {
-    type: Object,
+  doc: {
+    type: Doc,
     required: true
   }
 })
-const icon = widgets[props.document.type].icon
-const widgetInfo = widgets[props.document.type]
+const navigate = inject('navigate')
+const db = inject('db')
+
+const renameInput = ref(props.doc.name)
+const isEditingName = ref(false)
+const widgetProps = getWidgetProps(props.doc.type)
+const icon = widgetProps.icon
 const Widget = defineAsyncComponent(() => {
-  const componentName = props.document.type.charAt(0).toUpperCase() + props.document.type.slice(1)
-  return import(`./widgets/${componentName}.vue`)
+  return import(`./widgets/${widgetProps.previewComponent}`)
 })
 
-const widget = widgets[props.document.type]
-
-function clickAction () {
-  if (widget.expandable) {
-    emits('navigate', props.document._id)
+async function clickAction () {
+  if (widgetProps.expandable) {
+    if (isEditingName.value) {
+      isEditingName.value = false
+      return
+    }
+    await navigate(props.doc._id)
   }
+}
+
+async function endNameEdition () {
+  await db.renameDocument(props.doc, renameInput.value)
+}
+
+function startNameEdition (event) {
+  isEditingName.value = true
+  const input = event.target
+  input.setSelectionRange(0, input.value.length)
+  input.focus()
 }
 
 const rowActions = [
   {
     action: 'delete',
-    label: 'Delete'
+    label: 'Delete',
+    onClick () {
+      db.deleteDocument(props.doc)
+    }
+  },
+  {
+    action: 'rename',
+    label: 'Rename',
+    onClick (name) {
+    }
   }
 ]
 </script>

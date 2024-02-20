@@ -1,13 +1,15 @@
 <template>
   <div class="text-xs">
-    {{ document.value }}
+    {{ doc.value }}
   </div>
 </template>
 
 <script setup>
+import { Doc } from '@/types.js'
+
 defineProps({
-  document: {
-    type: Object,
+  doc: {
+    type: Doc,
     required: true
   }
 })

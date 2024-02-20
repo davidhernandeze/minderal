@@ -119,5 +119,17 @@ export const useMetadataStore = defineStore('metadata', () => {
     await metaDatabase.put(metaDocument)
   }
 
-  return { connections, tabs, fetchMetadata, addConnection, removeConnection, getConnectionInfo, deleteDatabase, openNewTab, openTab, updateTabDocument, closeTab }
+  return {
+    connections,
+    tabs,
+    fetchMetadata,
+    addConnection,
+    removeConnection,
+    getConnectionInfo,
+    deleteDatabase,
+    openNewTab,
+    openTab,
+    updateTabDocument,
+    closeTab
+  }
 })

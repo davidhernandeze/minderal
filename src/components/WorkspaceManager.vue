@@ -6,7 +6,7 @@
       :key="tab.id"
       :connection-id="tab.connectionId"
       :document-id="tab.documentId"
-      @navigate="(documentId) => updateTabDocument(index, documentId)"
+      @navigate="(docId) => updateTabDocument(index, docId)"
     />
   </div>
 </template>
@@ -19,7 +19,7 @@ import { storeToRefs } from 'pinia'
 const metadataStore = useMetadataStore()
 const { tabs } = storeToRefs(metadataStore)
 
-function updateTabDocument (tabIndex, documentId) {
-  metadataStore.updateTabDocument(tabIndex, documentId)
+function updateTabDocument (tabIndex, docId) {
+  metadataStore.updateTabDocument(tabIndex, docId)
 }
 </script>

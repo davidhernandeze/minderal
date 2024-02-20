@@ -3,14 +3,14 @@
     <div>
       <div
         class="flex justify-center h-7"
-        @click.stop="$emit('update', !document.value)"
+        @click.stop="$emit('update', !doc.value)"
       >
         <SwitchInput
-          :model-value="document.value"
+          :model-value="doc.value"
         />
       </div>
       <div class="text-sm mt-1">
-        {{ document.name }}
+        {{ doc.name }}
       </div>
     </div>
   </div>
@@ -18,11 +18,12 @@
 
 <script setup>
 import SwitchInput from '@/components/SwitchInput.vue'
+import { Doc } from '@/types.js'
 
 defineEmits(['update'])
 defineProps({
-  document: {
-    type: Object,
+  doc: {
+    type: Doc,
     required: true
   }
 })

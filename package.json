@@ -14,7 +14,7 @@
     "@vueuse/core": "^10.2.0",
     "events": "^3.3.0",
     "pinia": "^2.1.4",
-    "vue": "^3.2.45",
+    "vue": "^3.4.19",
     "vue-imask": "^7.0.0"
   },
   "devDependencies": {

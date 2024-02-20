@@ -22,10 +22,7 @@
       >
     </div>
     <div class="flex-1 overflow-y-auto pb-36">
-      <ExpandedWidget
-        v-if="connectionDone"
-        @navigate="navigate"
-      />
+      <WidgetExpanded v-if="connectionDone" />
     </div>
     <div
       v-show="showMainInput"
@@ -85,7 +82,7 @@ import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
 import DocumentRoute from '@/components/DocumentRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import { getWidgetList, widgets } from '@/enums/widgets.js'
-import ExpandedWidget from '@/components/ExpandedWidget.vue'
+import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
 import { useDatabase } from '@/composables/useDatabase.js'
@@ -100,6 +97,10 @@ const props = defineProps({
     type: String,
     default: ''
   }
+})
+
+watch(() => props.documentId, async (value) => {
+  await database.setCurrentDocument(value)
 })
 
 const emits = defineEmits(['navigate'])
@@ -122,8 +123,9 @@ const iconRerender = ref(true)
 
 const { isSidebarVisible } = sidebarStore
 
-provide('database', database)
+provide('db', database)
 provide('searchQuery', searchQuery)
+provide('navigate', (docId) => navigate(docId))
 
 watch(shiftCtrlA, (v) => {
   if (!v) return
@@ -151,9 +153,8 @@ async function selectWidget (widget) {
   iconRerender.value = true
 }
 
-async function navigate (documentId) {
-  await database.setCurrentDocument(documentId)
-  emits('navigate', documentId)
+async function navigate (docId) {
+  emits('navigate', docId)
 }
 
 onBeforeUnmount(async () => {

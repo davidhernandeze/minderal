@@ -1,6 +1,7 @@
 import { useMetadataStore } from '@/stores/metadata.js'
 import PouchDB from 'pouchdb-browser'
-import { ref } from 'vue'
+import { ref, shallowRef } from 'vue'
+import { Doc } from '@/types.js'
 
 export function useDatabase (connectionId, documentId = '') {
   let database
@@ -12,7 +13,7 @@ export function useDatabase (connectionId, documentId = '') {
     listenForChanges()
   })
   const currentDocumentId = ref(documentId)
-  const currentDocument = ref()
+  const currentDocument = shallowRef(null)
   const documents = ref([])
   const currentRoute = ref([])
 
@@ -22,25 +23,36 @@ export function useDatabase (connectionId, documentId = '') {
       live: true,
       include_docs: true
     }).on('change', async function (change) {
-      if (change.id !== currentDocumentId.value && change.doc.parent_id !== currentDocumentId.value) return
-      await fetch()
+      if (change.id === currentDocumentId.value) {
+        await fetchCurrentDocument()
+        return
+      }
+      const docIndex = documents.value.findIndex(doc => change.id === doc._id)
+      const exists = docIndex !== -1
+      const isChild = (documents.value?.[docIndex]?.parent_id || '') === currentDocumentId.value
+
+      if (!isChild) return
+
+      if (change.doc?._deleted) {
+        documents.value.splice(docIndex, 1)
+        return
+      }
+      if (!exists) {
+        documents.value.push(new Doc(change.doc))
+        return
+      }
+
+      documents.value[docIndex] = new Doc(change.doc)
     }).on('error', function (err) {
       console.log(err)
     })
   }
 
   async function fetch () {
-    console.log('fetching...')
+    console.log('fetching doc...')
     await fetchCurrentDocument()
     await fetchDocuments()
     connectionDone.value = true
-
-    // database.query('shorts/parent').then(function (res) {
-    //   console.log(res)
-    // }).catch(function (err) {
-    //   console.log('???')
-    //   console.log(err)
-    // })
   }
 
   async function fetchCurrentDocument () {
@@ -48,13 +60,16 @@ export function useDatabase (connectionId, documentId = '') {
       currentDocument.value = null
       return
     }
-    currentDocument.value = await database.get(currentDocumentId.value)
+    const doc = await database.get(currentDocumentId.value)
+    currentDocument.value = new Doc(doc)
+    await fetchCurrentDocumentRoute()
   }
   async function fetchDocuments () {
+    console.log('fetching docs...')
     const allDocs = await database.find({
       selector: { parent_id: currentDocumentId.value ?? '' }
     })
-    documents.value = allDocs.docs.sort((a, b) => a.order > b.order ? 1 : -1)
+    documents.value = allDocs.docs.sort((a, b) => a.order > b.order ? 1 : -1).map(doc => (new Doc(doc)))
     await fetchCurrentDocumentRoute()
   }
 
@@ -85,20 +100,23 @@ export function useDatabase (connectionId, documentId = '') {
     await fetchDocuments()
   }
 
-  async function updateDocument (document, value) {
-    document.value = value
-    await database.put(document)
-    await fetch()
+  async function updateDocument (doc, value) {
+    doc.value = value
+    await database.put({ ...doc })
   }
 
-  async function deleteDocument (document) {
-    await database.remove(document)
-    await fetch()
+  async function deleteDocument (doc) {
+    await database.remove(doc)
   }
 
-  async function setCurrentDocument (documentId) {
+  async function renameDocument (doc, name) {
+    doc.name = name
+    await database.put({ ...doc })
+  }
+
+  async function setCurrentDocument (docId) {
     connectionDone.value = false
-    currentDocumentId.value = documentId
+    currentDocumentId.value = docId
     await fetch()
   }
 
@@ -112,6 +130,7 @@ export function useDatabase (connectionId, documentId = '') {
     currentRoute,
     documents,
     connectionDone,
+    renameDocument,
     setCurrentDocument,
     createDocument,
     updateDocument,
