@@ -13,7 +13,7 @@ const doc = db.currentDocument
 
 const Widget = defineAsyncComponent(() => {
   const widgetInfo = getWidgetProps(db.currentDocument.value?.type || 'folder')
-  return import(`./widgets/${widgetInfo.expandedComponent}`)
+  return import(`@/widgets/${widgetInfo.expandedComponent}`)
 })
 
 </script>
