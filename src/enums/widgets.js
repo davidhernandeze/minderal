@@ -3,7 +3,7 @@ export const widgets = {
     label: 'Text',
     icon: 'fa-solid fa-align-left',
     indexValue: true,
-    previewComponent: 'Text.vue'
+    previewComponent: 'Text'
   },
   folder: {
     label: 'Folder',
@@ -12,15 +12,15 @@ export const widgets = {
     hidePreviewHeader: true,
     expandable: true,
     baseDir: 'Folder',
-    expandedComponent: 'FolderExpanded.vue',
-    previewComponent: 'FolderPreview.vue',
+    expandedComponent: 'FolderExpanded',
+    previewComponent: 'FolderPreview',
     showMainInput: true
   },
   link: {
     label: 'Link',
     icon: 'fa-solid fa-link',
     indexValue: true,
-    previewComponent: 'Text.vue'
+    previewComponent: 'Text'
   },
   switch: {
     label: 'Switch',
@@ -28,25 +28,25 @@ export const widgets = {
     indexValue: false,
     defaultValue: false,
     hideHeader: true,
-    previewComponent: 'Switch.vue'
+    previewComponent: 'Switch'
   },
   audio: {
     label: 'Audio',
     icon: 'fa-solid fa-microphone',
     indexValue: false,
-    previewComponent: 'Text.vue'
+    previewComponent: 'Text'
   },
   counter: {
     label: 'Counter',
     icon: 'fa-solid fa-plus-minus',
     indexValue: false,
-    previewComponent: 'Text.vue'
+    previewComponent: 'Text'
   },
   countdown: {
     label: 'Countdown',
     icon: 'fa-solid fa-hourglass-half',
     indexValue: false,
-    previewComponent: 'Text.vue'
+    previewComponent: 'Text'
   },
   checklist: {
     label: 'Checklist',
@@ -54,8 +54,8 @@ export const widgets = {
     indexValue: false,
     expandable: true,
     defaultValue: [],
-    previewComponent: 'ChecklistPreview.vue',
-    expandedComponent: 'ChecklistExpanded.vue'
+    previewComponent: 'ChecklistPreview',
+    expandedComponent: 'ChecklistExpanded'
   }
 }
 

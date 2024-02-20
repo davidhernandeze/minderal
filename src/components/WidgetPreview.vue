@@ -93,7 +93,7 @@ const isEditingName = ref(false)
 const widgetProps = getWidgetProps(props.doc.type)
 const icon = widgetProps.icon
 const Widget = defineAsyncComponent(() => {
-  return import(`./widgets/${widgetProps.previewComponent}`)
+  return import(`./widgets/${widgetProps.previewComponent}.vue`)
 })
 
 async function clickAction () {
