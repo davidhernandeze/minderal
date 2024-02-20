@@ -55,7 +55,7 @@
 
 <script setup>
 import GenericButton from '@/components/GenericButton.vue'
-import useTodo from './useChecklist.js'
+import useTodo from '@/composables/useChecklist.js'
 import { Doc } from '@/types.js'
 import { toRef } from '@vueuse/core'
 

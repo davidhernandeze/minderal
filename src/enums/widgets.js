@@ -11,8 +11,9 @@ export const widgets = {
     indexValue: false,
     hidePreviewHeader: true,
     expandable: true,
-    expandedComponent: 'Folder/FolderExpanded.vue',
-    previewComponent: 'Folder/FolderPreview.vue',
+    baseDir: 'Folder',
+    expandedComponent: 'FolderExpanded.vue',
+    previewComponent: 'FolderPreview.vue',
     showMainInput: true
   },
   link: {
@@ -53,8 +54,8 @@ export const widgets = {
     indexValue: false,
     expandable: true,
     defaultValue: [],
-    previewComponent: 'Checklist/ChecklistPreview.vue',
-    expandedComponent: 'Checklist/ChecklistExpanded.vue'
+    previewComponent: 'ChecklistPreview.vue',
+    expandedComponent: 'ChecklistExpanded.vue'
   }
 }
 

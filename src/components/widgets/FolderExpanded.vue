@@ -10,7 +10,7 @@
 
 <script setup>
 import WidgetPreview from '@/components/WidgetPreview.vue'
-import useFolder from './useFolder.js'
+import useFolder from '@/composables/useFolder.js'
 import { inject } from 'vue'
 
 const db = inject('db')

@@ -12,9 +12,11 @@
 </template>
 
 <script setup>
+import { Doc } from '@/types.js'
+
 defineProps({
   doc: {
-    type: Object,
+    type: Doc,
     required: true
   }
 })
