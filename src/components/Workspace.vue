@@ -154,7 +154,6 @@ async function selectWidget (widget) {
 }
 
 async function navigate (docId) {
-  console.log(docId)
   emits('navigate', docId)
 }
 
