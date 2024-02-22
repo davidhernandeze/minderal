@@ -55,7 +55,7 @@
 
 <script setup>
 import GenericButton from '@/components/GenericButton.vue'
-import useTodo from '@/composables/useChecklist.js'
+import useChecklist from '@/composables/useChecklist.js'
 import { Doc } from '@/types.js'
 import { toRef } from '@vueuse/core'
 
@@ -66,6 +66,6 @@ const props = defineProps({
   }
 })
 const emits = defineEmits(['update'])
-const { visibleItems, newItem, addItem, check, remove } = useTodo(toRef(() => props.doc), emits)
+const { visibleItems, newItem, addItem, check, remove } = useChecklist(toRef(() => props.doc), emits)
 
 </script>
