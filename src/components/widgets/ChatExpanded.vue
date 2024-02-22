@@ -16,7 +16,8 @@
           <div class="flex items-center">
             <div class="flex items-center text-gray-300">
               <i class="fa-solid fa-ghost text-xs mr-1" />
-              <span class="text-xs">{{ sent_by }}</span>
+              <span class="text-xs mr-1">{{ sent_by }}</span>
+              <span v-if="is_own" class="text-xs">(You)</span>
             </div>
           </div>
           <p class="break-words p-1 mb-3">
