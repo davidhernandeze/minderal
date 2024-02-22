@@ -122,7 +122,7 @@ const rowActions = [
     action: 'delete',
     label: 'Delete',
     onClick () {
-      db.deleteDocument(props.doc)
+      db.deleteDocRecursively(props.doc)
     }
   },
   {
