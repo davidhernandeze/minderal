@@ -27,8 +27,6 @@ export function useDatabase (connectionId, documentId = '') {
       include_docs: true
     }).on('change', async function (change) {
       // To-do cases: delete/modify the current doc, delete/modify a doc in the route
-      console.log(currentDocumentId.value)
-      console.log(change)
       if (change.id === currentDocumentId.value) {
         await fetchCurrentDocument()
         return
@@ -137,7 +135,6 @@ export function useDatabase (connectionId, documentId = '') {
     const { docs: childDocs } = await database.find({
       selector: { parent_id: doc._id }
     })
-    console.log(childDocs)
     for (const childDoc of childDocs) {
       deleteDocRecursively(childDoc)
     }
