@@ -2,7 +2,7 @@
   <div class="flex justify-center">
     <div
       ref="chatContainer"
-      class="bg-gray-800 w-full md:w-[30rem] h-[60vh] overflow-y-scroll p-5 rounded-md flex-row"
+      class="relative bg-gray-800 w-full md:w-[30rem] h-[60vh] overflow-y-scroll p-5 rounded-md flex-row"
     >
       <div
         v-for="{ id, message, is_own, sent_by, created_at } in messages"
@@ -27,7 +27,7 @@
           </span>
         </div>
       </div>
-      <div class="flex mt-8">
+      <div class="absolute w-[90%] bottom-5 flex mt-8">
         <input
           v-model="inputValue"
           class="bg-transparent flex-1 border border-gray-100 px-2"
