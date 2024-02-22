@@ -1,6 +1,6 @@
 export class Doc {
   // eslint-disable-next-line camelcase
-  constructor ({ _id, parent_id, index_value, order, _rev, name, value, type }) {
+  constructor ({ _id, parent_id, index_value, order, _rev, name, value, type, created_by, created_at }) {
     this._id = _id
     // eslint-disable-next-line camelcase
     this.parent_id = parent_id
@@ -11,5 +11,9 @@ export class Doc {
     // eslint-disable-next-line camelcase
     this.index_value = index_value
     this.order = order
+    // eslint-disable-next-line camelcase
+    this.created_by = created_by
+    // eslint-disable-next-line camelcase
+    this.created_at = created_at
   }
 }

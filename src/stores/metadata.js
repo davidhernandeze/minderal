@@ -46,7 +46,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     // }
     // await newDatabase.put(byParentDesignDoc)
 
-    connections.value.push({ id, name, host, connectionOptions: optionsToStore })
+    connections.value.push({ id, name, host, connectionOptions: optionsToStore, username: username || 'local' })
     const metaDocument = await getOrCreateDoc(metaDatabase, META_DOC_ID)
     metaDocument.connections = connections.value
     await metaDatabase.put(metaDocument)

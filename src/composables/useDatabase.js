@@ -2,13 +2,16 @@ import { useMetadataStore } from '@/stores/metadata.js'
 import PouchDB from 'pouchdb-browser'
 import { ref, shallowRef } from 'vue'
 import { Doc } from '@/types.js'
+import moment from 'moment'
 
 export function useDatabase (connectionId, documentId = '') {
   let database
+  const username = ref('')
   const metadataStore = useMetadataStore()
   const connectionDone = ref(false)
   metadataStore.getConnectionInfo(connectionId).then(async (info) => {
     database = new PouchDB(info.connectionOptions)
+    username.value = info.username
     await fetch()
     listenForChanges()
   })
@@ -94,11 +97,27 @@ export function useDatabase (connectionId, documentId = '') {
   async function createDocument (value, widget) {
     const docsLength = documents.value.length
     await database.post({
+      created_at: moment().toISOString(),
+      created_by: username.value,
       value: widget.index === 'text' ? value : widget.defaultValue,
       name: widget.index === 'text' ? '' : value,
       type: widget.index,
       index_value: widget.indexValue,
       parent_id: currentDocumentId.value ?? '',
+      order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
+    })
+  }
+
+  async function createDocWithValue (value, widget) {
+    const docsLength = documents.value.length
+    await database.post({
+      created_at: moment().toISOString(),
+      created_by: username.value,
+      value,
+      name: '',
+      type: widget.index ?? widget,
+      index_value: true,
+      parent_id: currentDocumentId.value,
       order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
     })
   }
@@ -129,6 +148,7 @@ export function useDatabase (connectionId, documentId = '') {
 
   return {
     id: connectionId,
+    username,
     currentDocument,
     currentRoute,
     documents,
@@ -136,6 +156,7 @@ export function useDatabase (connectionId, documentId = '') {
     renameDocument,
     setCurrentDocument,
     createDocument,
+    createDocWithValue,
     updateDocument,
     deleteDocument,
     closeConnection

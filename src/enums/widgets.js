@@ -56,6 +56,16 @@ export const widgets = {
     defaultValue: [],
     previewComponent: 'ChecklistPreview',
     expandedComponent: 'ChecklistExpanded'
+  },
+  chat: {
+    label: 'Chat',
+    icon: 'fa-solid fa-messages',
+    indexValue: false,
+    hidePreviewHeader: true,
+    expandable: true,
+    defaultValue: [],
+    previewComponent: 'ChatPreview',
+    expandedComponent: 'ChatExpanded'
   }
 }
 

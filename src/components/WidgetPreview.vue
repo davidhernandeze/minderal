@@ -4,7 +4,7 @@
     @click="clickAction"
   >
     <div class="flex justify-between">
-      <div v-if="widgetProps.hideHeader" />
+      <div v-if="widgetProps.hidePreviewHeader" />
       <div
         v-else
         class="flex-1 flex justify-start items-center text-gray-400 mb-2 truncate"
