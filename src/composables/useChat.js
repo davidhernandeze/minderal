@@ -1,7 +1,18 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import moment from 'moment'
+import { useWebNotification } from '@vueuse/core'
+import icon from '@/assets/logo310x310.png'
 
 export default (db) => {
+  const {
+    isSupported,
+    show
+  } = useWebNotification({
+    dir: 'auto',
+    lang: 'en',
+    icon
+  })
+
   const inputValue = ref('')
   const messages = computed(() => {
     return db.documents.value.map(doc => ({
@@ -11,6 +22,11 @@ export default (db) => {
       created_at: moment(doc.created_at).fromNow(),
       is_own: doc.created_by === db.username.value
     }))
+  })
+
+  watch(messages, value => {
+    if (!isSupported.value || value[value.length - 1]?.is_own) return
+    show({ title: 'New Message received in /' + db.currentDocument.value.name })
   })
 
   async function send () {

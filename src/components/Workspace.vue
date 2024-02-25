@@ -21,7 +21,7 @@
         placeholder="Search..."
       >
     </div>
-    <div class="flex-1 overflow-y-auto pb-36">
+    <div class="flex-1 overflow-y-auto">
       <WidgetExpanded v-if="connectionDone" />
     </div>
     <div
