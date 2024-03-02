@@ -3,7 +3,10 @@ export const widgets = {
     label: 'Text',
     icon: 'fa-solid fa-align-left',
     indexValue: true,
-    previewComponent: 'Text'
+    previewComponent: 'Text',
+    expandedComponent: 'TextExpanded',
+    expandable: true,
+    showMainInput: false
   },
   folder: {
     label: 'Folder',

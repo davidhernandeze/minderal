@@ -1,0 +1,17 @@
+<template>
+  <div class="text-2xl">
+    {{ doc.value }}
+  </div>
+</template>
+
+<script setup>
+import { Doc } from '@/types.js'
+
+defineProps({
+  doc: {
+    type: Doc,
+    required: true
+  }
+})
+
+</script>
