@@ -5,7 +5,7 @@
   <div class="flex items-center justify-center">
     <input
       ref="searchInput"
-      v-model="messageInput"
+      v-model="newItem"
       class="border-none bg-transparent p-1 focus:outline-none outline-none rounded focus:ring-0"
       type="text"
       placeholder="New item"
@@ -66,6 +66,6 @@ const props = defineProps({
   }
 })
 const emits = defineEmits(['update'])
-const { messageInput } = useChecklist(toRef(() => props.doc), emits)
-
+const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() => props.doc), emits)
+console.log(visibleItems)
 </script>
