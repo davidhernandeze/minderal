@@ -67,5 +67,4 @@ const props = defineProps({
 })
 const emits = defineEmits(['update'])
 const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() => props.doc), emits)
-console.log(visibleItems)
 </script>

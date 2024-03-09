@@ -69,6 +69,14 @@ export const widgets = {
     defaultValue: [],
     previewComponent: 'ChatPreview',
     expandedComponent: 'ChatExpanded'
+  },
+  display: {
+    label: 'Display',
+    icon: 'fa-solid fa-presentation-screen',
+    indexValue: true,
+    expandable: true,
+    previewComponent: 'DisplayPreview',
+    expandedComponent: 'DisplayExpanded'
   }
 }
 

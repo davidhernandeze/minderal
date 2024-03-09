@@ -69,6 +69,7 @@
       <Widget
         :doc="doc"
         @update="newValue => db.updateDocument(doc, newValue)"
+        @add-actions="addActions"
       />
     </div>
   </div>
@@ -117,19 +118,18 @@ function startNameEdition (event) {
   input.focus()
 }
 
-const rowActions = [
+const rowActions = ref([
   {
     action: 'delete',
     label: 'Delete',
     onClick () {
       db.deleteDocRecursively(props.doc)
     }
-  },
-  {
-    action: 'rename',
-    label: 'Rename',
-    onClick (name) {
-    }
   }
-]
+])
+
+function addActions (actions) {
+  rowActions.value = rowActions.value.concat(actions)
+}
+
 </script>

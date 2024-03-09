@@ -4,7 +4,7 @@
       <li
         v-for="item in doc.value"
         :key="item.id"
-        class="flex items-center rounded hover:bg-gray-600"
+        class="flex items-center rounded hover:bg-gray-600 my-1"
       >
         <div class="flex h-3 items-center">
           <input

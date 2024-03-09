@@ -102,6 +102,7 @@ export function useDatabase (connectionId, documentId = '') {
       value: widget.index === 'text' ? value : widget.defaultValue,
       name: widget.index === 'text' ? '' : value,
       type: widget.index,
+      settings: {},
       index_value: widget.indexValue,
       parent_id: currentDocumentId.value ?? '',
       order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
@@ -122,8 +123,14 @@ export function useDatabase (connectionId, documentId = '') {
     })
   }
 
-  async function updateDocument (doc, value) {
-    doc.value = value
+  async function updateDocument (doc, value, deep = true) {
+    if (deep) {
+      for (const index in value) {
+        doc[index] = value[index]
+      }
+    } else {
+      doc.value = value
+    }
     await database.put({ ...doc })
   }
 
