@@ -1,6 +1,6 @@
 <template>
   <div
-    class="fixed inset-0 z-20"
+    class="fixed inset-0 z-20 bg-gray-800 text-gray-50"
     :style="{'background-color': doc.settings.bg_color, 'color': doc.settings.text_color}"
   >
     <button
