@@ -85,7 +85,7 @@ import { getWidgetList, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
-import { useDatabase } from '@/composables/useDatabase.js'
+import { useWorkspace } from '@/composables/useWorkspace.js'
 import sidebarStore from '@/stores/sidebar.js'
 
 const props = defineProps({
@@ -105,7 +105,7 @@ watch(() => props.documentId, async (value) => {
 
 const emits = defineEmits(['navigate'])
 
-const database = useDatabase(props.connectionId, props.documentId)
+const database = useWorkspace(props.connectionId, props.documentId)
 const { currentRoute, connectionDone, currentDocument } = database
 
 const mainInput = ref(null)

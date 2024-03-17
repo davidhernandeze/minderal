@@ -5,7 +5,7 @@
     <template #body>
       <form
         class="text-gray-200 text-xl "
-        @keyup.enter.once="addConnection"
+        @submit.prevent="addConnection"
       >
         <h1 class="mb-1">
           Connection Setup
@@ -55,7 +55,7 @@
         <div v-if="!isEdition">
           <GenericButton
             class="bg-indigo-600 hover:bg-indigo-500 mt-6"
-            @click="addConnection"
+            type="submit"
           >
             Connect
           </GenericButton>

@@ -4,7 +4,7 @@ import { ref, shallowRef } from 'vue'
 import { Doc } from '@/types.js'
 import moment from 'moment'
 
-export function useDatabase (connectionId, documentId = '') {
+export function useWorkspace (connectionId, documentId = '') {
   let database
   const username = ref('')
   const metadataStore = useMetadataStore()
