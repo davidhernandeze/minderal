@@ -1,9 +1,3 @@
-<template>
-  <Widget
-    :doc="doc"
-    @update="newValue => db.updateDocument(doc, newValue)"
-  />
-</template>
 <script setup>
 import { defineAsyncComponent, inject } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
@@ -17,3 +11,9 @@ const Widget = defineAsyncComponent(() => {
 })
 
 </script>
+<template>
+  <Widget
+    :doc="doc"
+    @update="newValue => db.updateDocument(doc, newValue)"
+  />
+</template>

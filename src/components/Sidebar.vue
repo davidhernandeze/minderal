@@ -1,3 +1,28 @@
+<script setup>
+import { ref } from 'vue'
+import { useMetadataStore } from '@/stores/metadata.js'
+import { storeToRefs } from 'pinia'
+import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
+import sidebarStore from '@/stores/sidebar.js'
+
+const metadataStore = useMetadataStore()
+const { connections, tabs } = storeToRefs(metadataStore)
+const isConnectionSetupModalOpen = ref(false)
+
+const { isSidebarVisible } = sidebarStore
+const connectionOnEdit = ref(null)
+
+function openNewTab (connectionId, connectionName) {
+  metadataStore.openNewTab(connectionId, connectionName)
+  sidebarStore.onTabOpen()
+}
+
+function openConnectionSetup (connection) {
+  connectionOnEdit.value = connection
+  isConnectionSetupModalOpen.value = true
+}
+</script>
+
 <template>
   <div
     v-show="isSidebarVisible"
@@ -54,28 +79,3 @@
     />
   </div>
 </template>
-
-<script setup>
-import { ref } from 'vue'
-import { useMetadataStore } from '@/stores/metadata.js'
-import { storeToRefs } from 'pinia'
-import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
-import sidebarStore from '@/stores/sidebar.js'
-
-const metadataStore = useMetadataStore()
-const { connections, tabs } = storeToRefs(metadataStore)
-const isConnectionSetupModalOpen = ref(false)
-
-const { isSidebarVisible } = sidebarStore
-const connectionOnEdit = ref(null)
-
-function openNewTab (connectionId, connectionName) {
-  metadataStore.openNewTab(connectionId, connectionName)
-  sidebarStore.onTabOpen()
-}
-
-function openConnectionSetup (connection) {
-  connectionOnEdit.value = connection
-  isConnectionSetupModalOpen.value = true
-}
-</script>

@@ -1,3 +1,16 @@
+<script setup>
+import SwitchInput from '@/components/SwitchInput.vue'
+import { Doc } from '@/types.js'
+
+defineEmits(['update'])
+defineProps({
+  doc: {
+    type: Doc,
+    required: true
+  }
+})
+</script>
+
 <template>
   <div class="flex justify-center h-full items-start box-border">
     <div>
@@ -15,16 +28,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import SwitchInput from '@/components/SwitchInput.vue'
-import { Doc } from '@/types.js'
-
-defineEmits(['update'])
-defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  }
-})
-</script>

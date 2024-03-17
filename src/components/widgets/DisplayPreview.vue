@@ -1,3 +1,51 @@
+<script setup>
+import { Doc } from '@/types.js'
+import GenericButton from '@/components/GenericButton.vue'
+import Modal from '@/components/Modal.vue'
+import TextInput from '@/components/TextInput.vue'
+import { inject, ref } from 'vue'
+
+const props = defineProps({
+  doc: {
+    type: Doc,
+    required: true
+  }
+})
+
+const emit = defineEmits(['add-actions'])
+
+const db = inject('db')
+
+const editionOpen = ref(false)
+const form = ref({
+  display: props.doc.value,
+  text_color: props.doc.settings?.text_color || '#ffffff',
+  bg_color: props.doc.settings?.bg_color || '#1F2937'
+})
+
+const extraActions = [{
+  action: 'edit',
+  label: 'Edit',
+  onClick () {
+    editionOpen.value = true
+  }
+}]
+
+emit('add-actions', extraActions)
+
+function update () {
+  const updatedValue = {
+    value: form.value.display,
+    settings: {
+      bg_color: form.value.bg_color,
+      text_color: form.value.text_color
+    }
+  }
+  db.updateDocument(props.doc, updatedValue, true)
+  editionOpen.value = false
+}
+</script>
+
 <template>
   <div class="text-xs">
     {{ doc.value }}
@@ -49,51 +97,3 @@
     </Modal>
   </div>
 </template>
-
-<script setup>
-import { Doc } from '@/types.js'
-import GenericButton from '@/components/GenericButton.vue'
-import Modal from '@/components/Modal.vue'
-import TextInput from '@/components/TextInput.vue'
-import { inject, ref } from 'vue'
-
-const props = defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  }
-})
-
-const emit = defineEmits(['add-actions'])
-
-const db = inject('db')
-
-const editionOpen = ref(false)
-const form = ref({
-  display: props.doc.value,
-  text_color: props.doc.settings?.text_color || '#ffffff',
-  bg_color: props.doc.settings?.bg_color || '#1F2937'
-})
-
-const extraActions = [{
-  action: 'edit',
-  label: 'Edit',
-  onClick () {
-    editionOpen.value = true
-  }
-}]
-
-emit('add-actions', extraActions)
-
-function update () {
-  const updatedValue = {
-    value: form.value.display,
-    settings: {
-      bg_color: form.value.bg_color,
-      text_color: form.value.text_color
-    }
-  }
-  db.updateDocument(props.doc, updatedValue, true)
-  editionOpen.value = false
-}
-</script>

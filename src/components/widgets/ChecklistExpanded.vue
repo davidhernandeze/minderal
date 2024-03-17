@@ -1,3 +1,19 @@
+<script setup>
+import GenericButton from '@/components/GenericButton.vue'
+import useChecklist from '@/composables/useChecklist.js'
+import { Doc } from '@/types.js'
+import { toRef } from '@vueuse/core'
+
+const props = defineProps({
+  doc: {
+    type: Doc,
+    required: true
+  }
+})
+const emits = defineEmits(['update'])
+const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() => props.doc), emits)
+</script>
+
 <template>
   <div class="text-3xl text-center mb-8">
     {{ doc.name }}
@@ -52,19 +68,3 @@
     </li>
   </ol>
 </template>
-
-<script setup>
-import GenericButton from '@/components/GenericButton.vue'
-import useChecklist from '@/composables/useChecklist.js'
-import { Doc } from '@/types.js'
-import { toRef } from '@vueuse/core'
-
-const props = defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  }
-})
-const emits = defineEmits(['update'])
-const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() => props.doc), emits)
-</script>

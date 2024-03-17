@@ -1,3 +1,83 @@
+<script setup>
+import { ref, watch } from 'vue'
+import Modal from '@/components/Modal.vue'
+import SwitchInput from '@/components/SwitchInput.vue'
+import TextInput from '@/components/TextInput.vue'
+import GenericButton from '@/components/GenericButton.vue'
+import { useMetadataStore } from '@/stores/metadata.js'
+
+const emits = defineEmits(['close', 'select'])
+const props = defineProps({
+  openModal: {
+    required: true,
+    type: Boolean
+  },
+  connection: {
+    default: null,
+    type: Object
+  }
+})
+
+const isOpen = ref(props.openModal)
+
+const metadataStore = useMetadataStore()
+const form = ref({})
+const isRemoteConnection = ref(false)
+const isEdition = ref(false)
+const connectionId = ref()
+resetForm()
+
+async function addConnection () {
+  const localForm = form.value
+  if (isRemoteConnection.value) {
+    await metadataStore.addConnection(localForm.name, localForm.host, localForm.username, localForm.password)
+  } else {
+    await metadataStore.addConnection(localForm.name)
+  }
+  isOpen.value = false
+}
+
+async function removeConnection () {
+  await metadataStore.removeConnection(connectionId.value)
+  isOpen.value = false
+}
+
+async function deleteDatabase () {
+  await metadataStore.deleteDatabase(connectionId.value)
+  isOpen.value = false
+}
+
+watch(() => props.openModal, (value) => {
+  if (!value) {
+    resetForm()
+  } else {
+    isOpen.value = true
+  }
+})
+
+function resetForm () {
+  form.value = { host: 'https://db.minderal.com' }
+  isRemoteConnection.value = false
+}
+
+watch(() => props.connection, (value) => {
+  isEdition.value = !!value
+  form.value.name = value?.name
+  if (value) {
+    connectionId.value = value.id
+    if (value.host) {
+      isRemoteConnection.value = true
+      form.value.host = value.host
+      form.value.username = value.connectionOptions?.auth?.username
+    }
+  }
+})
+
+watch(isOpen, (value) => {
+  if (!value) emits('close')
+})
+
+</script>
 <template>
   <Modal
     v-model:is-open="isOpen"
@@ -80,83 +160,3 @@
     </template>
   </Modal>
 </template>
-<script setup>
-import { ref, watch } from 'vue'
-import Modal from '@/components/Modal.vue'
-import SwitchInput from '@/components/SwitchInput.vue'
-import TextInput from '@/components/TextInput.vue'
-import GenericButton from '@/components/GenericButton.vue'
-import { useMetadataStore } from '@/stores/metadata.js'
-
-const emits = defineEmits(['close', 'select'])
-const props = defineProps({
-  openModal: {
-    required: true,
-    type: Boolean
-  },
-  connection: {
-    default: null,
-    type: Object
-  }
-})
-
-const isOpen = ref(props.openModal)
-
-const metadataStore = useMetadataStore()
-const form = ref({})
-const isRemoteConnection = ref(false)
-const isEdition = ref(false)
-const connectionId = ref()
-resetForm()
-
-async function addConnection () {
-  const localForm = form.value
-  if (isRemoteConnection.value) {
-    await metadataStore.addConnection(localForm.name, localForm.host, localForm.username, localForm.password)
-  } else {
-    await metadataStore.addConnection(localForm.name)
-  }
-  isOpen.value = false
-}
-
-async function removeConnection () {
-  await metadataStore.removeConnection(connectionId.value)
-  isOpen.value = false
-}
-
-async function deleteDatabase () {
-  await metadataStore.deleteDatabase(connectionId.value)
-  isOpen.value = false
-}
-
-watch(() => props.openModal, (value) => {
-  if (!value) {
-    resetForm()
-  } else {
-    isOpen.value = true
-  }
-})
-
-function resetForm () {
-  form.value = { host: 'https://db.minderal.com' }
-  isRemoteConnection.value = false
-}
-
-watch(() => props.connection, (value) => {
-  isEdition.value = !!value
-  form.value.name = value?.name
-  if (value) {
-    connectionId.value = value.id
-    if (value.host) {
-      isRemoteConnection.value = true
-      form.value.host = value.host
-      form.value.username = value.connectionOptions?.auth?.username
-    }
-  }
-})
-
-watch(isOpen, (value) => {
-  if (!value) emits('close')
-})
-
-</script>

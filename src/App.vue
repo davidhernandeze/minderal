@@ -1,22 +1,3 @@
-<template>
-  <div
-    v-if="true"
-    class="max-h-screen h-screen bg-gray-800 text-gray-100 flex"
-  >
-    <Sidebar class="flex-none" />
-    <div
-      :class="[isSidebarVisible ? 'hidden sm:block' : 'block']"
-      class="w-full pl-2 pr-0 pb-0"
-    >
-      <Tabs class="h-[5vh] pt-1" />
-      <WorkspaceManager
-        v-show="tabs.length > 0"
-        class="h-[95vh]"
-      />
-    </div>
-    <div class="text-gray-600 text-xs fixed bottom-0 m-2">v0.1</div>
-  </div>
-</template>
 <script setup>
 import Sidebar from '@/components/Sidebar.vue'
 import Tabs from '@/components/Tabs.vue'
@@ -36,6 +17,27 @@ onBeforeMount(async () => {
 })
 
 </script>
+<template>
+  <div
+    v-if="true"
+    class="max-h-screen h-screen bg-gray-800 text-gray-100 flex"
+  >
+    <Sidebar class="flex-none" />
+    <div
+      :class="[isSidebarVisible ? 'hidden sm:block' : 'block']"
+      class="w-full pl-2 pr-0 pb-0"
+    >
+      <Tabs class="h-[5vh] pt-1" />
+      <WorkspaceManager
+        v-show="tabs.length > 0"
+        class="h-[95vh]"
+      />
+    </div>
+    <div class="text-gray-600 text-xs fixed bottom-0 m-2">
+      v0.1
+    </div>
+  </div>
+</template>
 
 <style>
 

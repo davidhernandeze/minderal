@@ -1,3 +1,14 @@
+<script setup>
+import { Doc } from '@/types.js'
+
+defineProps({
+  doc: {
+    type: Doc,
+    required: true
+  }
+})
+</script>
+
 <template>
   <div class="flex justify-center h-full items-center box-border">
     <div>
@@ -10,14 +21,3 @@
     </div>
   </div>
 </template>
-
-<script setup>
-import { Doc } from '@/types.js'
-
-defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  }
-})
-</script>

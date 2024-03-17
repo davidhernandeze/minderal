@@ -1,3 +1,13 @@
+<script setup>
+import { useMetadataStore } from '@/stores/metadata.js'
+import { storeToRefs } from 'pinia'
+import sidebarStore from '@/stores/sidebar.js'
+
+const metadataStore = useMetadataStore()
+const { tabs } = storeToRefs(metadataStore)
+
+const { isSidebarVisible } = sidebarStore
+</script>
 <template>
   <div class="w-full flex">
     <div
@@ -26,13 +36,3 @@
     </div>
   </div>
 </template>
-<script setup>
-import { useMetadataStore } from '@/stores/metadata.js'
-import { storeToRefs } from 'pinia'
-import sidebarStore from '@/stores/sidebar.js'
-
-const metadataStore = useMetadataStore()
-const { tabs } = storeToRefs(metadataStore)
-
-const { isSidebarVisible } = sidebarStore
-</script>

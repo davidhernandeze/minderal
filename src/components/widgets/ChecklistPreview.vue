@@ -1,3 +1,14 @@
+<script setup>
+import { Doc } from '@/types.js'
+
+defineProps({
+  doc: {
+    type: Doc,
+    required: true
+  }
+})
+</script>
+
 <template>
   <div class="text-xs overflow-y-hidden">
     <ol>
@@ -21,14 +32,3 @@
     </ol>
   </div>
 </template>
-
-<script setup>
-import { Doc } from '@/types.js'
-
-defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  }
-})
-</script>

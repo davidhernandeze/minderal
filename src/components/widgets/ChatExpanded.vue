@@ -1,3 +1,24 @@
+<script setup>
+import useChat from '@/composables/useChat.js'
+import { inject, nextTick, onMounted, ref, watch } from 'vue'
+
+const db = inject('db')
+const emits = defineEmits(['update'])
+
+const { messages, inputValue, send } = useChat(db, emits)
+
+const chatContainer = ref(null)
+
+watch(messages, async () => {
+  await nextTick()
+  chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+})
+
+onMounted(async () => {
+  chatContainer.value.scrollTop = chatContainer.value.scrollHeight
+})
+
+</script>
 <template>
   <div>
     <div
@@ -47,24 +68,3 @@
     </div>
   </div>
 </template>
-<script setup>
-import useChat from '@/composables/useChat.js'
-import { inject, nextTick, onMounted, ref, watch } from 'vue'
-
-const db = inject('db')
-const emits = defineEmits(['update'])
-
-const { messages, inputValue, send } = useChat(db, emits)
-
-const chatContainer = ref(null)
-
-watch(messages, async () => {
-  await nextTick()
-  chatContainer.value.scrollTop = chatContainer.value.scrollHeight
-})
-
-onMounted(async () => {
-  chatContainer.value.scrollTop = chatContainer.value.scrollHeight
-})
-
-</script>

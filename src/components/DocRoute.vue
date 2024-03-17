@@ -1,3 +1,24 @@
+<script setup>
+
+import { nextTick, ref, watch } from 'vue'
+
+defineEmits(['navigate'])
+
+const props = defineProps({
+  route: {
+    type: Array,
+    default: () => []
+  }
+})
+
+const container = ref()
+
+watch(() => props.route, async (value) => {
+  await nextTick()
+  container.value.scrollLeft = container.value.scrollWidth
+})
+
+</script>
 <template>
   <nav
     ref="container"
@@ -30,24 +51,3 @@
     </ol>
   </nav>
 </template>
-<script setup>
-
-import { nextTick, ref, watch } from 'vue'
-
-defineEmits(['navigate'])
-
-const props = defineProps({
-  route: {
-    type: Array,
-    default: () => []
-  }
-})
-
-const container = ref()
-
-watch(() => props.route, async (value) => {
-  await nextTick()
-  container.value.scrollLeft = container.value.scrollWidth
-})
-
-</script>

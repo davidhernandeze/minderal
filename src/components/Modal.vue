@@ -1,3 +1,15 @@
+<script setup>
+import { Dialog, DialogOverlay, TransitionChild, TransitionRoot } from '@headlessui/vue'
+
+defineEmits(['close', 'update:isOpen'])
+defineProps({
+  isOpen: {
+    required: true,
+    type: Boolean
+  }
+})
+</script>
+
 <template>
   <TransitionRoot
     as="template"
@@ -52,15 +64,3 @@
     </Dialog>
   </TransitionRoot>
 </template>
-
-<script setup>
-import { Dialog, DialogOverlay, TransitionChild, TransitionRoot } from '@headlessui/vue'
-
-defineEmits(['close', 'update:isOpen'])
-defineProps({
-  isOpen: {
-    required: true,
-    type: Boolean
-  }
-})
-</script>

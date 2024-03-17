@@ -1,7 +1,6 @@
 import { computed } from 'vue'
 
 export default (documents, searchQuery) => {
-
   const filteredDocuments = computed(() => {
     return documents.value.filter((doc) => {
       let searchableContent = doc.name

@@ -1,3 +1,31 @@
+<script setup>
+import { Switch, SwitchGroup, SwitchLabel } from '@headlessui/vue'
+
+const props = defineProps({
+  label: {
+    type: String,
+    default: ''
+  },
+  modelValue: Boolean,
+  disabled: {
+    type: Boolean,
+    default: false
+  },
+  error: {
+    type: String,
+    default: ''
+  }
+})
+
+const emit = defineEmits(['update:modelValue', 'click'])
+
+function onClick () {
+  emit('update:modelValue', !props.modelValue)
+  emit('click')
+}
+
+</script>
+
 <template>
   <SwitchGroup
     as="div"
@@ -50,31 +78,3 @@
     </SwitchLabel>
   </SwitchGroup>
 </template>
-
-<script setup>
-import { Switch, SwitchGroup, SwitchLabel } from '@headlessui/vue'
-
-const props = defineProps({
-  label: {
-    type: String,
-    default: ''
-  },
-  modelValue: Boolean,
-  disabled: {
-    type: Boolean,
-    default: false
-  },
-  error: {
-    type: String,
-    default: ''
-  }
-})
-
-const emit = defineEmits(['update:modelValue', 'click'])
-
-function onClick () {
-  emit('update:modelValue', !props.modelValue)
-  emit('click')
-}
-
-</script>

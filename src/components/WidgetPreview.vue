@@ -1,3 +1,62 @@
+<script setup>
+import { defineAsyncComponent, inject, ref } from 'vue'
+import { getWidgetProps } from '@/enums/widgets.js'
+import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
+import { Doc } from '@/types.js'
+
+const props = defineProps({
+  doc: {
+    type: Doc,
+    required: true
+  }
+})
+const navigate = inject('navigate')
+const db = inject('db')
+
+const renameInput = ref(props.doc.name)
+const isEditingName = ref(false)
+const widgetProps = getWidgetProps(props.doc.type)
+const icon = widgetProps.icon
+const Widget = defineAsyncComponent(() => {
+  return import(`./widgets/${widgetProps.previewComponent}.vue`)
+})
+
+async function clickAction () {
+  if (widgetProps.expandable) {
+    if (isEditingName.value) {
+      isEditingName.value = false
+      return
+    }
+    await navigate(props.doc._id)
+  }
+}
+
+async function endNameEdition () {
+  await db.renameDocument(props.doc, renameInput.value)
+}
+
+function startNameEdition (event) {
+  isEditingName.value = true
+  const input = event.target
+  input.setSelectionRange(0, input.value.length)
+  input.focus()
+}
+
+const rowActions = ref([
+  {
+    action: 'delete',
+    label: 'Delete',
+    onClick () {
+      db.deleteDocRecursively(props.doc)
+    }
+  }
+])
+
+function addActions (actions) {
+  rowActions.value = rowActions.value.concat(actions)
+}
+
+</script>
 <template>
   <div
     class="flex overflow-visible flex-col bg-gray-600 h-28 rounded relative cursor-pointer p-2 shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
@@ -74,62 +133,3 @@
     </div>
   </div>
 </template>
-<script setup>
-import { defineAsyncComponent, inject, ref } from 'vue'
-import { getWidgetProps } from '@/enums/widgets.js'
-import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
-import { Doc } from '@/types.js'
-
-const props = defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  }
-})
-const navigate = inject('navigate')
-const db = inject('db')
-
-const renameInput = ref(props.doc.name)
-const isEditingName = ref(false)
-const widgetProps = getWidgetProps(props.doc.type)
-const icon = widgetProps.icon
-const Widget = defineAsyncComponent(() => {
-  return import(`./widgets/${widgetProps.previewComponent}.vue`)
-})
-
-async function clickAction () {
-  if (widgetProps.expandable) {
-    if (isEditingName.value) {
-      isEditingName.value = false
-      return
-    }
-    await navigate(props.doc._id)
-  }
-}
-
-async function endNameEdition () {
-  await db.renameDocument(props.doc, renameInput.value)
-}
-
-function startNameEdition (event) {
-  isEditingName.value = true
-  const input = event.target
-  input.setSelectionRange(0, input.value.length)
-  input.focus()
-}
-
-const rowActions = ref([
-  {
-    action: 'delete',
-    label: 'Delete',
-    onClick () {
-      db.deleteDocRecursively(props.doc)
-    }
-  }
-])
-
-function addActions (actions) {
-  rowActions.value = rowActions.value.concat(actions)
-}
-
-</script>
