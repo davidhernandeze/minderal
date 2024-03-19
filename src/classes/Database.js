@@ -43,6 +43,7 @@ export default class Database {
       include_docs: true,
       retry: true
     }).on('change', callback)
+
   }
 
   async indexBy (field) {
