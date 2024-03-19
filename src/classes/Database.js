@@ -1,10 +1,24 @@
 import PouchDB from 'pouchdb-browser'
 import moment from 'moment'
+import { EventEmitter } from 'events'
 
-export default class Database {
-  constructor ({ name, auth }) {
+export default class Database extends EventEmitter {
+  constructor ({ name, auth, listen = false }) {
+    super()
     this.name = name
     this.connection = new PouchDB({ name, auth, skipSetup: true })
+    this.connectionCheckInterval = null
+    this.offline = false
+    this.changesListener = null
+
+    if (!listen) return
+
+    this.startListening()
+    this.monitorConnection()
+  }
+
+  async getInfo () {
+    return await this.connection.info()
   }
 
   async getOrCreateDoc (id) {
@@ -36,14 +50,32 @@ export default class Database {
     await this.connection.put(doc)
   }
 
-  onChange (callback) {
-    this.connection.changes({
+  startListening () {
+    this.changesListener = this.connection.changes({
       since: 'now',
       live: true,
       include_docs: true,
-      retry: true
-    }).on('change', callback)
+      timeout: false
+    })
+      .on('change', (change) => {
+        this.emit('change', change)
+      })
+  }
 
+  monitorConnection () {
+    this.connectionCheckInterval = setInterval(async () => {
+      try {
+        await this.getInfo()
+        if (this.offline) {
+          this.offline = false
+          this.emit('reconnect')
+          this.changesListener.cancel()
+          this.startListening()
+        }
+      } catch (e) {
+        this.offline = true
+      }
+    }, 20000)
   }
 
   async indexBy (field) {
@@ -64,6 +96,7 @@ export default class Database {
   }
 
   async closeConnection () {
+    clearInterval(this.connectionCheckInterval)
     await this.connection.close()
   }
 }

@@ -1,6 +1,7 @@
 <script setup>
 import { Doc } from '@/classes/Doc.js'
 import { inject } from 'vue'
+import DebugStore from '@/stores/DebugStore.js'
 
 const props = defineProps({
   doc: {
@@ -8,6 +9,8 @@ const props = defineProps({
     required: true
   }
 })
+
+const { lastReconnect, reconnects } = DebugStore
 
 const navigate = inject('navigate')
 
@@ -29,6 +32,15 @@ function close () {
     </button>
     <div class="text-2xl p-8">
       {{ doc.content }}
+    </div>
+
+    <div class="absolute right-0 opacity-30 bottom-0 p-4">
+      <div class="text-sm">
+        Last reconnect: {{ lastReconnect }}
+      </div>
+      <div class="text-sm">
+        Reconnects: {{ reconnects }}
+      </div>
     </div>
   </div>
 </template>

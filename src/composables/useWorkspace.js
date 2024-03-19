@@ -3,10 +3,12 @@ import { ref } from 'vue'
 import { useDatabasePoolStore } from '@/stores/DatabasePoolStore.js'
 import { Doc } from '@/classes/Doc.js'
 import { widgets } from '@/enums/widgets.js'
+import DebugStore from '@/stores/DebugStore.js'
 
 export function useWorkspace ({ connectionId, docId = '' }) {
   const databasePoolStore = useDatabasePoolStore()
   const metadataStore = useMetadataStore()
+  const { lastReconnect, reconnects } = DebugStore
 
   let db
   const childDocs = ref([])
@@ -16,12 +18,16 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   const currentRoute = ref([])
   const connectionDone = ref(false)
 
-
   async function connectDB () {
     const info = await metadataStore.getConnectionInfo(connectionId)
-    db = await databasePoolStore.getOrCreateDB(info.connectionOptions)
+    db = await databasePoolStore.getOrCreateDB({ ...info.connectionOptions, listen: true })
     username.value = info.username
-    db.onChange(onDatabaseChange)
+    db.on('change', onDatabaseChange)
+    db.on('reconnect', () => {
+      reconnects.value += 1
+      lastReconnect.value = new Date().toISOString()
+      fetch()
+    })
     await fetch()
   }
 

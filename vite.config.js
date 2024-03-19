@@ -9,9 +9,6 @@ export default defineConfig({
     vue(),
     VitePWA({
       registerType: 'prompt',
-      devOptions: {
-        enabled: true
-      },
       manifest: {
         name: 'Minderal',
         short_name: 'minderal',

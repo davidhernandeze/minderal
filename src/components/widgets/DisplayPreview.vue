@@ -18,7 +18,7 @@ const workspace = inject('workspace')
 
 const editionOpen = ref(false)
 const form = ref({
-  display: props.doc.value,
+  content: props.doc.content,
   text_color: props.doc.settings?.text_color || '#ffffff',
   bg_color: props.doc.settings?.bg_color || '#1F2937'
 })
@@ -49,7 +49,6 @@ function update () {
 <template>
   <div class="text-xs">
     {{ doc.content }}
-
     <Modal
       v-model:is-open="editionOpen"
     >

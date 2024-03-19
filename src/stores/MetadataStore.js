@@ -7,7 +7,7 @@ import Database from '@/classes/Database.js'
 
 const META_DOC_ID = 'meta'
 export const useMetadataStore = defineStore('metadata', () => {
-  const metaDatabase = new Database({ name: 'minderal' })
+  const metaDatabase = new Database({ name: 'minderal', listen: false})
   const connections = ref([])
   const tabs = ref([])
 
