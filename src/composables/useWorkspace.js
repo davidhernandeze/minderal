@@ -110,7 +110,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function updateDoc (doc, updatedFields) {
-    console.log(updatedFields)
     for (const field in updatedFields) {
       doc[field] = updatedFields[field]
     }

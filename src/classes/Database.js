@@ -5,21 +5,6 @@ export default class Database {
   constructor ({ name, auth }) {
     this.name = name
     this.connection = new PouchDB({ name, auth, skipSetup: true })
-    // this.connection.allDocs({ include_docs: true }).then((result) => {
-    //   console.log(result)
-    //   const migratedDocs = result.rows.filter(row => {
-    //     return !row.id.includes('_design')
-    //   })
-    //     .map(row => {
-    //       row.doc.deleted_at = null
-    //       row.doc.content = row.doc.value
-    //       row.doc.widget = row.doc.type
-    //       return row.doc
-    //     })
-    //   this.connection.bulkDocs(migratedDocs).then(() => {
-    //     console.log('Database migration complete')
-    //   })
-    // })
   }
 
   async getOrCreateDoc (id) {

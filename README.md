@@ -17,14 +17,17 @@ npm run build
 ## All docs migration
 ```js
     // Database.js constructor()
-    this.connection.allDocs({ include_docs: true }).then((result) => {
-      const migratedDocs = result.rows.map(row => {
-        row.doc.deleted_at = null
-        row.doc.content = row.value
-        return row.doc
-      })
-      this.connection.bulkDocs(migratedDocs).then(() => {
-        console.log('Database migration complete')
-      })
+this.connection.allDocs({ include_docs: true }).then((result) => {
+  console.log(result)
+  const migratedDocs = result.rows.filter(row => {
+    return !row.id.includes('_design')
+  })
+    .map(row => {
+      row.doc.content = row.doc.value
+      return row.doc
     })
+  this.connection.bulkDocs(migratedDocs).then(() => {
+    console.log('Database migration complete')
+  })
+})
 ```
