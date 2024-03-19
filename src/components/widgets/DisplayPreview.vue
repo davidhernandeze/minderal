@@ -1,5 +1,5 @@
 <script setup>
-import { Doc } from '@/types.js'
+import { Doc } from '@/classes/Doc.js'
 import GenericButton from '@/components/GenericButton.vue'
 import Modal from '@/components/Modal.vue'
 import TextInput from '@/components/TextInput.vue'
@@ -14,7 +14,7 @@ const props = defineProps({
 
 const emit = defineEmits(['add-actions'])
 
-const db = inject('db')
+const workspace = inject('workspace')
 
 const editionOpen = ref(false)
 const form = ref({
@@ -35,20 +35,20 @@ emit('add-actions', extraActions)
 
 function update () {
   const updatedValue = {
-    value: form.value.display,
+    content: form.value.content,
     settings: {
       bg_color: form.value.bg_color,
       text_color: form.value.text_color
     }
   }
-  db.updateDocument(props.doc, updatedValue, true)
+  workspace.updateDoc(props.doc, { ...updatedValue })
   editionOpen.value = false
 }
 </script>
 
 <template>
   <div class="text-xs">
-    {{ doc.value }}
+    {{ doc.content }}
 
     <Modal
       v-model:is-open="editionOpen"
@@ -65,7 +65,7 @@ function update () {
             You can customize how the widget is displayed
           </div>
           <TextInput
-            v-model:value="form.display"
+            v-model:value="form.content"
             label="Display Text"
             type="text"
             class="my-3 w-full"

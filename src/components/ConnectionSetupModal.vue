@@ -4,7 +4,7 @@ import Modal from '@/components/Modal.vue'
 import SwitchInput from '@/components/SwitchInput.vue'
 import TextInput from '@/components/TextInput.vue'
 import GenericButton from '@/components/GenericButton.vue'
-import { useMetadataStore } from '@/stores/metadata.js'
+import { useMetadataStore } from '@/stores/MetadataStore.js'
 
 const emits = defineEmits(['close', 'select'])
 const props = defineProps({

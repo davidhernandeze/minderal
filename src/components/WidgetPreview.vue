@@ -1,8 +1,8 @@
 <script setup>
-import { defineAsyncComponent, inject, ref } from 'vue'
+import { defineAsyncComponent, inject, ref, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
-import { Doc } from '@/types.js'
+import { Doc } from '@/classes/Doc.js'
 
 const props = defineProps({
   doc: {
@@ -10,12 +10,17 @@ const props = defineProps({
     required: true
   }
 })
+
 const navigate = inject('navigate')
-const db = inject('db')
+const workspace = inject('workspace')
 
 const renameInput = ref(props.doc.name)
 const isEditingName = ref(false)
-const widgetProps = getWidgetProps(props.doc.type)
+watch(() => props.doc.name, () => {
+  renameInput.value = props.doc.name
+})
+
+const widgetProps = getWidgetProps(props.doc.widget)
 const icon = widgetProps.icon
 const Widget = defineAsyncComponent(() => {
   return import(`./widgets/${widgetProps.previewComponent}.vue`)
@@ -32,7 +37,7 @@ async function clickAction () {
 }
 
 async function endNameEdition () {
-  await db.renameDocument(props.doc, renameInput.value)
+  await workspace.renameDoc(props.doc, renameInput.value)
 }
 
 function startNameEdition (event) {
@@ -47,7 +52,7 @@ const rowActions = ref([
     action: 'delete',
     label: 'Delete',
     onClick () {
-      db.deleteDocRecursively(props.doc)
+      workspace.deleteDocRecursively({... props.doc })
     }
   }
 ])
@@ -127,7 +132,6 @@ function addActions (actions) {
     <div class="flex-1 overflow-hidden">
       <Widget
         :doc="doc"
-        @update="newValue => db.updateDocument(doc, newValue)"
         @add-actions="addActions"
       />
     </div>

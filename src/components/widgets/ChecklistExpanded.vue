@@ -1,7 +1,7 @@
 <script setup>
 import GenericButton from '@/components/GenericButton.vue'
 import useChecklist from '@/composables/useChecklist.js'
-import { Doc } from '@/types.js'
+import { Doc } from '@/classes/Doc.js'
 import { toRef } from '@vueuse/core'
 
 const props = defineProps({

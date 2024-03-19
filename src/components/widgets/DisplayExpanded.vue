@@ -1,5 +1,5 @@
 <script setup>
-import { Doc } from '@/types.js'
+import { Doc } from '@/classes/Doc.js'
 import { inject } from 'vue'
 
 const props = defineProps({
@@ -19,7 +19,7 @@ function close () {
 <template>
   <div
     class="fixed inset-0 z-20 bg-gray-800 text-gray-50"
-    :style="{'background-color': doc.settings.bg_color, 'color': doc.settings.text_color}"
+    :style="{'background-color': doc.settings?.bg_color, 'color': doc.settings?.text_color}"
   >
     <button
       class="absolute right-0 m-4"
@@ -28,7 +28,7 @@ function close () {
       <i class="fa-light fa-times opacity-30" />
     </button>
     <div class="text-2xl p-8">
-      {{ doc.value }}
+      {{ doc.content }}
     </div>
   </div>
 </template>

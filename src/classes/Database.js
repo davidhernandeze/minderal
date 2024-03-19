@@ -2,10 +2,19 @@ import PouchDB from 'pouchdb-browser'
 import moment from 'moment'
 
 export default class Database {
-  constructor ({ name, url = null }) {
+  constructor ({ name, auth }) {
     this.name = name
-    this.url = url
-    this.connection = new PouchDB(name)
+    this.connection = new PouchDB({ name, auth, skipSetup: true })
+    // this.connection.allDocs({ include_docs: true }).then((result) => {
+    //   const migratedDocs = result.rows.map(row => {
+    //     row.doc.deleted_at = null
+    //     row.doc.content = row.doc.value
+    //     return row.doc
+    //   })
+    //   this.connection.bulkDocs(migratedDocs).then(() => {
+    //     console.log('Database migration complete')
+    //   })
+    // })
   }
 
   async getOrCreateDoc (id) {
@@ -18,8 +27,52 @@ export default class Database {
     }
   }
 
+  async getDoc (id) {
+    return await this.connection.get(id)
+  }
+
+  async createDoc (doc) {
+    doc.created_at = moment().toISOString()
+    await this.connection.post(doc)
+  }
+
   async updateDoc (doc) {
     doc.updated_at = moment().toISOString()
     await this.connection.put(doc)
+  }
+
+  async deleteDoc (doc) {
+    doc.deleted_at = moment().toISOString()
+    await this.connection.put(doc)
+  }
+
+  onChange (callback) {
+    this.connection.changes({
+      since: 'now',
+      live: true,
+      include_docs: true,
+      retry: true
+    }).on('change', callback)
+  }
+
+  async indexBy (field) {
+    await this.connection.createIndex({
+      index: { fields: [field] },
+      ddoc: `by_${field}`
+    })
+  }
+
+  async getDocsByParentId (parentId) {
+    const { docs } = await this.connection.find({
+      selector: {
+        parent_id: parentId,
+        deleted_at: null
+      }
+    })
+    return docs
+  }
+
+  async closeConnection () {
+    await this.connection.close()
   }
 }

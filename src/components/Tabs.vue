@@ -1,5 +1,5 @@
 <script setup>
-import { useMetadataStore } from '@/stores/metadata.js'
+import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { storeToRefs } from 'pinia'
 import sidebarStore from '@/stores/sidebar.js'
 

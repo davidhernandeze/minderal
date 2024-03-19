@@ -3,7 +3,7 @@ import moment from 'moment'
 import { useWebNotification } from '@vueuse/core'
 import icon from '@/assets/logo310x310.png'
 
-export default (db) => {
+export default (workspace) => {
   const {
     isSupported,
     show
@@ -15,18 +15,18 @@ export default (db) => {
 
   const inputValue = ref('')
   const messages = computed(() => {
-    return db.documents.value.map(doc => ({
+    return workspace.childDocs.value.map(doc => ({
       id: doc._id,
-      message: doc.value.message,
+      message: doc.content.message,
       sent_by: doc.created_by,
       created_at: moment(doc.created_at).fromNow(),
-      is_own: doc.created_by === db.username.value
+      is_own: doc.created_by === workspace.username.value
     }))
   })
 
   watch(messages, value => {
     if (!isSupported.value || value[value.length - 1]?.is_own) return
-    show({ title: 'New Message received in /' + db.currentDocument.value.name })
+    show({ title: 'New Message received in /' + workspace.currentDocument.value.name })
   })
 
   async function send () {
@@ -34,7 +34,7 @@ export default (db) => {
     const newMessage = {
       message: inputValue.value
     }
-    await db.createDocWithValue(newMessage, 'message')
+    await workspace.createDoc({ content: newMessage, widget: 'message' })
     inputValue.value = ''
   }
 

@@ -1,182 +1,163 @@
-import { useMetadataStore } from '@/stores/metadata.js'
-import PouchDB from 'pouchdb-browser'
-import { ref, shallowRef } from 'vue'
-import { Doc } from '@/types.js'
-import moment from 'moment'
+import { useMetadataStore } from '@/stores/MetadataStore.js'
+import { readonly, ref, shallowRef } from 'vue'
+import { useDatabasePoolStore } from '@/stores/DatabasePoolStore.js'
+import { Doc } from '@/classes/Doc.js'
+import { widgets } from '@/enums/widgets.js'
 
-export function useWorkspace (connectionId, documentId = '') {
-  let database
-  const username = ref('')
+export function useWorkspace ({ connectionId, docId = '' }) {
+  const databasePoolStore = useDatabasePoolStore()
   const metadataStore = useMetadataStore()
-  const connectionDone = ref(false)
-  metadataStore.getConnectionInfo(connectionId).then(async (info) => {
-    database = new PouchDB(info.connectionOptions)
-    username.value = info.username
-    await fetch()
-    listenForChanges()
-  })
-  const currentDocumentId = ref(documentId)
-  const currentDocument = shallowRef(null)
-  const documents = ref([])
+
+  let db
+  const childDocs = ref([])
+  const username = ref('')
+  const currentDoc = ref(null)
+  const currentDocId = ref(docId)
   const currentRoute = ref([])
+  const connectionDone = ref(false)
 
-  function listenForChanges () {
-    database.changes({
-      since: 'now',
-      live: true,
-      include_docs: true
-    }).on('change', async function (change) {
-      // To-do cases: delete/modify the current doc, delete/modify a doc in the route
-      if (change.id === currentDocumentId.value) {
-        await fetchCurrentDocument()
-        return
-      }
-      const docIndex = documents.value.findIndex(doc => change.id === doc._id)
-      const exists = docIndex !== -1
-      let isChild = (change.doc?.parent_id || '') === currentDocumentId.value
-      if (change.doc?._deleted) {
-        isChild = (documents.value?.[docIndex]?.parent_id || '') === currentDocumentId.value
-      }
-      if (!isChild) return
 
-      if (change.doc?._deleted) {
-        if (!exists) return
-        documents.value.splice(docIndex, 1)
-        return
-      }
-      if (!exists) {
-        documents.value.push(new Doc(change.doc))
-        return
-      }
+  async function connectDB () {
+    const info = await metadataStore.getConnectionInfo(connectionId)
+    db = await databasePoolStore.getOrCreateDB(info.connectionOptions)
+    username.value = info.username
+    db.onChange(onDatabaseChange)
+    await fetch()
+  }
 
-      documents.value[docIndex] = new Doc(change.doc)
-    }).on('error', function (err) {
-      console.log(err)
-    })
+  async function onDatabaseChange (change) {
+    // To-do cases: delete/modify the current doc, delete/modify a doc in the route
+    if (change.id === currentDocId.value) {
+      await fetchCurrentDoc()
+      return
+    }
+    const docIndex = childDocs.value.findIndex(doc => change.id === doc._id)
+    const exists = docIndex !== -1
+    let isChild = (change.doc?.parent_id || '') === currentDocId.value
+    if (change.doc?._deleted) {
+      isChild = (childDocs.value?.[docIndex]?.parent_id || '') === currentDocId.value
+    }
+    if (!isChild) return
+
+    if (change.doc?._deleted) {
+      if (!exists) return
+      childDocs.value.splice(docIndex, 1)
+      return
+    }
+
+    if (!exists) {
+      childDocs.value.push(new Doc(change.doc))
+      return
+    }
+
+    if (childDocs.value?.[docIndex].deleted_at !== change.doc.deleted_at) {
+      await fetchChildDocs()
+      return
+    }
+
+    childDocs.value[docIndex] = new Doc(change.doc)
   }
 
   async function fetch () {
-    console.log('fetching doc...')
-    await fetchCurrentDocument()
-    await fetchDocuments()
+    await fetchCurrentDoc()
+    await fetchChildDocs()
     connectionDone.value = true
   }
 
-  async function fetchCurrentDocument () {
-    if (currentDocumentId.value === '') {
-      currentDocument.value = null
+  async function fetchCurrentDoc () {
+    if (currentDocId.value === '') {
+      currentDoc.value = null
+      await fetchCurrentDocRoute()
       return
     }
-    const doc = await database.get(currentDocumentId.value)
-    currentDocument.value = new Doc(doc)
-    await fetchCurrentDocumentRoute()
-  }
-  async function fetchDocuments () {
-    console.log('fetching docs...')
-    const allDocs = await database.find({
-      selector: { parent_id: currentDocumentId.value ?? '' }
-    })
-    documents.value = allDocs.docs.sort((a, b) => a.order > b.order ? 1 : -1).map(doc => (new Doc(doc)))
-    await fetchCurrentDocumentRoute()
+    const doc = await db.getDoc(currentDocId.value)
+    currentDoc.value = new Doc(doc)
+    await fetchCurrentDocRoute()
   }
 
-  async function fetchCurrentDocumentRoute () {
-    let parentId = currentDocumentId.value
+  async function fetchChildDocs () {
+    const allDocs = await db.getDocsByParentId(currentDocId.value)
+    childDocs.value = allDocs.sort((a, b) => a.order > b.order ? 1 : -1).map(doc => (new Doc(doc)))
+  }
+
+  async function fetchCurrentDocRoute () {
+    let parentId = currentDocId.value
     const route = []
     while (parentId) {
-      const parentDocument = await database.get(parentId)
+      const parentDoc = await db.getDoc(parentId)
       route.push({
         id: parentId,
-        name: parentDocument.name
+        name: parentDoc.name
       })
-      parentId = parentDocument.parent_id
+      parentId = parentDoc.parent_id
     }
     currentRoute.value = route.reverse()
   }
 
-  async function createDocument (value, widget) {
-    const docsLength = documents.value.length
-    await database.post({
-      created_at: moment().toISOString(),
+  async function createDoc({ name = '', content = null, widget = 'text', settings = {} }) {
+    const widgetInfo = widgets[widget]
+    const docsLength = childDocs.value.length
+    const newDoc = new Doc({
       created_by: username.value,
-      value: widget.index === 'text' ? value : widget.defaultValue,
-      name: widget.index === 'text' ? '' : value,
-      type: widget.index,
-      settings: {},
-      index_value: widget.indexValue,
-      parent_id: currentDocumentId.value ?? '',
-      order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
+      content: content || widgetInfo.defaultContent,
+      name,
+      widget,
+      settings,
+      parent_id: currentDocId.value ?? '',
+      order: docsLength ? childDocs.value[docsLength - 1].order + 100 : 0,
     })
+    await db.createDoc(newDoc)
   }
 
-  async function createDocWithValue (value, widget) {
-    const docsLength = documents.value.length
-    await database.post({
-      created_at: moment().toISOString(),
-      created_by: username.value,
-      value,
-      name: '',
-      type: widget.index ?? widget,
-      index_value: true,
-      parent_id: currentDocumentId.value,
-      order: docsLength ? documents.value[docsLength - 1].order + 100 : 0
-    })
-  }
-
-  async function updateDocument (doc, value, deep = true) {
-    if (deep) {
-      for (const index in value) {
-        doc[index] = value[index]
-      }
-    } else {
-      doc.value = value
+  async function updateDoc (doc, updatedFields) {
+    console.log(updatedFields)
+    for (const field in updatedFields) {
+      doc[field] = updatedFields[field]
     }
-    await database.put({ ...doc })
+    await db.updateDoc({ ...doc })
   }
 
-  async function deleteDocument (doc) {
-    await database.remove(doc)
+  async function deleteDoc(doc) {
+    await db.deleteDoc(doc)
   }
 
   async function deleteDocRecursively (doc) {
-    const { docs: childDocs } = await database.find({
-      selector: { parent_id: doc._id }
-    })
+    const childDocs = await db.getDocsByParentId(doc._id)
     for (const childDoc of childDocs) {
-      deleteDocRecursively(childDoc)
+      await deleteDocRecursively(childDoc)
     }
-    deleteDocument(doc)
+    await deleteDoc(doc)
   }
 
-  async function renameDocument (doc, name) {
+  async function renameDoc (doc, name) {
     doc.name = name
-    await database.put({ ...doc })
+    await db.updateDoc(doc)
   }
 
-  async function setCurrentDocument (docId) {
+  async function setCurrentDoc (docId) {
     connectionDone.value = false
-    currentDocumentId.value = docId
+    currentDocId.value = docId
     await fetch()
   }
 
-  async function closeConnection () {
-    await database.close()
+  async function close () {
+    await databasePoolStore.closeConnection(db.name)
   }
 
   return {
     id: connectionId,
+    connectDB,
     username,
-    currentDocument,
+    currentDoc,
     currentRoute,
-    documents,
+    childDocs,
     connectionDone,
-    renameDocument,
-    setCurrentDocument,
-    createDocument,
-    createDocWithValue,
-    updateDocument,
-    deleteDocument,
+    renameDoc,
+    setCurrentDoc,
+    createDoc,
+    updateDoc,
+    deleteDoc,
     deleteDocRecursively,
-    closeConnection
+    close
   }
 }

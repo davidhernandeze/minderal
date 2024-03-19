@@ -1,6 +1,7 @@
 <script setup>
 import SwitchInput from '@/components/SwitchInput.vue'
-import { Doc } from '@/types.js'
+import { Doc } from '@/classes/Doc.js'
+import { inject } from 'vue'
 
 defineEmits(['update'])
 defineProps({
@@ -9,6 +10,9 @@ defineProps({
     required: true
   }
 })
+
+const workspace = inject('workspace')
+
 </script>
 
 <template>
@@ -16,10 +20,10 @@ defineProps({
     <div>
       <div
         class="flex justify-center h-7"
-        @click.stop="$emit('update', !doc.value)"
+        @click.stop="workspace.updateDoc(doc, { content: !doc.content })"
       >
         <SwitchInput
-          :model-value="doc.value"
+          :model-value="doc.content"
         />
       </div>
       <div class="text-sm mt-1">

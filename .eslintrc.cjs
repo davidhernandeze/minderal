@@ -10,7 +10,8 @@ module.exports = {
     'vue/multi-word-component-names': 'off',
     "vue/block-order": ["error", {
       "order": [ "script", "template" , "style" ]
-    }]
+    }],
+    'camelcase': 'off'
   },
   parserOptions: {
     'ecmaVersion': 'latest'

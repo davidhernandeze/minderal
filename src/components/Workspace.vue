@@ -1,5 +1,5 @@
 <script setup>
-import { computed, nextTick, onBeforeUnmount, provide, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeMount, onBeforeUnmount, provide, ref, watch } from 'vue'
 import DocRoute from '@/components/DocRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import { getWidgetList, widgets } from '@/enums/widgets.js'
@@ -14,20 +14,24 @@ const props = defineProps({
     type: String,
     required: true
   },
-  documentId: {
+  docId: {
     type: String,
     default: ''
   }
 })
 
-watch(() => props.documentId, async (value) => {
-  await database.setCurrentDocument(value)
-})
-
 const emits = defineEmits(['navigate'])
 
-const database = useWorkspace(props.connectionId, props.documentId)
-const { currentRoute, connectionDone, currentDocument } = database
+const workspace = useWorkspace({ connectionId: props.connectionId, docId: props.docId })
+const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute } = workspace
+
+onBeforeMount(async () => {
+  await connectDB()
+})
+
+watch(() => props.docId, async (value) => {
+  await setCurrentDoc(value)
+})
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -44,9 +48,9 @@ const iconRerender = ref(true)
 
 const { isSidebarVisible } = sidebarStore
 
-provide('db', database)
+provide('workspace', workspace)
 provide('searchQuery', searchQuery)
-provide('navigate', (docId) => navigate(docId))
+provide('navigate', (docId) => emits('navigate', docId))
 
 watch(shiftCtrlA, (v) => {
   if (!v) return
@@ -55,14 +59,18 @@ watch(shiftCtrlA, (v) => {
 
 const showMainInput = computed(() => {
   let type = 'folder'
-  if (currentDocument.value) {
-    type = currentDocument.value.type
+  if (workspace.currentDoc.value) {
+    type = workspace.currentDoc.value.widget
   }
-  return widgets[type].showMainInput
+  return widgets[type]?.showMainInput || false
 })
 
-async function createDocument () {
-  await database.createDocument(inputValue.value, selectedWidget.value)
+async function createDoc () {
+  await workspace.createDoc({
+    name: inputValue.value,
+    content: selectedWidget.value.default,
+    widget: selectedWidget.value.index
+  })
   inputValue.value = ''
 }
 
@@ -74,28 +82,18 @@ async function selectWidget (widget) {
   iconRerender.value = true
 }
 
-async function navigate (docId) {
-  emits('navigate', docId)
-}
-
 onBeforeUnmount(async () => {
-  await database.closeConnection()
+  await workspace.close()
 })
 </script>
 
 <template>
   <div class="h-full flex flex-col bg-gray-700 p-4">
-    <div
-      v-if="currentDocument"
-      class="fixed top-0 right-0 text-green-200 text-xss"
-    >
-      {{ currentDocument._id }}
-    </div>
     <div class="grow-0 bg-gray-700 z-10 mb-2">
       <div class="flex items-center">
         <DocRoute
           :route="currentRoute"
-          @navigate="navigate"
+          @navigate="docId => $emit('navigate', docId)"
         />
       </div>
       <input
@@ -106,8 +104,10 @@ onBeforeUnmount(async () => {
         placeholder="Search..."
       >
     </div>
-    <div class="flex-1 overflow-y-auto">
-      <WidgetExpanded v-if="connectionDone" />
+    <div
+      class="flex-1 overflow-y-auto"
+    >
+      <WidgetExpanded v-if="connectionDone" :doc="currentDoc"/>
     </div>
     <div
       v-show="showMainInput"
@@ -140,13 +140,13 @@ onBeforeUnmount(async () => {
               v-model="inputValue"
               class="w-full text-gray-50 rounded text-md p-2 bg-gray-800"
               type="text"
-              @keyup.enter="createDocument"
+              @keyup.enter="createDoc"
             >
           </div>
           <div class="flex-center p-2">
             <GenericButton
               class="bg-indigo-600 hover:bg-indigo-500"
-              @click="createDocument"
+              @click="createDoc"
             >
               Create
             </GenericButton>

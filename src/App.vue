@@ -1,7 +1,7 @@
 <script setup>
 import Sidebar from '@/components/Sidebar.vue'
 import Tabs from '@/components/Tabs.vue'
-import { useMetadataStore } from '@/stores/metadata.js'
+import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { onBeforeMount } from 'vue'
 import WorkspaceManager from '@/components/WorkspaceManager.vue'
 import sidebarStore from '@/stores/sidebar.js'

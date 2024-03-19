@@ -1,5 +1,5 @@
 <script setup>
-import { Doc } from '@/types.js'
+import { Doc } from '@/classes/Doc.js'
 
 defineProps({
   doc: {

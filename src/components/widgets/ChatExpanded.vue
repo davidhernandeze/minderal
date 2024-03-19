@@ -2,10 +2,10 @@
 import useChat from '@/composables/useChat.js'
 import { inject, nextTick, onMounted, ref, watch } from 'vue'
 
-const db = inject('db')
+const workspace = inject('workspace')
 const emits = defineEmits(['update'])
 
-const { messages, inputValue, send } = useChat(db, emits)
+const { messages, inputValue, send } = useChat(workspace, emits)
 
 const chatContainer = ref(null)
 

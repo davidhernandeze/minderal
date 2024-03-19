@@ -1,6 +1,6 @@
 <script setup>
 import { ref } from 'vue'
-import { useMetadataStore } from '@/stores/metadata.js'
+import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { storeToRefs } from 'pinia'
 import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
 import sidebarStore from '@/stores/sidebar.js'

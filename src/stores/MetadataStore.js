@@ -10,6 +10,7 @@ export const useMetadataStore = defineStore('metadata', () => {
   const metaDatabase = new Database({ name: 'minderal' })
   const connections = ref([])
   const tabs = ref([])
+
   async function fetchMetadata () {
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.connections ??= []
@@ -20,7 +21,6 @@ export const useMetadataStore = defineStore('metadata', () => {
   }
 
   async function addConnection (name, host = null, username = null, password = null) {
-    const id = getId()
     const options = { name }
     if (host) {
       options.name = `${host}/${options.name}`
@@ -29,13 +29,11 @@ export const useMetadataStore = defineStore('metadata', () => {
       options.auth = { username, password }
     }
     const optionsToStore = JSON.parse(JSON.stringify(options))
-    const newDatabase = new PouchDB(options)
-    await newDatabase.createIndex({
-      index: { fields: ['parent_id'] },
-      ddoc: 'by_parent'
-    })
+    const newDatabase = new Database(options)
+    await newDatabase.indexBy('parent_id')
+    await newDatabase.indexBy('deleted_at')
 
-    connections.value.push({ id, name, host, connectionOptions: optionsToStore, username: username || 'local' })
+    connections.value.push({ id: getId(), name, host, connectionOptions: optionsToStore, username: username || 'local' })
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.connections = connections.value
     await metaDatabase.updateDoc(metaDocument)
@@ -76,13 +74,13 @@ export const useMetadataStore = defineStore('metadata', () => {
   async function openTab (tabIndex) {
     tabs.value.forEach(tab => { tab.isOpen = false })
     tabs.value[tabIndex].isOpen = true
-    const metaDocument = await metaDatabase.getOrCreateDoc(metaDatabase, META_DOC_ID)
+    const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.tabs = tabs.value
     await metaDatabase.updateDoc(metaDocument)
   }
 
-  async function updateTabDocument (tabIndex, documentId) {
-    tabs.value[tabIndex].documentId = documentId
+  async function updateTabDoc (tabIndex, docId) {
+    tabs.value[tabIndex].docId = docId
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.tabs = tabs.value
     await metaDatabase.updateDoc(metaDocument)
@@ -118,7 +116,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     deleteDatabase,
     openNewTab,
     openTab,
-    updateTabDocument,
+    updateTabDoc,
     closeTab
   }
 })

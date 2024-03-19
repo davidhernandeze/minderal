@@ -6,7 +6,7 @@ export function useDoc (doc) {
     return toRaw(doc.value)
   }
   function getContent () {
-    return get().value
+    return get().content
   }
 
   return {

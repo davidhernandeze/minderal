@@ -3,10 +3,10 @@ import WidgetPreview from '@/components/WidgetPreview.vue'
 import useFolder from '@/composables/useFolder.js'
 import { inject } from 'vue'
 
-const db = inject('db')
+const workspace = inject('workspace')
 const searchQuery = inject('searchQuery')
 
-const { filteredDocuments } = useFolder(db.documents, searchQuery)
+const { filteredDocuments } = useFolder(workspace.childDocs, searchQuery)
 
 </script>
 

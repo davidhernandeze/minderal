@@ -1,5 +1,5 @@
 <script setup>
-import { Doc } from '@/types.js'
+import { Doc } from '@/classes/Doc.js'
 
 defineProps({
   doc: {
@@ -11,6 +11,6 @@ defineProps({
 
 <template>
   <div class="text-xs">
-    {{ doc.value }}
+    {{ doc.content }}
   </div>
 </template>

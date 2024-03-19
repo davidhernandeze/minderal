@@ -2,7 +2,7 @@ export const widgets = {
   text: {
     label: 'Text',
     icon: 'fa-solid fa-align-left',
-    indexValue: true,
+    indexContent: true,
     previewComponent: 'Text',
     expandedComponent: 'TextExpanded',
     expandable: true,
@@ -11,7 +11,7 @@ export const widgets = {
   folder: {
     label: 'Folder',
     icon: 'fa-solid fa-folder',
-    indexValue: false,
+    indexContent: false,
     hidePreviewHeader: true,
     expandable: true,
     baseDir: 'Folder',
@@ -22,58 +22,57 @@ export const widgets = {
   link: {
     label: 'Link',
     icon: 'fa-solid fa-link',
-    indexValue: true,
+    indexContent: true,
     previewComponent: 'Text'
   },
   switch: {
     label: 'Switch',
     icon: 'fa-solid fa-toggle-on',
-    indexValue: false,
-    defaultValue: false,
-    hideHeader: true,
+    indexContent: false,
+    defaultContent: false,
     previewComponent: 'Switch'
   },
   audio: {
     label: 'Audio',
     icon: 'fa-solid fa-microphone',
-    indexValue: false,
+    indexContent: false,
     previewComponent: 'Text'
   },
   counter: {
     label: 'Counter',
     icon: 'fa-solid fa-plus-minus',
-    indexValue: false,
+    indexContent: false,
     previewComponent: 'Text'
   },
   countdown: {
     label: 'Countdown',
     icon: 'fa-solid fa-hourglass-half',
-    indexValue: false,
+    indexContent: false,
     previewComponent: 'Text'
   },
   checklist: {
     label: 'Checklist',
     icon: 'fa-solid fa-list-check',
-    indexValue: false,
+    indexContent: false,
     expandable: true,
-    defaultValue: [],
+    defaultContent: [],
     previewComponent: 'ChecklistPreview',
     expandedComponent: 'ChecklistExpanded'
   },
   chat: {
     label: 'Chat',
     icon: 'fa-solid fa-messages',
-    indexValue: false,
+    indexContent: false,
     hidePreviewHeader: true,
     expandable: true,
-    defaultValue: [],
+    defaultContent: [],
     previewComponent: 'ChatPreview',
     expandedComponent: 'ChatExpanded'
   },
   display: {
     label: 'Display',
     icon: 'fa-solid fa-presentation-screen',
-    indexValue: true,
+    indexContent: true,
     expandable: true,
     previewComponent: 'DisplayPreview',
     expandedComponent: 'DisplayExpanded'
