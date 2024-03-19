@@ -8,9 +8,6 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      includeAssets: [
-        '**/*'
-      ],
       injectRegister: 'inline',
       manifest: {
         name: 'Minderal',
