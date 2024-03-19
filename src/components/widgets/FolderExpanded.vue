@@ -11,7 +11,7 @@ const { filteredDocuments } = useFolder(workspace.childDocs, searchQuery)
 </script>
 
 <template>
-  <div class="pr-2 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+  <div class="pr-2 pb-32 grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-4 xl:grid-cols-5 gap-4">
     <WidgetPreview
       v-for="doc in filteredDocuments"
       :key="doc._id"

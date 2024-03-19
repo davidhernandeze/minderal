@@ -5,7 +5,7 @@ export const widgets = {
     indexContent: true,
     previewComponent: 'Text',
     expandedComponent: 'TextExpanded',
-    expandable: true,
+    expandable: false,
     showMainInput: false
   },
   folder: {

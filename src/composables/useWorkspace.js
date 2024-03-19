@@ -1,5 +1,5 @@
 import { useMetadataStore } from '@/stores/MetadataStore.js'
-import { readonly, ref, shallowRef } from 'vue'
+import { ref } from 'vue'
 import { useDatabasePoolStore } from '@/stores/DatabasePoolStore.js'
 import { Doc } from '@/classes/Doc.js'
 import { widgets } from '@/enums/widgets.js'
