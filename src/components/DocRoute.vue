@@ -10,7 +10,6 @@ const props = defineProps({
     default: () => []
   }
 })
-
 const container = ref()
 
 watch(() => props.route, async (value) => {
