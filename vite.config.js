@@ -9,8 +9,9 @@ export default defineConfig({
     vue(),
     VitePWA({
       includeAssets: [
-        "**/*",
+        '**/*'
       ],
+      injectRegister: 'script',
       manifest: {
         name: 'Minderal',
         short_name: 'minderal',
