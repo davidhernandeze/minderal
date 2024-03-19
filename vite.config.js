@@ -8,6 +8,9 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
+      includeAssets: [
+        "**/*",
+      ],
       manifest: {
         name: 'Minderal',
         short_name: 'minderal',
