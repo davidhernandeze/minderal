@@ -26,7 +26,7 @@ export default (workspace) => {
 
   watch(messages, value => {
     if (!isSupported.value || value[value.length - 1]?.is_own) return
-    show({ title: 'New Message received in /' + workspace.currentDocument.value.name })
+    show({ title: 'New Message received in /' + workspace.currentDoc.value.name })
   })
 
   async function send () {
