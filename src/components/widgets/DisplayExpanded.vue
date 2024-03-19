@@ -10,7 +10,7 @@ const props = defineProps({
   }
 })
 
-const { lastReconnect, reconnects } = DebugStore
+const { lastReconnect, reconnects, offline } = DebugStore
 
 const navigate = inject('navigate')
 
@@ -40,6 +40,9 @@ function close () {
       </div>
       <div class="text-sm">
         Reconnects: {{ reconnects }}
+      </div>
+      <div class="text-sm">
+        Offline: {{ offline }}
       </div>
     </div>
   </div>

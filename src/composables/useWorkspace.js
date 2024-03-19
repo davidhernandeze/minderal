@@ -8,7 +8,7 @@ import DebugStore from '@/stores/DebugStore.js'
 export function useWorkspace ({ connectionId, docId = '' }) {
   const databasePoolStore = useDatabasePoolStore()
   const metadataStore = useMetadataStore()
-  const { lastReconnect, reconnects } = DebugStore
+  const { lastReconnect, reconnects, offline } = DebugStore
 
   let db
   const childDocs = ref([])
@@ -23,8 +23,12 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     db = await databasePoolStore.getOrCreateDB({ ...info.connectionOptions, listen: true })
     username.value = info.username
     db.on('change', onDatabaseChange)
+    db.on('offline', () => {
+      offline.value = true
+    })
     db.on('reconnect', () => {
       reconnects.value += 1
+      offline.value = false
       lastReconnect.value = new Date().toISOString()
       fetch()
     })

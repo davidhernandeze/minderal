@@ -73,6 +73,7 @@ export default class Database extends EventEmitter {
           this.startListening()
         }
       } catch (e) {
+        this.emit('offline')
         this.offline = true
       }
     }, 20000)
