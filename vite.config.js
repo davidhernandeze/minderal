@@ -17,6 +17,7 @@ export default defineConfig({
         short_name: 'minderal',
         description: 'Mind mapping tool',
         theme_color: '#1f2937',
+        "background_color": "#f8fff8",
         icons: [
           {
             src: 'pwa-192x192.png',
