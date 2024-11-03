@@ -6,7 +6,8 @@ export const widgets = {
     previewComponent: 'Text',
     expandedComponent: 'TextExpanded',
     expandable: false,
-    showMainInput: false
+    showMainInput: false,
+    createWithContent: true
   },
   folder: {
     label: 'Folder',

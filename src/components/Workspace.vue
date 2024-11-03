@@ -66,9 +66,11 @@ const showMainInput = computed(() => {
 })
 
 async function createDoc () {
+  const content = selectedWidget.value.createWithContent ? inputValue.value : selectedWidget.value.default
+  const name = selectedWidget.value.createWithContent ? '' : inputValue.value
   await workspace.createDoc({
-    name: inputValue.value,
-    content: selectedWidget.value.default,
+    name,
+    content,
     widget: selectedWidget.value.index
   })
   inputValue.value = ''
