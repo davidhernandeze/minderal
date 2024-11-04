@@ -21,12 +21,12 @@ watch(() => props.route, async (value) => {
 <template>
   <nav
     ref="container"
-    class="flex text-xss w-full overflow-x-auto pb-3 pr-3"
+    class="flex w-full overflow-x-auto pb-3 pr-3"
     aria-label="Breadcrumb"
   >
     <ol
       role="list"
-      class="flex items-center space-x-1"
+      class="flex items-center"
     >
       <li
         class="flex items-center text-gray-500 hover:text-gray-100 cursor-pointer"
@@ -40,10 +40,10 @@ watch(() => props.route, async (value) => {
         @click="$emit('navigate', doc.id)"
       >
         <div class="flex items-center">
-          <i class="fa-solid fa-angle-right text-gray-400 mx-2" />
+          <i class="fa-solid fa-angle-right text-gray-400 mx-4" />
           <a
             href="#"
-            class="text-sm font-medium text-gray-500 hover:text-gray-100 truncate max-w-xs"
+            class="font-medium text-gray-500 hover:text-gray-100 truncate max-w-xs"
           >{{ doc.name }}</a>
         </div>
       </li>

@@ -13,7 +13,6 @@ export const widgets = {
     label: 'Folder',
     icon: 'fa-solid fa-folder',
     indexContent: false,
-    hidePreviewHeader: true,
     expandable: true,
     baseDir: 'Folder',
     expandedComponent: 'FolderExpanded',
@@ -32,7 +31,8 @@ export const widgets = {
     icon: 'fa-solid fa-toggle-on',
     indexContent: false,
     defaultContent: false,
-    previewComponent: 'Switch'
+    previewComponent: 'Switch',
+    standalonePreview: true
   },
   audio: {
     label: 'Audio',
@@ -65,7 +65,7 @@ export const widgets = {
     label: 'Chat',
     icon: 'fa-solid fa-messages',
     indexContent: false,
-    hidePreviewHeader: true,
+    standalonePreview: true,
     expandable: true,
     defaultContent: [],
     previewComponent: 'ChatPreview',

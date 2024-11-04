@@ -99,7 +99,7 @@ const renameModalOpen = ref(false)
     class="flex overflow-visible flex-col bg-gray-700 h-40 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
   >
     <div :class="{ 'shadow-none': widgetProps.standalonePreview }" class="flex justify-between shadow p-2">
-      <div v-if="widgetProps.hidePreviewHeader"/>
+      <div v-if="widgetProps.standalonePreview"/>
       <div
         v-else
         class="flex-1 flex justify-start items-center text-gray-400 truncate"
