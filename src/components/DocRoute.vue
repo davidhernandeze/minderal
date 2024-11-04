@@ -43,7 +43,7 @@ watch(() => props.route, async (value) => {
           <i class="fa-solid fa-angle-right text-gray-400 mx-2" />
           <a
             href="#"
-            class="text-sm font-medium text-gray-500 hover:text-gray-100 truncate"
+            class="text-sm font-medium text-gray-500 hover:text-gray-100 truncate max-w-xs"
           >{{ doc.name }}</a>
         </div>
       </li>

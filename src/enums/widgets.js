@@ -18,7 +18,8 @@ export const widgets = {
     baseDir: 'Folder',
     expandedComponent: 'FolderExpanded',
     previewComponent: 'FolderPreview',
-    showMainInput: true
+    showMainInput: true,
+    standalonePreview: true
   },
   link: {
     label: 'Link',

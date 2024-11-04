@@ -11,14 +11,10 @@ defineProps({
 </script>
 
 <template>
-  <div class="flex justify-center h-full items-center box-border">
-    <div>
-      <div class="flex justify-center">
-        <i class="fa-solid fa-folder h-10 hover:h-11" />
-      </div>
-      <div class="flex justify-center">
-        {{ doc.name }}
-      </div>
-    </div>
+  <div class="flex h-full items-center box-border gap-2 hover:text-white">
+    <i class="fa-solid fa-folder h-8 mx-1" />
+    <p class="text-[1.5rem] break-all">
+      {{ doc.name }}
+    </p>
   </div>
 </template>
