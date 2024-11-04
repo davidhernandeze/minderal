@@ -1,19 +1,24 @@
 <script setup>
 import { Doc } from '@/classes/Doc.js'
+import useChecklist from '@/composables/useChecklist.js'
+import { toRef } from '@vueuse/core'
 
-defineProps({
+const props = defineProps({
   doc: {
     type: Doc,
     required: true
   }
 })
+
+const { visibleItems } = useChecklist(toRef(() => props.doc))
+
 </script>
 
 <template>
   <div class="text-xs overflow-y-hidden">
     <ol>
       <li
-        v-for="item in doc.value"
+        v-for="item in visibleItems"
         :key="item.id"
         class="flex items-center rounded hover:bg-gray-600 my-1"
       >
