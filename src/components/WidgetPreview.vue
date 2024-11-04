@@ -3,6 +3,7 @@ import { defineAsyncComponent, inject, ref, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
 import { Doc } from '@/classes/Doc.js'
+import { useClipboard } from '@vueuse/core'
 
 const props = defineProps({
   doc: {
@@ -10,6 +11,8 @@ const props = defineProps({
     required: true
   }
 })
+
+const { copy } = useClipboard()
 
 const navigate = inject('navigate')
 const workspace = inject('workspace')
@@ -54,6 +57,13 @@ const rowActions = ref([
     onClick () {
       workspace.deleteDocRecursively({... props.doc })
     }
+  },
+  {
+    action: 'copy',
+    label: 'Copy',
+    onClick () {
+      copy(props.doc.content)
+    }
   }
 ])
 
@@ -64,14 +74,14 @@ function addActions (actions) {
 </script>
 <template>
   <div
-    class="flex overflow-visible flex-col bg-gray-600 h-28 rounded relative cursor-pointer p-2 shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
+    class="flex overflow-visible flex-col bg-gray-700 h-40 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
     @click="clickAction"
   >
-    <div class="flex justify-between">
-      <div v-if="widgetProps.hidePreviewHeader" />
+    <div class="flex justify-between shadow p-2">
+      <div v-if="widgetProps.hidePreviewHeader"  />
       <div
         v-else
-        class="flex-1 flex justify-start items-center text-gray-400 mb-2 truncate"
+        class="flex-1 flex justify-start items-center text-gray-400 truncate"
       >
         <i
           :class="icon"
@@ -79,7 +89,7 @@ function addActions (actions) {
         />
         <input
           v-model="renameInput"
-          class="text-xs ml-2 bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-none"
+          class="flex-1 ml-2 text-xs bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-none p-0"
           @click.stop
           @focus="e => startNameEdition(e)"
           @blur="endNameEdition"
@@ -129,7 +139,7 @@ function addActions (actions) {
         </transition>
       </Menu>
     </div>
-    <div class="flex-1 overflow-hidden">
+    <div class="flex-1 overflow-hidden p-2 cursor-pointer">
       <Widget
         :doc="doc"
         @add-actions="addActions"
