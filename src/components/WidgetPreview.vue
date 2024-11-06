@@ -46,6 +46,8 @@ async function clickAction () {
 }
 
 async function endNameEdition () {
+  if (!isEditingName.value) return
+  isEditingName.value = false
   renameModalOpen.value = false
   renameInputEl.value?.blur()
   await workspace.renameDoc(props.doc, renameInput.value)
