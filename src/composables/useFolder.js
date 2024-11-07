@@ -1,9 +1,11 @@
-import { computed } from 'vue'
+import { ref, watchEffect } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 
 export default (documents, searchQuery) => {
-  const filteredDocuments = computed(() => {
-    return documents.value.filter((doc) => {
+  const filteredDocuments = ref([])
+
+  watchEffect(() => {
+    filteredDocuments.value = documents.value.filter((doc) => {
       let searchableContent = doc.name
       const widgetProps = getWidgetProps(doc.widget)
       if (widgetProps.indexContent) {
@@ -12,7 +14,6 @@ export default (documents, searchQuery) => {
       return searchableContent.toLowerCase().indexOf(searchQuery.value.toLowerCase()) > -1
     })
   })
-
   return {
     filteredDocuments
   }

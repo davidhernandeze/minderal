@@ -32,6 +32,9 @@ dependencies:
   vue-imask:
     specifier: ^7.5.0
     version: 7.5.0(vue@3.5.12)
+  vuedraggable:
+    specifier: ^4.1.0
+    version: 4.1.0(vue@3.5.12)
 
 devDependencies:
   '@vitejs/plugin-vue':
@@ -4613,6 +4616,10 @@ packages:
     dependencies:
       is-arrayish: 0.3.2
 
+  /sortablejs@1.14.0:
+    resolution: {integrity: sha512-pBXvQCs5/33fdN1/39pPL0NZF20LeRbLQ5jtnheIPN9JQAaufGjKdWduZn4U7wCtVuzKhmRkI0DFYHYRbB2H1w==}
+    dev: false
+
   /source-map-js@1.2.0:
     resolution: {integrity: sha512-itJW8lvSA0TXEphiRoawsCksnlf8SyvmFzIhltqAHluXd88pkCd+cXJVHTDwdCr0IzwptSm035IHQktUu1QUMg==}
     engines: {node: '>=0.10.0'}
@@ -5246,6 +5253,15 @@ packages:
       '@vue/runtime-dom': 3.5.12
       '@vue/server-renderer': 3.5.12(vue@3.5.12)
       '@vue/shared': 3.5.12
+
+  /vuedraggable@4.1.0(vue@3.5.12):
+    resolution: {integrity: sha512-FU5HCWBmsf20GpP3eudURW3WdWTKIbEIQxh9/8GE806hydR9qZqRRxRE3RjqX7PkuLuMQG/A7n3cfj9rCEchww==}
+    peerDependencies:
+      vue: ^3.0.1
+    dependencies:
+      sortablejs: 1.14.0
+      vue: 3.5.12
+    dev: false
 
   /vuvuzela@1.0.3:
     resolution: {integrity: sha512-Tm7jR1xTzBbPW+6y1tknKiEhz04Wf/1iZkcTJjSFcpNko43+dFW6+OOeQe9taJIug3NdfUAjFKgUSyQrIKaDvQ==}

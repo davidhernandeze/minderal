@@ -100,8 +100,11 @@ const renameModalOpen = ref(false)
   <div
     class="flex overflow-visible flex-col bg-gray-700 h-40 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
   >
-    <div :class="{ 'shadow-none': widgetProps.standalonePreview }" class="flex justify-between shadow p-2">
-      <div v-if="widgetProps.standalonePreview"/>
+    <div
+      :class="{ 'shadow-none': widgetProps.standalonePreview }"
+      class="flex justify-between shadow p-2"
+    >
+      <div v-if="widgetProps.standalonePreview" />
       <div
         v-else
         class="flex-1 flex justify-start items-center text-gray-400 truncate"
@@ -113,11 +116,11 @@ const renameModalOpen = ref(false)
         <input
           ref="renameInputEl"
           v-model="renameInput"
+          v-on-click-outside="endNameEdition"
           class="flex-1 ml-2 text-xs bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-none p-0"
           @click.stop
           @focus="e => startNameEdition(e)"
           @keyup.enter="endNameEdition"
-          v-on-click-outside="endNameEdition"
         >
       </div>
       <Menu
@@ -132,7 +135,7 @@ const renameModalOpen = ref(false)
             <div
               class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100"
             >
-              <i class="fa-solid h-3 fa-ellipsis-vertical"/>
+              <i class="fa-solid h-3 fa-ellipsis-vertical" />
             </div>
           </MenuButton>
         </div>
@@ -145,7 +148,8 @@ const renameModalOpen = ref(false)
           leave-to-class="transform opacity-0 scale-95"
         >
           <MenuItems
-            class="absolute -translate-x-32 z-10 w-36 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-none">
+            class="absolute -translate-x-32 z-10 w-36 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-none"
+          >
             <div>
               <MenuItem
                 v-for="rowAction in rowActions"
@@ -165,7 +169,10 @@ const renameModalOpen = ref(false)
         </transition>
       </Menu>
     </div>
-    <div class="flex-1 overflow-hidden p-2 cursor-pointer" @click="clickAction">
+    <div
+      class="flex-1 overflow-hidden p-2 cursor-pointer"
+      @click="clickAction"
+    >
       <Widget
         :doc="doc"
         @add-actions="addActions"

@@ -20,6 +20,6 @@ const Widget = defineAsyncComponent(() => {
 <template>
   <Widget
     :doc="doc"
-    @update="newValue => workspace.updateDoc(doc, newValue)"
+    @update-value="newValue => workspace.updateDoc(doc, newValue)"
   />
 </template>

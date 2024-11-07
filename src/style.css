@@ -1,7 +1,6 @@
-@import "tailwindcss/base";
-@import "tailwindcss/components";
-@import "./assets/primevue/tailwind.css";
-@import "tailwindcss/utilities";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 @layer utilities {
     .flex-center {

@@ -14,20 +14,20 @@ export default (docRef, emits) => {
       value: newItem.value,
       checked: false
     })
-    emits('update', { content: updatedList})
+    emits('update-value', { content: updatedList })
     newItem.value = ''
   }
 
   async function check (index) {
     const updatedList = doc.getContent()
     updatedList[index].checked = !updatedList[index].checked
-    emits('update', { content: updatedList})
+    emits('update-value', { content: updatedList})
   }
 
   async function remove (index) {
     const updatedList = doc.getContent()
     updatedList.splice(index, 1)
-    emits('update', { content: updatedList})
+    emits('update-value', { content: updatedList})
   }
 
   return {

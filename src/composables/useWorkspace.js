@@ -66,6 +66,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     }
 
     childDocs.value[docIndex] = new Doc(change.doc)
+    sortDocs()
   }
 
   async function fetch () {
@@ -86,8 +87,12 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function fetchChildDocs () {
-    const allDocs = await db.getDocsByParentId(currentDocId.value)
-    childDocs.value = allDocs.sort((a, b) => a.order > b.order ? 1 : -1).map(doc => (new Doc(doc)))
+    childDocs.value = await db.getDocsByParentId(currentDocId.value)
+    sortDocs()
+  }
+
+  function sortDocs () {
+    childDocs.value = childDocs.value.sort((a, b) => a.order > b.order ? 1 : -1).map(doc => (new Doc(doc)))
   }
 
   async function fetchCurrentDocRoute () {
@@ -114,7 +119,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
       widget,
       settings,
       parent_id: currentDocId.value ?? '',
-      order: docsLength ? childDocs.value[docsLength - 1].order + 100 : 0,
+      order: docsLength ? childDocs.value[docsLength - 1].order + 100 : 100,
       files
     })
     await db.createDoc(newDoc)
@@ -159,6 +164,26 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     return doc._attachments
   }
 
+  async function updateDocOrder (oldIndex, newIndex) {
+    if (oldIndex === newIndex) return
+
+    const docToMove = childDocs.value[oldIndex]
+    if (newIndex === childDocs.value.length - 1) {
+      docToMove.order = childDocs.value[newIndex].order * 1.1
+      await db.updateDoc(docToMove)
+      return
+    }
+    if (newIndex === 0) {
+      docToMove.order = childDocs.value[0].order * 0.99
+      await db.updateDoc(docToMove)
+      return
+    }
+    const leftDoc = childDocs.value?.[newIndex - 1]
+    const rightDoc = childDocs.value?.[newIndex]
+    docToMove.order = (rightDoc.order + leftDoc.order) / 2
+    await db.updateDoc(docToMove)
+  }
+
   return {
     id: connectionId,
     connectDB,
@@ -174,6 +199,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     deleteDoc,
     deleteDocRecursively,
     close,
-    fetchDocAttachments
+    fetchDocAttachments,
+    updateDocOrder
   }
 }
