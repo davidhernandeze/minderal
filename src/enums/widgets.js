@@ -78,6 +78,15 @@ export const widgets = {
     expandable: true,
     previewComponent: 'DisplayPreview',
     expandedComponent: 'DisplayExpanded'
+  },
+  image: {
+    label: 'Image',
+    icon: 'fa-solid fa-image',
+    indexContent: true,
+    expandable: true,
+    formComponent: 'ImageForm',
+    previewComponent: 'ImagePreview',
+    expandedComponent: 'ImageExpanded'
   }
 }
 
@@ -89,4 +98,8 @@ export const getWidgetList = () => {
 
 export const getWidgetProps = (name) => {
   return widgets[name]
+}
+
+export const getWidgetKey = (widget) => {
+  return Object.keys(widgets).find(key => widgets[key] === widget)
 }

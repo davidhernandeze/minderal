@@ -8,6 +8,9 @@ import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
 import { useWorkspace } from '@/composables/useWorkspace.js'
 import sidebarStore from '@/stores/sidebar.js'
+import Modal from '@/components/Modal.vue'
+import TextInput from '@/components/TextInput.vue'
+import WidgetForm from '@/components/WidgetForm.vue'
 
 const props = defineProps({
   connectionId: {
@@ -46,6 +49,8 @@ const isTypesModalOpen = ref(false)
 const selectedWidget = ref(getWidgetList()[0])
 const iconRerender = ref(true)
 
+const widgetFormOpen = ref(false)
+
 const { isSidebarVisible } = sidebarStore
 
 provide('workspace', workspace)
@@ -82,6 +87,10 @@ async function selectWidget (widget) {
   iconRerender.value = false
   await nextTick()
   iconRerender.value = true
+
+  if (widget.formComponent) {
+    widgetFormOpen.value = true
+  }
 }
 
 onBeforeUnmount(async () => {
@@ -109,7 +118,10 @@ onBeforeUnmount(async () => {
     <div
       class="flex-1 overflow-y-auto"
     >
-      <WidgetExpanded v-if="connectionDone" :doc="currentDoc"/>
+      <WidgetExpanded
+        v-if="connectionDone"
+        :doc="currentDoc"
+      />
     </div>
     <div
       v-show="showMainInput"
@@ -160,6 +172,16 @@ onBeforeUnmount(async () => {
         @close="isTypesModalOpen = false"
         @select="selectWidget"
       />
+      <Modal
+        v-model:is-open="widgetFormOpen"
+      >
+        <template #body>
+          <WidgetForm
+            :widget="selectedWidget"
+            @save="widgetFormOpen = false"
+          />
+        </template>
+      </Modal>
     </div>
   </div>
 </template>

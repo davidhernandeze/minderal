@@ -1,6 +1,19 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss/base";
+@import "tailwindcss/components";
+@import "./assets/primevue/tailwind.css";
+@import "tailwindcss/utilities";
+
+@layer utilities {
+    .flex-center {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
+}
+
+html {
+    font-size: 14px;
+}
 
 @layer utilities {
     .flex-center {

@@ -1,3 +1,5 @@
+import { v4 as getId } from 'uuid'
+
 export class Doc {
   constructor (data) {
     this._id = data._id
@@ -11,5 +13,14 @@ export class Doc {
     this.created_at = data.created_at
     this.updated_at = data.updated_at
     this.deleted_at = data.deleted_at || null
+    this._attachments = {}
+
+    for (const file of data.files || []) {
+      const id = getId()
+      this._attachments[id] = {
+        content_type: file.type,
+        data: file.data
+      }
+    }
   }
 }

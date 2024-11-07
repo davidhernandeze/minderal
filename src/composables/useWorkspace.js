@@ -104,7 +104,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     currentRoute.value = route.reverse()
   }
 
-  async function createDoc({ name = '', content = null, widget = 'text', settings = {} }) {
+  async function createDoc ({ name = '', content = null, widget = 'text', settings = {}, files = [] }) {
     const widgetInfo = widgets[widget]
     const docsLength = childDocs.value.length
     const newDoc = new Doc({
@@ -115,6 +115,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
       settings,
       parent_id: currentDocId.value ?? '',
       order: docsLength ? childDocs.value[docsLength - 1].order + 100 : 0,
+      files
     })
     await db.createDoc(newDoc)
   }
@@ -126,7 +127,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     await db.updateDoc({ ...doc })
   }
 
-  async function deleteDoc(doc) {
+  async function deleteDoc (doc) {
     await db.deleteDoc(doc)
   }
 
@@ -153,6 +154,11 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     await databasePoolStore.closeConnection(db.name)
   }
 
+  async function fetchDocAttachments (docId) {
+    const doc = await db.getDoc(docId, true)
+    return doc._attachments
+  }
+
   return {
     id: connectionId,
     connectDB,
@@ -167,6 +173,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     updateDoc,
     deleteDoc,
     deleteDocRecursively,
-    close
+    close,
+    fetchDocAttachments
   }
 }

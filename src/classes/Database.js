@@ -31,8 +31,8 @@ export default class Database extends EventEmitter {
     }
   }
 
-  async getDoc (id) {
-    return await this.connection.get(id)
+  async getDoc (id, includeAttachments = false) {
+    return await this.connection.get(id, { attachments: includeAttachments })
   }
 
   async createDoc (doc) {
