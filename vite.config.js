@@ -12,7 +12,7 @@ export default defineConfig({
       injectRegister: 'script-defer',
       registerType: 'autoUpdate',
       workbox: {
-        maximumFileSizeToCacheInBytes: 3000000
+        maximumFileSizeToCacheInBytes: 4000000
       },
       manifest: {
         name: 'Minderal',
