@@ -8,7 +8,9 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      injectRegister: 'inline',
+      strategies: 'generateSW',
+      injectRegister: 'script-defer',
+      registerType: 'autoUpdate',
       manifest: {
         name: 'Minderal',
         short_name: 'minderal',
