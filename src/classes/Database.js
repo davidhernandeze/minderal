@@ -37,12 +37,12 @@ export default class Database extends EventEmitter {
 
   async createDoc (doc) {
     doc.created_at = moment().toISOString()
-    await this.connection.post(doc)
+    return await this.connection.post(doc)
   }
 
   async updateDoc (doc) {
     doc.updated_at = moment().toISOString()
-    await this.connection.put(doc)
+    await this.connection.put(doc, { attachments: false })
   }
 
   async deleteDoc (doc) {
@@ -94,6 +94,15 @@ export default class Database extends EventEmitter {
       }
     })
     return docs
+  }
+
+  async getDocsByIds (ids, includeAttachments = false) {
+    const { rows } = await this.connection.allDocs({
+      keys: ids,
+      include_docs: true,
+      attachments: includeAttachments
+    })
+    return rows.map(row => row.doc)
   }
 
   async closeConnection () {

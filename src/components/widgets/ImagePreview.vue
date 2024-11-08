@@ -20,6 +20,9 @@ onMounted(() => {
 
 <template>
   <div class="text-xs overflow-y-hidden h-full flex-center">
-    <img class="h-full" :src="attachmentUrl">
+    <img
+      class="h-full"
+      :src="attachmentUrl"
+    >
   </div>
 </template>

@@ -1,5 +1,6 @@
 import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { ref } from 'vue'
+import { v4 as getId } from 'uuid'
 import { useDatabasePoolStore } from '@/stores/DatabasePoolStore.js'
 import { Doc } from '@/classes/Doc.js'
 import { widgets } from '@/enums/widgets.js'
@@ -112,6 +113,22 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   async function createDoc ({ name = '', content = null, widget = 'text', settings = {}, files = [] }) {
     const widgetInfo = widgets[widget]
     const docsLength = childDocs.value.length
+    const filesIds = []
+
+    for (const file of files) {
+      const fileDoc = await db.createDoc({
+        name: file.name,
+        created_by: username.value,
+        _attachments: {
+          [getId()]: {
+            content_type: file.type,
+            data: file.data
+          }
+        }
+      })
+      filesIds.push(fileDoc.id)
+    }
+
     const newDoc = new Doc({
       created_by: username.value,
       content: content || widgetInfo.defaultContent,
@@ -120,7 +137,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
       settings,
       parent_id: currentDocId.value ?? '',
       order: docsLength ? childDocs.value[docsLength - 1].order + 100 : 100,
-      files
+      files: filesIds
     })
     await db.createDoc(newDoc)
   }
@@ -159,9 +176,8 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     await databasePoolStore.closeConnection(db.name)
   }
 
-  async function fetchDocAttachments (docId) {
-    const doc = await db.getDoc(docId, true)
-    return doc._attachments
+  async function fetchFileDocs (doc) {
+    return await db.getDocsByIds(doc.files, true)
   }
 
   async function updateDocOrder (oldIndex, newIndex) {
@@ -199,7 +215,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     deleteDoc,
     deleteDocRecursively,
     close,
-    fetchDocAttachments,
+    fetchFileDocs,
     updateDocOrder
   }
 }

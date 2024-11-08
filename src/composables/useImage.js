@@ -5,12 +5,9 @@ export default (docRef) => {
   const workspace = inject('workspace')
 
   async function fetchImage () {
-    const attachmentsObject = await workspace.fetchDocAttachments(docRef._id)
-    const attachmentsList = Object.values(attachmentsObject)
-
-    if (attachmentsList.length === 0) return
-
-    const attachment = attachmentsList[0]
+    const fileDocs = await workspace.fetchFileDocs(docRef)
+    if (fileDocs.length === 0) return
+    const attachment = Object.values(fileDocs[0]._attachments)[0]
     attachmentUrl.value = `data:${attachment.content_type};base64,${attachment.data}`
   }
 
