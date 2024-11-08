@@ -11,6 +11,9 @@ export default defineConfig({
       strategies: 'generateSW',
       injectRegister: 'script-defer',
       registerType: 'autoUpdate',
+      workbox: {
+        maximumFileSizeToCacheInBytes: 3000000
+      },
       manifest: {
         name: 'Minderal',
         short_name: 'minderal',
