@@ -8,9 +8,8 @@ const workspace = inject('workspace')
 const searchQuery = inject('searchQuery')
 
 const { filteredDocuments } = useFolder(workspace.childDocs, searchQuery)
-
 function changeOrder (event) {
-  workspace.updateDocOrder(event.oldIndex, event.newIndex)
+  workspace.updateCurrentDocChildOrder(filteredDocuments.value.map(doc => doc._id))
 }
 
 </script>

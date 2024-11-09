@@ -1,6 +1,7 @@
 import PouchDB from 'pouchdb-browser'
 import moment from 'moment'
 import { EventEmitter } from 'events'
+import { Doc } from '@/classes/Doc.js'
 
 export default class Database extends EventEmitter {
   constructor ({ name, auth, listen = false }) {
@@ -21,12 +22,12 @@ export default class Database extends EventEmitter {
     return await this.connection.info()
   }
 
-  async getOrCreateDoc (id) {
+  async getOrCreateDoc (id, doc = {}) {
     try {
       return await this.connection.get(id)
     } catch (e) {
       if (e.status !== 404) return null
-      await this.connection.put({ _id: id })
+      await this.connection.put({ _id: id, ...doc })
       return await this.connection.get(id)
     }
   }
@@ -93,7 +94,7 @@ export default class Database extends EventEmitter {
         deleted_at: null
       }
     })
-    return docs
+    return docs.map(doc => new Doc(doc))
   }
 
   async getDocsByIds (ids, includeAttachments = false) {

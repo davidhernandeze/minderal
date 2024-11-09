@@ -24,9 +24,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     db = await databasePoolStore.getOrCreateDB({ ...info.connectionOptions, listen: true })
     username.value = info.username
     db.on('change', onDatabaseChange)
-    db.on('offline', () => {
-      offline.value = true
-    })
+    db.on('offline', () => { offline.value = true })
     db.on('reconnect', () => {
       reconnects.value += 1
       offline.value = false
@@ -67,7 +65,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     }
 
     childDocs.value[docIndex] = new Doc(change.doc)
-    sortDocs()
   }
 
   async function fetch () {
@@ -78,7 +75,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
 
   async function fetchCurrentDoc () {
     if (currentDocId.value === '') {
-      currentDoc.value = null
+      currentDoc.value = await db.getOrCreateDoc('root', { parent_id: 'root' })
       await fetchCurrentDocRoute()
       return
     }
@@ -89,11 +86,36 @@ export function useWorkspace ({ connectionId, docId = '' }) {
 
   async function fetchChildDocs () {
     childDocs.value = await db.getDocsByParentId(currentDocId.value)
-    sortDocs()
+    await sortChildDocs()
   }
 
-  function sortDocs () {
-    childDocs.value = childDocs.value.sort((a, b) => a.order > b.order ? 1 : -1).map(doc => (new Doc(doc)))
+  async function sortChildDocs () {
+    const childOrder = currentDoc.value.child_order || []
+    const indexMap = {}
+
+    childOrder.forEach((id, index) => {
+      indexMap[id] = index
+    })
+
+    const childrenIds = childDocs.value.map(doc => doc._id)
+
+    let orderCorrected = false
+    childrenIds.forEach((id) => {
+      if (indexMap[id] === undefined) {
+        orderCorrected = true
+        indexMap[id] = childOrder.length
+        childOrder.push(id)
+      }
+    })
+
+    if (orderCorrected) {
+
+      await updateDoc(currentDoc.value, { child_order: childOrder })
+    }
+
+    childDocs.value = childDocs.value.sort((a, b) => {
+      return indexMap[a._id] - indexMap[b._id]
+    })
   }
 
   async function fetchCurrentDocRoute () {
@@ -112,7 +134,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
 
   async function createDoc ({ name = '', content = null, widget = 'text', settings = {}, files = [] }) {
     const widgetInfo = widgets[widget]
-    const docsLength = childDocs.value.length
     const filesIds = []
 
     for (const file of files) {
@@ -136,7 +157,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
       widget,
       settings,
       parent_id: currentDocId.value ?? '',
-      order: docsLength ? childDocs.value[docsLength - 1].order + 100 : 100,
       files: filesIds
     })
     await db.createDoc(newDoc)
@@ -180,24 +200,8 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     return await db.getDocsByIds(doc.files, true)
   }
 
-  async function updateDocOrder (oldIndex, newIndex) {
-    if (oldIndex === newIndex) return
-
-    const docToMove = childDocs.value[oldIndex]
-    if (newIndex === childDocs.value.length - 1) {
-      docToMove.order = childDocs.value[newIndex].order * 1.1
-      await db.updateDoc(docToMove)
-      return
-    }
-    if (newIndex === 0) {
-      docToMove.order = childDocs.value[0].order * 0.99
-      await db.updateDoc(docToMove)
-      return
-    }
-    const leftDoc = childDocs.value?.[newIndex - 1]
-    const rightDoc = childDocs.value?.[newIndex]
-    docToMove.order = (rightDoc.order + leftDoc.order) / 2
-    await db.updateDoc(docToMove)
+  async function updateCurrentDocChildOrder (childOrder) {
+    await updateDoc(currentDoc.value, { child_order: childOrder })
   }
 
   return {
@@ -216,6 +220,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     deleteDocRecursively,
     close,
     fetchFileDocs,
-    updateDocOrder
+    updateCurrentDocChildOrder
   }
 }
