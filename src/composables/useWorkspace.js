@@ -109,7 +109,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     })
 
     if (orderCorrected) {
-
       await updateDoc(currentDoc.value, { child_order: childOrder })
     }
 
@@ -170,6 +169,14 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function deleteDoc (doc) {
+    if (doc.parent_id === currentDocId.value) {
+      const childOrder = currentDoc.value.child_order || []
+      const index = childOrder.indexOf(doc._id)
+      if (index !== -1) {
+        childOrder.splice(index, 1)
+        await updateDoc(currentDoc.value, { child_order: childOrder })
+      }
+    }
     await db.deleteDoc(doc)
   }
 
