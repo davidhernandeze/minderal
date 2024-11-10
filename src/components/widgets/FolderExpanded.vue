@@ -12,7 +12,7 @@ defineEmits(['update-value'])
 defineProps({
   doc: {
     type: Doc,
-    required: true
+    required: false
   }
 })
 

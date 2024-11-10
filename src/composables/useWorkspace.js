@@ -16,6 +16,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   const username = ref('')
   const currentDoc = ref(null)
   const currentDocId = ref(docId)
+  const rootDoc = ref(null)
   const currentRoute = ref([])
   const connectionDone = ref(false)
 
@@ -75,12 +76,14 @@ export function useWorkspace ({ connectionId, docId = '' }) {
 
   async function fetchCurrentDoc () {
     if (currentDocId.value === '') {
-      currentDoc.value = await db.getOrCreateDoc('root', { parent_id: 'root' })
+      currentDoc.value = null
+      rootDoc.value = await db.getOrCreateDoc('root', { parent_id: 'root' })
       await fetchCurrentDocRoute()
       return
     }
     const doc = await db.getDoc(currentDocId.value)
     currentDoc.value = new Doc(doc)
+    rootDoc.value = null
     await fetchCurrentDocRoute()
   }
 
@@ -90,7 +93,8 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function sortChildDocs () {
-    const childOrder = currentDoc.value.child_order || []
+    const docWithOrderProp = currentDoc.value || rootDoc.value
+    const childOrder = docWithOrderProp.child_order || []
     const indexMap = {}
 
     childOrder.forEach((id, index) => {
@@ -109,7 +113,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     })
 
     if (orderCorrected) {
-      await updateDoc(currentDoc.value, { child_order: childOrder })
+      await updateDoc(docWithOrderProp, { child_order: childOrder })
     }
 
     childDocs.value = childDocs.value.sort((a, b) => {
@@ -208,7 +212,8 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function updateCurrentDocChildOrder (childOrder) {
-    await updateDoc(currentDoc.value, { child_order: childOrder })
+    const docWithOrderProp = currentDoc.value || rootDoc.value
+    await updateDoc(docWithOrderProp, { child_order: childOrder })
   }
 
   return {

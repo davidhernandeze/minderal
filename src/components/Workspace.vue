@@ -9,7 +9,6 @@ import GenericButton from '@/components/GenericButton.vue'
 import { useWorkspace } from '@/composables/useWorkspace.js'
 import sidebarStore from '@/stores/sidebar.js'
 import Modal from '@/components/Modal.vue'
-import TextInput from '@/components/TextInput.vue'
 import WidgetForm from '@/components/WidgetForm.vue'
 
 const props = defineProps({

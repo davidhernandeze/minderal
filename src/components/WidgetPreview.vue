@@ -98,15 +98,15 @@ const renameModalOpen = ref(false)
 </script>
 <template>
   <div
-    :class="[ props.doc.widget === 'folder' ? 'h-auto' : 'h-40']"
-    class="relative flex overflow-visible flex-col bg-gray-700 h-40 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
+    :class="[ props.doc.widget === 'folder' ? 'h-18' : 'h-40']"
+    class="relative flex overflow-visible flex-col bg-gray-700 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
   >
     <div
       :class="[
         widgetProps.standalonePreview ? 'shadow-none' : 'shadow',
-        props.doc.widget === 'folder' ? 'absolute w-full' : ''
+        props.doc.widget === 'folder' ? 'h-0 p-0 px-2 pt-2' : 'p-2'
       ]"
-      class="flex justify-between p-2"
+      class="flex justify-between"
     >
       <div v-if="widgetProps.standalonePreview" />
       <div
