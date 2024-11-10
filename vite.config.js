@@ -8,8 +8,6 @@ export default defineConfig({
   plugins: [
     vue(),
     VitePWA({
-      strategies: 'generateSW',
-      injectRegister: 'script-defer',
       registerType: 'autoUpdate',
       workbox: {
         maximumFileSizeToCacheInBytes: 4000000
