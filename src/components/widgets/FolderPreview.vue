@@ -11,9 +11,9 @@ defineProps({
 </script>
 
 <template>
-  <div class="flex h-full p-2 items-center box-border gap-2 hover:text-white">
-    <i class="fa-solid fa-folder h-8 mx-1" />
-    <p class="text-[1.5rem] break-all">
+  <div class="flex h-full p-4 items-center box-border gap-2 hover:text-white">
+    <i class="fa-solid fa-folder h-5 mx-1" />
+    <p class="text-[0.8rem] break-all truncate">
       {{ doc.name }}
     </p>
   </div>
