@@ -18,7 +18,10 @@ defineProps({
 })
 
 const { folderDocuments, widgetDocuments } = useFolder(workspace.childDocs, searchQuery)
+const dragDisabled = ref(true)
+
 function changeOrder (event) {
+  dragDisabled.value = true
   const childDocs = folderDocuments.value.concat(widgetDocuments.value)
   workspace.updateCurrentDocChildOrder(childDocs.map(doc => doc._id))
 }
@@ -30,9 +33,6 @@ function startFolderDrag (event) {
 function startWidgetDrag (event) {
   dragDocStore.startDragging(widgetDocuments.value[event.oldIndex])
 }
-
-const dragDisabled = ref(true)
-
 </script>
 
 <template>
