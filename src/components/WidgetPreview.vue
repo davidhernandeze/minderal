@@ -1,5 +1,5 @@
 <script setup>
-import { defineAsyncComponent, inject, ref, useTemplateRef, watch, defineEmits } from 'vue'
+import { defineAsyncComponent, defineEmits, inject, ref, useTemplateRef, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
@@ -8,6 +8,7 @@ import { useClipboard } from '@vueuse/core'
 import GenericButton from '@/components/GenericButton.vue'
 import TextInput from '@/components/TextInput.vue'
 import Modal from '@/components/Modal.vue'
+import InvisibleInput from '@/components/InvisibleInput.vue'
 
 const props = defineProps({
   doc: {
@@ -103,6 +104,7 @@ const renameModalOpen = ref(false)
     :class="[ props.doc.widget === 'folder' ? 'h-18' : 'h-40']"
     class="relative flex overflow-visible flex-col bg-gray-700 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
   >
+    <!--    <WidgetPreviewFloatingMenu />-->
     <div
       :class="[
         widgetProps.standalonePreview ? 'shadow-none' : 'shadow',

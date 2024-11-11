@@ -1,8 +1,8 @@
 <script setup>
-import { ref, useTemplateRef } from 'vue'
+import { ref } from 'vue'
 import TextInput from '@/components/TextInput.vue'
 import GenericButton from '@/components/GenericButton.vue'
-import FileInput from '@/components/widgets/FileInput.vue'
+import FileInput from '@/components/FileInput.vue'
 
 const emits = defineEmits(['save'])
 
