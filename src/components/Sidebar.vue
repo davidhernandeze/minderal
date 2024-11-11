@@ -52,7 +52,7 @@ function openConnectionSetup (connection) {
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="fa-solid fa-circle h-4 text-green-400" />
+              <i class="fa-solid fa-circle h-3 text-green-400" />
               <i
                 v-if="connection.host"
                 class="fa-solid fa-cloud-arrow-up h-4 text-blue-300"
