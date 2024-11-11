@@ -39,8 +39,6 @@ const dragDisabled = ref(true)
   <VueDraggable
     v-model="folderDocuments"
     :disabled="dragDisabled"
-    :delay="110"
-    :delay-on-touch-only="true"
     item-key="_id"
     group="folder"
     class="pr-2 pb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-8"
@@ -58,8 +56,6 @@ const dragDisabled = ref(true)
   <VueDraggable
     v-model="widgetDocuments"
     :disabled="dragDisabled"
-    :delay="110"
-    :delay-on-touch-only="true"
     item-key="_id"
     group="widgets"
     class="pr-2 pb-32 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"

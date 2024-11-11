@@ -42,6 +42,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     // To-do cases: delete/modify the current doc, delete/modify a doc in the route
     if (change.id === currentDocId.value) {
       await fetchCurrentDoc()
+      await fetchChildDocs()
       return
     }
     const docIndex = childDocs.value.findIndex(doc => change.id === doc._id)
