@@ -24,7 +24,7 @@ const content = ref(props.doc.content)
   <div class="h-full">
     <InvisibleTextarea
       v-model="content"
-      class="text-xs overflow-y-auto w-full h-full break-all"
+      class="overflow-y-auto w-full h-full break-all pr-2"
       @blur="workspace.updateDoc(props.doc, { content })"
     />
   </div>

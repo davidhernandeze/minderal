@@ -17,13 +17,13 @@ const { isSidebarVisible } = sidebarStore
       :class="{ 'bg-gray-700': tab.isOpen, 'bg-gray-900': !tab.isOpen}"
       @click="metadataStore.openTab(index)"
     >
-      <span class="truncate text-xs">{{ tab.name }}</span>
+      <span class="truncate text-sm">{{ tab.name }}</span>
       <div
-        class="h-3 w-3 rounded-full flex-center hover:bg-gray-600"
+        class="h-[1.2rem] w-[1.2rem] rounded-full flex-center hover:bg-gray-600"
         @click.stop="metadataStore.closeTab(index)"
       >
         <i
-          class="fa-solid h-2 fa-times"
+          class="fa-solid fa-times h-[0.8rem]"
         />
       </div>
     </div>

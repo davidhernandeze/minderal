@@ -125,7 +125,7 @@ const renameModalOpen = ref(false)
           ref="renameInputEl"
           v-model="renameInput"
           v-on-click-outside="endNameEdition"
-          class="flex-1 ml-2 text-xs bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-none p-0"
+          class="flex-1 ml-2 text-sm bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-none p-0"
           @click.stop
           @focus="e => startNameEdition(e)"
           @keyup.enter="endNameEdition"
