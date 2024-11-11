@@ -7,17 +7,23 @@ import Database from '@/classes/Database.js'
 
 const META_DOC_ID = 'meta'
 export const useMetadataStore = defineStore('metadata', () => {
-  const metaDatabase = new Database({ name: 'minderal', listen: false})
+  const metaDatabase = new Database({ name: 'minderal', listen: false })
   const connections = ref([])
   const tabs = ref([])
 
   async function fetchMetadata () {
+    const initialized = !!localStorage.getItem('initialized')
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
+    localStorage.setItem('initialized', 'true')
     metaDocument.connections ??= []
     metaDocument.tabs ??= []
-    if (metaDocument.tabs.length < 1) sidebarStore.showSidebar()
     connections.value = metaDocument.connections
     tabs.value = metaDocument.tabs
+
+    if (!initialized) {
+      await addConnection('local')
+      await openNewTab(connections.value[0].id, 'local')
+    }
   }
 
   async function addConnection (name, host = null, username = null, password = null) {

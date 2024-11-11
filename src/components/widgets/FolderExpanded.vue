@@ -1,7 +1,7 @@
 <script setup>
 import WidgetPreview from '@/components/WidgetPreview.vue'
 import useFolder from '@/composables/useFolder.js'
-import { inject, ref, watch } from 'vue'
+import { inject, ref } from 'vue'
 import { Doc } from '@/classes/Doc.js'
 import { VueDraggable } from 'vue-draggable-plus'
 import dragDocStore from '@/stores/dragDoc.js'
@@ -41,7 +41,7 @@ function startWidgetDrag (event) {
     :disabled="dragDisabled"
     item-key="_id"
     group="folder"
-    class="pr-2 pb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-8"
+    class="pr-6 pb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-"
     @start="startFolderDrag"
     @end="changeOrder"
   >
@@ -58,7 +58,7 @@ function startWidgetDrag (event) {
     :disabled="dragDisabled"
     item-key="_id"
     group="widgets"
-    class="pr-2 pb-32 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+    class="pr-6 pb-32 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4"
     @start="startWidgetDrag"
     @end="changeOrder"
   >
