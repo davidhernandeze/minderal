@@ -1,8 +1,7 @@
 <script setup>
 import { Doc } from '@/classes/Doc.js'
 import InvisibleTextarea from '@/components/InvisibleTextarea.vue'
-import { watchDebounced } from '@vueuse/core'
-import { inject, ref } from 'vue'
+import { inject, ref, watch } from 'vue'
 
 const props = defineProps({
   doc: {
@@ -12,12 +11,12 @@ const props = defineProps({
 })
 
 const workspace = inject('workspace')
-const content = ref(props.doc.content)
 
-watchDebounced(content, () => {
-  console.log('changed!')
-  workspace.updateDoc(props.doc, { content: content.value })
-}, { debounce: 500, maxWait: 1000 })
+watch(() => props.doc.content, () => {
+  content.value = props.doc.content
+})
+
+const content = ref(props.doc.content)
 
 </script>
 
@@ -26,6 +25,7 @@ watchDebounced(content, () => {
     <InvisibleTextarea
       v-model="content"
       class="text-xs overflow-y-auto w-full h-full break-all"
+      @blur="workspace.updateDoc(props.doc, { content })"
     />
   </div>
 </template>

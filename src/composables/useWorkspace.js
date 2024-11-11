@@ -25,7 +25,10 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     db = await databasePoolStore.getOrCreateDB({ ...info.connectionOptions, listen: true })
     username.value = info.username
     db.on('change', onDatabaseChange)
-    db.on('offline', () => { offline.value = true })
+    db.on('offline', () => {
+      console.log('offline')
+      offline.value = true
+    })
     db.on('reconnect', () => {
       reconnects.value += 1
       offline.value = false
