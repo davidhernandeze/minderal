@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 const draggedDoc = ref(null)
 
 function startDragging (doc) {
-  console.log('startDragging', doc)
+  // console.log('startDragging', doc)
   draggedDoc.value = doc
 }
 

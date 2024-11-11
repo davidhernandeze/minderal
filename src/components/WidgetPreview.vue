@@ -137,7 +137,7 @@ const renameModalOpen = ref(false)
           @pointerenter="$emit('enable-drag')"
           @pointerleave="$emit('disable-drag')"
           @pointerdown="$emit('enable-drag')"
-          @pointerover="$emit('disable-drag')"
+          @pointerup="$emit('disable-drag')"
         >
           <i class="fa-solid fa-grip-dots h-3" />
         </div>

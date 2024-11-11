@@ -27,7 +27,7 @@ onBeforeMount(async () => {
       :class="[isSidebarVisible ? 'hidden sm:block' : 'block']"
       class="w-full pl-2 pr-0 pb-0"
     >
-      <Tabs class="h-[2.5rem] pt-1" />
+      <Tabs class="h-[5vh] pt-1" />
       <WorkspaceManager
         v-show="tabs.length > 0"
         class="h-[95vh]"

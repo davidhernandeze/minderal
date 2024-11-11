@@ -1,7 +1,7 @@
 <script setup>
 import WidgetPreview from '@/components/WidgetPreview.vue'
 import useFolder from '@/composables/useFolder.js'
-import { inject, ref } from 'vue'
+import { inject, ref, watch } from 'vue'
 import { Doc } from '@/classes/Doc.js'
 import { VueDraggable } from 'vue-draggable-plus'
 import dragDocStore from '@/stores/dragDoc.js'
