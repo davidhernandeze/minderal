@@ -1,5 +1,5 @@
 <script setup>
-import { defineAsyncComponent, inject, ref, useTemplateRef, watch } from 'vue'
+import { defineAsyncComponent, inject, ref, useTemplateRef, watch, defineEmits } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
@@ -15,6 +15,8 @@ const props = defineProps({
     required: true
   }
 })
+
+defineEmits(['enable-drag', 'disable-drag'])
 
 const { copy } = useClipboard()
 
@@ -104,7 +106,7 @@ const renameModalOpen = ref(false)
     <div
       :class="[
         widgetProps.standalonePreview ? 'shadow-none' : 'shadow',
-        props.doc.widget === 'folder' ? 'h-0 p-0 px-2 pt-2' : 'p-2'
+        props.doc.widget === 'folder' ? 'h-auto p-2 pb-0' : 'p-2'
       ]"
       class="flex justify-between"
     >
@@ -127,51 +129,60 @@ const renameModalOpen = ref(false)
           @keyup.enter="endNameEdition"
         >
       </div>
-      <Menu
-        as="div"
-        class="relative inline-block text-left"
-      >
-        <div>
-          <MenuButton
-            class="flex items-start"
-            @click.stop
-          >
-            <div
-              class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100"
-            >
-              <i class="fa-solid h-3 fa-ellipsis-vertical" />
-            </div>
-          </MenuButton>
-        </div>
-        <transition
-          enter-active-class="transition ease-out duration-100"
-          enter-from-class="transform opacity-0 scale-95"
-          enter-to-class="transform opacity-100 scale-100"
-          leave-active-class="transition ease-in duration-75"
-          leave-from-class="transform opacity-100 scale-100"
-          leave-to-class="transform opacity-0 scale-95"
+      <div class="flex items-center gap-2">
+        <div
+          class="drag-zone rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
+          @mouseenter="$emit('enable-drag')"
+          @mouseleave="$emit('disable-drag')"
         >
-          <MenuItems
-            class="absolute -translate-x-32 z-10 w-36 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-none"
-          >
-            <div>
-              <MenuItem
-                v-for="rowAction in rowActions"
-                :key="rowAction.action"
-                v-slot="{ active }"
+          <i class="fa-solid fa-grip-dots h-3" />
+        </div>
+        <Menu
+          as="div"
+          class="relative inline-block text-left"
+        >
+          <div>
+            <MenuButton
+              class="flex items-start"
+              @click.stop
+            >
+              <div
+                class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100"
               >
-                <button
-                  class="w-full text-left"
-                  :class="[active ? 'bg-gray-900 text-gray-100' : 'text-gray-200', 'block px-4 py-2 text-sm']"
-                  @click.stop="rowAction.onClick"
+                <i class="fa-solid h-3 fa-ellipsis-vertical" />
+              </div>
+            </MenuButton>
+          </div>
+          <transition
+            enter-active-class="transition ease-out duration-100"
+            enter-from-class="transform opacity-0 scale-95"
+            enter-to-class="transform opacity-100 scale-100"
+            leave-active-class="transition ease-in duration-75"
+            leave-from-class="transform opacity-100 scale-100"
+            leave-to-class="transform opacity-0 scale-95"
+          >
+            <MenuItems
+              class="absolute -translate-x-32 z-10 w-36 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-none"
+            >
+              <div>
+                <MenuItem
+                  v-for="rowAction in rowActions"
+                  :key="rowAction.action"
+                  v-slot="{ active }"
                 >
-                  {{ rowAction.label }}
-                </button>
-              </MenuItem>
-            </div>
-          </MenuItems>
-        </transition>
-      </Menu>
+                  <button
+                    class="w-full text-left"
+                    :class="[active ? 'bg-gray-900 text-gray-100' : 'text-gray-200', 'block px-4 py-2 text-sm']"
+                    @click.stop="rowAction.onClick"
+                  >
+                    {{ rowAction.label }}
+                  </button>
+                </MenuItem>
+              </div>
+            </MenuItems>
+          </transition>
+        </Menu>
+      </div>
     </div>
     <div
       class="flex-1 overflow-hidden p-2 cursor-pointer"
@@ -210,3 +221,10 @@ const renameModalOpen = ref(false)
     </Modal>
   </div>
 </template>
+
+<style scoped>
+.widget-preview {
+  box-shadow:  9px 9px 24px #303946,
+  -9px -9px 24px #3e495c;
+}
+</style>

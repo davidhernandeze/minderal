@@ -98,7 +98,7 @@ onBeforeUnmount(async () => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-gray-700 p-6">
+  <div class="h-full flex flex-col bg-gray-700 p-6 overflow-visible">
     <div class="grow-0 bg-gray-700 z-10 mb-2">
       <div class="flex items-center">
         <DocRoute

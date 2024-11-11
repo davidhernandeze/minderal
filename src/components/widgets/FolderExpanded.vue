@@ -1,9 +1,10 @@
 <script setup>
 import WidgetPreview from '@/components/WidgetPreview.vue'
 import useFolder from '@/composables/useFolder.js'
-import { inject } from 'vue'
-import draggable from 'vuedraggable'
+import { inject, ref } from 'vue'
 import { Doc } from '@/classes/Doc.js'
+import { VueDraggable } from 'vue-draggable-plus'
+import dragDocStore from '@/stores/dragDoc.js'
 
 const workspace = inject('workspace')
 const searchQuery = inject('searchQuery')
@@ -22,33 +23,55 @@ function changeOrder (event) {
   workspace.updateCurrentDocChildOrder(childDocs.map(doc => doc._id))
 }
 
+function startFolderDrag (event) {
+  dragDocStore.startDragging(folderDocuments.value[event.oldIndex])
+}
+
+function startWidgetDrag (event) {
+  dragDocStore.startDragging(widgetDocuments.value[event.oldIndex])
+}
+
+const dragDisabled = ref(true)
+
 </script>
 
 <template>
-  <draggable
+  <VueDraggable
     v-model="folderDocuments"
+    :disabled="dragDisabled"
     :delay="110"
     :delay-on-touch-only="true"
     item-key="_id"
     group="folder"
     class="pr-2 pb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-8"
+    @start="startFolderDrag"
     @end="changeOrder"
   >
-    <template #item="{element}">
-      <WidgetPreview :doc="element" />
-    </template>
-  </draggable>
-  <draggable
+    <WidgetPreview
+      v-for="document in folderDocuments"
+      :key="document._id"
+      :doc="document"
+      @enable-drag="dragDisabled = false"
+      @disable-drag="dragDisabled = true"
+    />
+  </VueDraggable>
+  <VueDraggable
     v-model="widgetDocuments"
+    :disabled="dragDisabled"
     :delay="110"
     :delay-on-touch-only="true"
     item-key="_id"
     group="widgets"
     class="pr-2 pb-32 grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+    @start="startWidgetDrag"
     @end="changeOrder"
   >
-    <template #item="{element}">
-      <WidgetPreview :doc="element" />
-    </template>
-  </draggable>
+    <WidgetPreview
+      v-for="document in widgetDocuments"
+      :key="document._id"
+      :doc="document"
+      @enable-drag="dragDisabled = false"
+      @disable-drag="dragDisabled = true"
+    />
+  </VueDraggable>
 </template>
