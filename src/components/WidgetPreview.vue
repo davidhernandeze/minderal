@@ -132,8 +132,10 @@ const renameModalOpen = ref(false)
       <div class="flex items-center gap-2">
         <div
           class="drag-zone rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
-          @mouseenter="$emit('enable-drag')"
-          @mouseleave="$emit('disable-drag')"
+          @pointerenter="$emit('enable-drag')"
+          @pointerleave="$emit('disable-drag')"
+          @pointerdown="$emit('enable-drag')"
+          @pointerover="$emit('disable-drag')"
         >
           <i class="fa-solid fa-grip-dots h-3" />
         </div>
