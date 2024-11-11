@@ -26,7 +26,7 @@ function openConnectionSetup (connection) {
 <template>
   <div
     v-show="isSidebarVisible"
-    class="relative w-full sm:w-48 sm:block h-max-screen bg-gray-700 shadow-md"
+    class="relative w-full sm:w-[15rem] sm:block h-max-screen bg-gray-700 shadow-md"
   >
     <div
       v-show="tabs.length > 0"
@@ -41,34 +41,40 @@ function openConnectionSetup (connection) {
     <div class="p-2">
       <div class="text-xss uppercase flex items-center mb-2">
         <i class="fa-light fa-database mr-1" />
-        CONNECTIONS
+        DATABASES
       </div>
       <ul class="my-1">
         <li
           v-for="connection in connections"
           :key="connection.id"
-          class="p-2 cursor-pointer rounded bg-gray-600 my-2 border border-gray-600 hover:border-gray-500 relative flex items-center justify-between"
+          class="p-2 cursor-pointer rounded bg-gray-600 my-2 border border-gray-600 hover:border-gray-500 relative"
           @click="openNewTab(connection.id, connection.name)"
         >
-          <div class="flex items-center">
-            <i class="fa-solid fa-circle h-2 text-green-400 mr-2" />
-            <div class="text-xs">
-              {{ connection.name }}
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-circle h-4 text-green-400" />
+              <i
+                v-if="connection.host"
+                class="fa-solid fa-cloud-arrow-up h-4 text-blue-300"
+              />
+              <div class="text-sm">
+                {{ connection.name }}
+              </div>
             </div>
-          </div>
-          <div
-            class="rounded-full h-6 w-6 text-gray-400 hover:text-gray-50 flex-center"
-            @click.stop="openConnectionSetup(connection)"
-          >
-            <i class="fa-light h-3 fa-gear" />
+            <div
+              class="rounded-full w-6 text-gray-400 hover:text-gray-50 flex-center"
+              @click.stop="openConnectionSetup(connection)"
+            >
+              <i class="fa-light h-4 fa-gear" />
+            </div>
           </div>
         </li>
         <li
           class="border flex-center h-10 rounded border-dashed border-gray-400 cursor-pointer hover:text-green-300 hover:border-green-300"
           @click="isConnectionSetupModalOpen = true"
         >
-          <i class="fa-solid h-2 fa-add mr-2" />
-          <span class="uppercase text-xss">New Connection</span>
+          <i class="fa-solid h-3 fa-add mr-2" />
+          <span class="uppercase text-xss">New Database</span>
         </li>
       </ul>
     </div>
