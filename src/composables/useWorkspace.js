@@ -178,7 +178,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
 
   async function deleteDoc (doc) {
     if (doc.parent_id === currentDocId.value) {
-      const childOrder = currentDoc.value.child_order || []
+      const childOrder = currentDoc.value?.child_order || []
       const index = childOrder.indexOf(doc._id)
       if (index !== -1) {
         childOrder.splice(index, 1)
