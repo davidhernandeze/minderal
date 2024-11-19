@@ -98,7 +98,7 @@ onBeforeUnmount(async () => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-gray-700 p-6 pr-0 pb-[8rem] overflow-visible">
+  <div class="h-full flex flex-col bg-gray-700 p-6 pr-0 pb-[5rem] overflow-visible">
     <div class="grow-0 bg-gray-700 z-10 mb-2">
       <div class="flex items-center">
         <DocRoute
@@ -124,14 +124,14 @@ onBeforeUnmount(async () => {
     </div>
     <div
       v-show="showMainInput"
-      class="fixed right-0 bottom-0 p-3 pb-0 w-full flex justify-center"
+      class="fixed right-0 bottom-0 px-0 p-3 pt-0 pb-0 w-full flex justify-center"
     >
       <div
         :class="{ 'sm:pl-48': isSidebarVisible }"
         class="w-full max-w-3xl"
       >
         <div
-          class="flex-center p-1 py-2 flex-wrap bg-gray-700 shadow-lg rounded"
+          class="flex-center p-1 py-2 flex-wrap bg-gray-700 shadow-lg rounded border border-gray-600 border-b-0"
         >
           <div class="w-full sm:w-auto py-2">
             <button

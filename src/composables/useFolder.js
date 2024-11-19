@@ -10,7 +10,7 @@ export default (documents, searchQuery) => {
     filteredDocuments.value = documents.value.filter((doc) => {
       let searchableContent = doc.name
       const widgetProps = getWidgetProps(doc.widget)
-      if (widgetProps.indexContent) {
+      if (widgetProps?.indexContent) {
         searchableContent += ' ' + doc.value
       }
       return searchableContent.toLowerCase().indexOf(searchQuery.value.toLowerCase()) > -1

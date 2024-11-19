@@ -30,7 +30,7 @@ function openConnectionSetup (connection) {
   >
     <div
       v-show="tabs.length > 0"
-      class="absolute right-0 top-0 p-2 cursor-pointer text-gray-400 hover:text-gray-50 text-xs"
+      class="absolute right-0 top-0 p-2 cursor-pointer text-gray-400 hover:text-gray-50"
       @click="sidebarStore.hideSidebar()"
     >
       <i class="fa-light fa-times" />

@@ -20,11 +20,12 @@ export const widgets = {
     showMainInput: true,
     standalonePreview: true
   },
-  link: {
-    label: 'Link',
+  url: {
+    label: 'Url',
     icon: 'fa-solid fa-link',
     indexContent: true,
-    previewComponent: 'Text'
+    previewComponent: 'UrlPreview',
+    formComponent: 'UrlForm'
   },
   switch: {
     label: 'Switch',

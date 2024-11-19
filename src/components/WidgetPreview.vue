@@ -8,7 +8,7 @@ import { useClipboard } from '@vueuse/core'
 import GenericButton from '@/components/GenericButton.vue'
 import TextInput from '@/components/TextInput.vue'
 import Modal from '@/components/Modal.vue'
-import InvisibleInput from '@/components/InvisibleInput.vue'
+import WidgetForm from '@/components/WidgetForm.vue'
 
 const props = defineProps({
   doc: {
@@ -32,7 +32,9 @@ watch(() => props.doc.name, () => {
   renameInput.value = props.doc.name
 })
 
-const widgetProps = getWidgetProps(props.doc.widget)
+const widgetFormOpen = ref(false)
+
+const widgetProps = getWidgetProps(props.doc.widget) ?? getWidgetProps('text')
 const icon = widgetProps.icon
 const Widget = defineAsyncComponent(() => {
   return import(`./widgets/${widgetProps.previewComponent}.vue`)
@@ -65,15 +67,17 @@ function startNameEdition (event) {
 
 const rowActions = ref([
   {
-    action: 'delete',
-    label: 'Delete',
+    action: 'edit',
+    label: 'Edit',
+    display: !!widgetProps.formComponent,
     onClick () {
-      workspace.deleteDocRecursively({ ...props.doc })
+      widgetFormOpen.value = true
     }
   },
   {
     action: 'copy_to_clipboard',
     label: 'Copy to clipboard',
+    display: true,
     onClick () {
       copy(props.doc.content)
     }
@@ -81,6 +85,7 @@ const rowActions = ref([
   {
     action: 'rename',
     label: 'Rename',
+    display: true,
     onClick () {
       if (!widgetProps.standalonePreview) {
         renameInputEl.value.focus()
@@ -88,6 +93,14 @@ const rowActions = ref([
       }
 
       renameModalOpen.value = true
+    }
+  },
+  {
+    action: 'delete',
+    label: 'Delete',
+    display: true,
+    onClick () {
+      workspace.deleteDocRecursively({ ...props.doc })
     }
   }
 ])
@@ -169,6 +182,7 @@ const renameModalOpen = ref(false)
               <div>
                 <MenuItem
                   v-for="rowAction in rowActions"
+                  v-show="rowAction.display"
                   :key="rowAction.action"
                   v-slot="{ active }"
                 >
@@ -219,6 +233,18 @@ const renameModalOpen = ref(false)
             Rename
           </GenericButton>
         </form>
+      </template>
+    </Modal>
+    <Modal
+      v-if="widgetProps.formComponent"
+      v-model:is-open="widgetFormOpen"
+    >
+      <template #body>
+        <WidgetForm
+          :doc="doc"
+          :widget="widgetProps"
+          @save="widgetFormOpen = false"
+        />
       </template>
     </Modal>
   </div>

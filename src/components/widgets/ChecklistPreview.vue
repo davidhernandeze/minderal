@@ -15,22 +15,22 @@ const { visibleItems } = useChecklist(toRef(() => props.doc))
 </script>
 
 <template>
-  <div class="text-xs overflow-y-hidden">
+  <div class="overflow-y-hidden">
     <ol>
       <li
         v-for="item in visibleItems"
         :key="item.id"
-        class="flex items-center rounded hover:bg-gray-600 my-1"
+        class="flex items-center rounded hover:bg-gray-600"
       >
-        <div class="flex h-3 items-center">
+        <div class="flex items-center">
           <input
             :checked="item.checked"
             name="candidates"
             type="checkbox"
-            class="h-3 w-3 rounded border-gray-300 text-green-400 focus:ring-indigo-600 cursor-pointer"
+            class="w-3 h-3 rounded border-gray-300 text-green-400 focus:ring-indigo-600 cursor-pointer"
           >
         </div>
-        <div class="ml-4 truncate">
+        <div class="ml-2 truncate">
           {{ item.value }}
         </div>
       </li>

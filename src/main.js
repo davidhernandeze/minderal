@@ -12,6 +12,14 @@ PouchDB.plugin(find)
 const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
+
+if (process.env.NODE_ENV !== 'development') {
+  Sentry.init({
+    app,
+    dsn: 'https://08d470a3d023b85f1945caa859f33907@o4506906515406848.ingest.us.sentry.io/4506906544242688'
+  })
+}
+
 app.mount('#app')
 app.component('Modal', Modal)
 
@@ -20,8 +28,3 @@ window.onkeydown = function (key) {
     key.preventDefault()
   }
 }
-
-Sentry.init({
-  app,
-  dsn: 'https://08d470a3d023b85f1945caa859f33907@o4506906515406848.ingest.us.sentry.io/4506906544242688'
-})
