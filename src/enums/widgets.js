@@ -25,7 +25,8 @@ export const widgets = {
     icon: 'fa-solid fa-link',
     indexContent: true,
     previewComponent: 'UrlPreview',
-    formComponent: 'UrlForm'
+    formComponent: 'UrlForm',
+    toClipboard: doc => doc.content.url
   },
   switch: {
     label: 'Switch',

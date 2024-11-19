@@ -79,6 +79,11 @@ const rowActions = ref([
     label: 'Copy to clipboard',
     display: true,
     onClick () {
+      if (widgetProps.toClipboard) {
+        copy(widgetProps.toClipboard(props.doc))
+        return
+      }
+
       copy(props.doc.content)
     }
   },

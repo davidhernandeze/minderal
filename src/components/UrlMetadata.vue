@@ -15,10 +15,10 @@ defineProps({
       :alt="urlPreview.title"
     >
     <div class="flex-1 overflow-y-auto h-full">
-      <h4 class="font-bold break-all">
+      <h4 class="font-bold break-words">
         {{ urlPreview.title }}
       </h4>
-      <p class="text-base">
+      <p class="text-xs break-words">
         {{ urlPreview.description }}
       </p>
     </div>
