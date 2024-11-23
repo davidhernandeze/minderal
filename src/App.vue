@@ -39,7 +39,7 @@ onBeforeMount(async () => {
       />
     </div>
     <div class="text-gray-300 text-xs fixed bottom-0 m-2">
-      v0.20
+      v0.21
     </div>
   </div>
 </template>
