@@ -1,10 +1,8 @@
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 import Database from '@/classes/Database.js'
-import { useMetadataStore } from '@/stores/MetadataStore.js'
 
 export const useDatabasePoolStore = defineStore('databasePoolStore', () => {
-  const metaDataStore = useMetadataStore()
   const dbs = reactive(new Map())
 
   async function getOrCreateDB (connectionOptions) {
