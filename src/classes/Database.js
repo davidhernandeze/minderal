@@ -37,21 +37,34 @@ export default class Database extends EventEmitter {
   }
 
   async createDoc (doc) {
+    await this.startListening()
     doc.created_at = moment().toISOString()
     return await this.connection.post(doc)
   }
 
   async updateDoc (doc) {
+    await this.startListening()
     doc.updated_at = moment().toISOString()
     await this.connection.put(doc, { attachments: false })
   }
 
   async deleteDoc (doc) {
+    await this.startListening()
     doc.deleted_at = moment().toISOString()
     await this.connection.put(doc)
   }
 
-  startListening () {
+  async startListening () {
+    const wasOffline = this.offline
+    try {
+      await this.getInfo()
+    } catch (e) {
+      this.emit('offline')
+      this.offline = true
+      console.log('Offline by requesting db info')
+      return
+    }
+    this.changesListener?.cancel()
     this.changesListener = this.connection.changes({
       since: 'now',
       live: true,
@@ -61,23 +74,15 @@ export default class Database extends EventEmitter {
       .on('change', (change) => {
         this.emit('change', change)
       })
+    console.log('Online')
+    this.offline = false
+    if (wasOffline) this.emit('reconnect')
   }
 
-  monitorConnection () {
+  async monitorConnection () {
     this.connectionCheckInterval = setInterval(async () => {
-      try {
-        await this.getInfo()
-        if (this.offline) {
-          this.offline = false
-          this.emit('reconnect')
-          this.changesListener.cancel()
-          this.startListening()
-        }
-      } catch (e) {
-        this.emit('offline')
-        this.offline = true
-      }
-    }, 20000)
+      await this.startListening()
+    }, 10000)
   }
 
   async indexBy (field) {
@@ -109,5 +114,11 @@ export default class Database extends EventEmitter {
   async closeConnection () {
     clearInterval(this.connectionCheckInterval)
     await this.connection.close()
+  }
+
+  setOffline () {
+    this.emit('offline')
+    this.offline = true
+    console.log('Offline by external source')
   }
 }

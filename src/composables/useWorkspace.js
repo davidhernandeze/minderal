@@ -1,15 +1,25 @@
 import { useMetadataStore } from '@/stores/MetadataStore.js'
-import { ref } from 'vue'
+import { ref, watch } from 'vue'
 import { v4 as getId } from 'uuid'
 import { useDatabasePoolStore } from '@/stores/DatabasePoolStore.js'
 import { Doc } from '@/classes/Doc.js'
 import { widgets } from '@/enums/widgets.js'
 import DebugStore from '@/stores/DebugStore.js'
+import { useNetwork } from '@vueuse/core'
 
 export function useWorkspace ({ connectionId, docId = '' }) {
   const databasePoolStore = useDatabasePoolStore()
   const metadataStore = useMetadataStore()
   const { lastReconnect, reconnects, offline } = DebugStore
+  const { isOnline } = useNetwork()
+
+  watch(isOnline, async (value) => {
+    if (value) {
+      await db?.startListening()
+    } else {
+      db?.setOffline()
+    }
+  })
 
   let db
   const childDocs = ref([])
@@ -25,10 +35,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     db = await databasePoolStore.getOrCreateDB({ ...info.connectionOptions, listen: true })
     username.value = info.username
     db.on('change', onDatabaseChange)
-    db.on('offline', () => {
-      console.log('offline')
-      offline.value = true
-    })
+    db.on('offline', () => { offline.value = true })
     db.on('reconnect', () => {
       reconnects.value += 1
       offline.value = false

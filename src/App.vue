@@ -6,11 +6,13 @@ import { onBeforeMount } from 'vue'
 import WorkspaceManager from '@/components/WorkspaceManager.vue'
 import sidebarStore from '@/stores/sidebar.js'
 import { storeToRefs } from 'pinia'
+import DebugStore from '@/stores/DebugStore.js'
 
 const { isSidebarVisible } = sidebarStore
 
 const metadataStore = useMetadataStore()
 const { tabs } = storeToRefs(metadataStore)
+const { offline } = DebugStore
 
 onBeforeMount(async () => {
   await metadataStore.fetchMetadata()
@@ -18,15 +20,18 @@ onBeforeMount(async () => {
 
 </script>
 <template>
-  <div
-    v-if="true"
-    class="max-h-screen h-screen bg-gray-800 text-gray-100 flex"
-  >
+  <div class="max-h-screen h-screen bg-gray-800 text-gray-100 flex">
     <Sidebar class="flex-none" />
     <div
       :class="[isSidebarVisible ? 'hidden sm:block' : 'block']"
       class="w-full pl-2 pr-0 pb-0"
     >
+      <div
+        v-if="offline"
+        class="p-1 text-xs text-center bg-red-500/50"
+      >
+        Offline
+      </div>
       <Tabs class="h-[5vh] pt-1" />
       <WorkspaceManager
         v-show="tabs.length > 0"
@@ -34,7 +39,7 @@ onBeforeMount(async () => {
       />
     </div>
     <div class="text-gray-300 text-xs fixed bottom-0 m-2">
-      v0.16
+      v0.17
     </div>
   </div>
 </template>
@@ -42,16 +47,33 @@ onBeforeMount(async () => {
 <style>
 
 html {
-    background-color: green;
-    font-family: 'Selawk Light', serif;
+    background-color: #3c4b65;
+    font-family: 'Selawk', serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
 @font-face {
-    font-family: 'Selawk Light';
-    src: url('assets/fonts/selawk.ttf');
+  font-family: 'Selawk';
+  src: url('assets/fonts/selawk.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
 }
+
+@font-face {
+  font-family: 'Selawk';
+  src: url('assets/fonts/selawkl.ttf') format('truetype');
+  font-weight: 300;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Selawk';
+  src: url('assets/fonts/selawkb.ttf') format('truetype');
+  font-weight: 700; /* Bold weight */
+  font-style: normal; /* Normal style */
+}
+
 @font-face {
     font-family: 'Nunito Regular';
     src: url('assets/fonts/Nunito-Regular.ttf');
