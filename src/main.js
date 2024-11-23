@@ -1,4 +1,6 @@
 import { createApp } from 'vue'
+import 'quill/dist/quill.core.css'
+import 'quill/dist/quill.bubble.css'
 import './style.css'
 import App from './App.vue'
 import Modal from '@/components/Modal.vue'

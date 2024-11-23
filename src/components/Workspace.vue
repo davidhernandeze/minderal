@@ -33,7 +33,7 @@ onBeforeMount(async () => {
 
 watch(() => props.docId, async (value) => {
   await setCurrentDoc(value)
-  emits('change-tab-label', currentDoc.value.name)
+  emits('change-tab-label', currentDoc.value?.name)
 })
 
 const mainInput = ref(null)

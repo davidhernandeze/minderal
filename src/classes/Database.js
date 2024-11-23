@@ -45,7 +45,7 @@ export default class Database extends EventEmitter {
   async updateDoc (doc) {
     await this.startListening()
     doc.updated_at = moment().toISOString()
-    await this.connection.put(doc, { attachments: false })
+    return await this.connection.put(doc, { attachments: false })
   }
 
   async deleteDoc (doc) {

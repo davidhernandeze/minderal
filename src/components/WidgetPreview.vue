@@ -119,8 +119,8 @@ const renameModalOpen = ref(false)
 </script>
 <template>
   <div
-    :class="[ props.doc.widget === 'folder' ? 'h-18' : 'h-52 sm:h-40']"
-    class="relative flex overflow-visible flex-col bg-gray-700 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
+    :class="[ props.doc.widget === 'folder' ? 'h-18' : 'h-52 sm:h-52']"
+    class="preview-bounds relative flex overflow-visible flex-col bg-gray-700 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
   >
     <!--    <WidgetPreviewFloatingMenu />-->
     <div
@@ -206,7 +206,7 @@ const renameModalOpen = ref(false)
       </div>
     </div>
     <div
-      class="flex-1 overflow-hidden p-2 cursor-pointer"
+      class="flex-1 overflow-hidden p-2"
       @click="clickAction"
     >
       <Widget

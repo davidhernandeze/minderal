@@ -46,7 +46,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function onDatabaseChange (change) {
-    // console.log('change', change)
     // To-do cases: delete/modify the current doc, delete/modify a doc in the route
     if (change.id === currentDocId.value) {
       await fetchCurrentDoc()
@@ -184,10 +183,8 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function updateDoc (doc, updatedFields) {
-    for (const field in updatedFields) {
-      doc[field] = updatedFields[field]
-    }
-    await db.updateDoc({ ...doc })
+    const updatedDoc = new Doc({ ...doc, ...updatedFields })
+    return await db.updateDoc({ ...updatedDoc })
   }
 
   async function deleteDoc (doc) {

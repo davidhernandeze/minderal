@@ -19,6 +19,7 @@
     "@vueuse/core": "^10.9.0",
     "events": "^3.3.0",
     "pinia": "^2.1.7",
+    "quill": "^2.0.2",
     "vue": "^3.5.12",
     "vue-draggable-plus": "^0.5.6",
     "vue-imask": "^7.5.0"

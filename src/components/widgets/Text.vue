@@ -1,7 +1,8 @@
 <script setup>
 import { Doc } from '@/classes/Doc.js'
-import InvisibleTextarea from '@/components/InvisibleTextarea.vue'
+import InvisibleTextarea from '@/components/generic/InvisibleTextarea.vue'
 import { inject, ref, watch } from 'vue'
+import { useDebounceFn } from '@vueuse/core'
 
 const props = defineProps({
   doc: {
@@ -11,21 +12,28 @@ const props = defineProps({
 })
 
 const workspace = inject('workspace')
+let revision = ''
 
 watch(() => props.doc.content, () => {
-  content.value = props.doc.content
+  if (props.doc._rev === revision) return
+  richText.value = props.doc.content
 })
 
-const content = ref(props.doc.content)
+const richText = ref(JSON.parse(JSON.stringify(props.doc.content)))
+
+const updateDebounced = useDebounceFn(async (content) => {
+  const { rev } = await workspace.updateDoc(props.doc, { content })
+  revision = rev
+}, 1000)
 
 </script>
 
 <template>
   <div class="h-full">
     <InvisibleTextarea
-      v-model="content"
-      class="overflow-y-auto w-full h-full break-words pr-2"
-      @blur="workspace.updateDoc(props.doc, { content })"
+      v-model="richText"
+      class="w-full h-full break-words pr-2"
+      @input="updateDebounced"
     />
   </div>
 </template>
