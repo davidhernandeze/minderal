@@ -56,14 +56,6 @@ export default class Database extends EventEmitter {
 
   async startListening () {
     const wasOffline = this.offline
-    try {
-      await this.getInfo()
-    } catch (e) {
-      this.emit('offline')
-      this.offline = true
-      console.log('Offline by requesting db info')
-      return
-    }
     this.changesListener?.cancel()
     this.changesListener = this.connection.changes({
       since: 'now',
@@ -74,8 +66,17 @@ export default class Database extends EventEmitter {
       .on('change', (change) => {
         this.emit('change', change)
       })
-    console.log('Online')
+    try {
+      await this.getInfo()
+    } catch (e) {
+      this.emit('offline')
+      this.offline = true
+      console.log('Offline by requesting db info')
+      return
+    }
     this.offline = false
+    clearInterval(this.connectionCheckInterval)
+    await this.monitorConnection()
     if (wasOffline) this.emit('reconnect')
   }
 

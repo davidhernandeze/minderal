@@ -46,6 +46,7 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function onDatabaseChange (change) {
+    // console.log('change', change)
     // To-do cases: delete/modify the current doc, delete/modify a doc in the route
     if (change.id === currentDocId.value) {
       await fetchCurrentDoc()
@@ -55,12 +56,13 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     const docIndex = childDocs.value.findIndex(doc => change.id === doc._id)
     const exists = docIndex !== -1
     let isChild = (change.doc?.parent_id || '') === currentDocId.value
-    if (change.doc?._deleted) {
+    if (change.doc?.deleted_at) {
       isChild = (childDocs.value?.[docIndex]?.parent_id || '') === currentDocId.value
     }
     if (!isChild) return
 
-    if (change.doc?._deleted) {
+    if (change.doc?.deleted_at) {
+      await fetchChildDocs()
       if (!exists) return
       childDocs.value.splice(docIndex, 1)
       return
@@ -105,16 +107,22 @@ export function useWorkspace ({ connectionId, docId = '' }) {
 
   async function sortChildDocs () {
     const docWithOrderProp = currentDoc.value || rootDoc.value
-    const childOrder = docWithOrderProp.child_order || []
+    let childOrder = docWithOrderProp.child_order || []
     const indexMap = {}
 
     childOrder.forEach((id, index) => {
       indexMap[id] = index
     })
 
+    let orderCorrected = false
+
     const childrenIds = childDocs.value.map(doc => doc._id)
 
-    let orderCorrected = false
+    if (childrenIds.length !== childOrder.length) {
+      childOrder = childOrder.filter((id) => childrenIds.includes(id))
+      orderCorrected = true
+    }
+
     childrenIds.forEach((id) => {
       if (indexMap[id] === undefined) {
         orderCorrected = true
@@ -184,14 +192,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
   }
 
   async function deleteDoc (doc) {
-    if (doc.parent_id === currentDocId.value) {
-      const childOrder = currentDoc.value?.child_order || []
-      const index = childOrder.indexOf(doc._id)
-      if (index !== -1) {
-        childOrder.splice(index, 1)
-        await updateDoc(currentDoc.value, { child_order: childOrder })
-      }
-    }
     await db.deleteDoc(doc)
   }
 
