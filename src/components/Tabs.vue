@@ -9,7 +9,7 @@ const { tabs } = storeToRefs(metadataStore)
 const { isSidebarVisible } = sidebarStore
 </script>
 <template>
-  <div class="w-full flex">
+  <div class="w-full flex text-white">
     <div
       v-for="(tab, index) in tabs"
       :key="tab.id"
@@ -17,7 +17,10 @@ const { isSidebarVisible } = sidebarStore
       :class="{ 'bg-gray-700': tab.isOpen, 'bg-gray-900': !tab.isOpen}"
       @click="metadataStore.openTab(index)"
     >
-      <span class="truncate text-sm">{{ tab.name }}</span>
+      <div>
+        <p class="truncate text-sm">{{ tab.label || 'home' }}</p>
+        <p class="truncate text-xss">@{{ tab.name }}</p>
+      </div>
       <div
         class="h-[1.2rem] w-[1.2rem] rounded-full flex-center hover:bg-gray-600"
         @click.stop="metadataStore.closeTab(index)"

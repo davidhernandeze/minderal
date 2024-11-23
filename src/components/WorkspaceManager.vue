@@ -16,6 +16,7 @@ const { tabs } = storeToRefs(metadataStore)
       :key="tab.id"
       :connection-id="tab.connectionId"
       :doc-id="tab.docId"
+      @change-tab-label="(label) => tab.label = label"
       @navigate="(docId) => metadataStore.updateTabDoc(index, docId)"
     />
   </div>

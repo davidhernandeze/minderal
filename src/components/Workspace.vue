@@ -22,7 +22,7 @@ const props = defineProps({
   }
 })
 
-const emits = defineEmits(['navigate'])
+const emits = defineEmits(['navigate', 'change-tab-label'])
 
 const workspace = useWorkspace({ connectionId: props.connectionId, docId: props.docId })
 const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute } = workspace
@@ -33,6 +33,7 @@ onBeforeMount(async () => {
 
 watch(() => props.docId, async (value) => {
   await setCurrentDoc(value)
+  emits('change-tab-label', currentDoc.value.name)
 })
 
 const mainInput = ref(null)
