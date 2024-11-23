@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import { reactive, ref } from 'vue'
+import { reactive } from 'vue'
 import Database from '@/classes/Database.js'
 import { useMetadataStore } from '@/stores/MetadataStore.js'
 
@@ -11,18 +11,24 @@ export const useDatabasePoolStore = defineStore('databasePoolStore', () => {
     const dbName = connectionOptions.name
     if (!dbs.has(dbName)) {
       const db = new Database(connectionOptions)
+      db.clients = 1
       dbs.set(dbName, db)
     }
-    return dbs.get(dbName)
+    const db = dbs.get(dbName)
+    db.clients++
+    return db
   }
 
   async function closeConnection (dbName) {
     if (!dbs.has(dbName)) return
-    if (metaDataStore.tabs.find(tab => tab.name === dbName)) return
-    const connection = dbs.get(dbName)
+    const db = dbs.get(dbName)
+    db.clients--
+    if (db.clients > 0) return
     try {
-      connection.close()
-    } catch (e) {}
+      db.closeConnection()
+    } catch (e) {
+      console.log('Error closing connection', e)
+    }
     dbs.delete(dbName)
   }
 
