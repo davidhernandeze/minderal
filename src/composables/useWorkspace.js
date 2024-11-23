@@ -62,7 +62,6 @@ export function useWorkspace ({ connectionId, docId = '' }) {
     if (!isChild) return
 
     if (change.doc?.deleted_at) {
-      await fetchChildDocs()
       if (!exists) return
       childDocs.value.splice(docIndex, 1)
       return
