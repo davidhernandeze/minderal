@@ -19,7 +19,7 @@ watch(() => props.doc.content, () => {
   richText.value = props.doc.content
 })
 
-const richText = ref(JSON.parse(JSON.stringify(props.doc.content)))
+const richText = ref(props.doc.content)
 
 const updateDebounced = useDebounceFn(async (content) => {
   const { rev } = await workspace.updateDoc(props.doc, { content })

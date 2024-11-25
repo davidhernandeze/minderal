@@ -24,8 +24,11 @@ onMounted(() => {
       ]
     }
   })
-
-  quill.setContents(value.value)
+  if (value.value?.ops) {
+    quill.setContents(value.value)
+  } else {
+    quill.setText(value.value)
+  }
 
   quill.on('text-change', (delta, oldDelta, source) => {
     if (source === 'api') {
@@ -42,3 +45,8 @@ onMounted(() => {
     ref="editor"
   />
 </template>
+<style>
+.ql-editor.ql-blank::before{
+  color: #9da19f;
+}
+</style>

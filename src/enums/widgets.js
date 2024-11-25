@@ -2,7 +2,11 @@ export const widgets = {
   text: {
     label: 'Text',
     icon: 'fa-solid fa-align-left',
-    indexContent: true,
+    indexContent: (doc) => {
+      return doc.content.ops?.reduce((acc, op) => {
+        return acc + op.insert
+      }, '') ?? ''
+    },
     previewComponent: 'Text',
     expandedComponent: 'TextExpanded',
     expandable: false,
@@ -12,7 +16,6 @@ export const widgets = {
   folder: {
     label: 'Folder',
     icon: 'fa-solid fa-folder',
-    indexContent: false,
     expandable: true,
     baseDir: 'Folder',
     expandedComponent: 'FolderExpanded',
@@ -23,7 +26,9 @@ export const widgets = {
   url: {
     label: 'Url',
     icon: 'fa-solid fa-link',
-    indexContent: true,
+    indexContent: (doc) => {
+      return JSON.stringify(doc.content)
+    },
     previewComponent: 'UrlPreview',
     formComponent: 'UrlForm',
     toClipboard: doc => doc.content.url
@@ -31,7 +36,6 @@ export const widgets = {
   switch: {
     label: 'Switch',
     icon: 'fa-solid fa-toggle-on',
-    indexContent: false,
     defaultContent: false,
     previewComponent: 'Switch',
     standalonePreview: true
@@ -39,25 +43,21 @@ export const widgets = {
   audio: {
     label: 'Audio',
     icon: 'fa-solid fa-microphone',
-    indexContent: false,
     previewComponent: 'Text'
   },
   counter: {
     label: 'Counter',
     icon: 'fa-solid fa-plus-minus',
-    indexContent: false,
     previewComponent: 'Text'
   },
   countdown: {
     label: 'Countdown',
     icon: 'fa-solid fa-hourglass-half',
-    indexContent: false,
     previewComponent: 'Text'
   },
   checklist: {
     label: 'Checklist',
     icon: 'fa-solid fa-list-check',
-    indexContent: false,
     expandable: true,
     defaultContent: [],
     previewComponent: 'ChecklistPreview',
@@ -66,7 +66,6 @@ export const widgets = {
   chat: {
     label: 'Chat',
     icon: 'fa-solid fa-messages',
-    indexContent: false,
     standalonePreview: true,
     expandable: true,
     defaultContent: [],
@@ -84,7 +83,6 @@ export const widgets = {
   image: {
     label: 'Image',
     icon: 'fa-solid fa-image',
-    indexContent: true,
     expandable: true,
     formComponent: 'ImageForm',
     previewComponent: 'ImagePreview',

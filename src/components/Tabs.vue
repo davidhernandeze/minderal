@@ -19,7 +19,7 @@ const { isSidebarVisible } = sidebarStore
     >
       <div>
         <p class="truncate text-sm">{{ tab.label || 'home' }}</p>
-        <p class="truncate text-xss">@{{ tab.name }}</p>
+        <p class="truncate text-xss font-light tracking-wider">@{{ tab.name }}</p>
       </div>
       <div
         class="h-[1.2rem] w-[1.2rem] rounded-full flex-center hover:bg-gray-600"

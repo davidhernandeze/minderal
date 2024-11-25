@@ -32,14 +32,16 @@ onBeforeMount(async () => {
       >
         Offline
       </div>
-      <Tabs class="h-[5vh] pt-1" />
-      <WorkspaceManager
-        v-show="tabs.length > 0"
-        class="h-[95vh]"
-      />
+      <div class="flex flex-col h-full">
+        <Tabs class="pt-1" />
+        <WorkspaceManager
+          v-show="tabs.length > 0"
+          class="flex-1 overflow-y-auto"
+        />
+      </div>
     </div>
     <div class="text-gray-300 text-xs fixed bottom-0 m-2">
-      v0.21
+      v0.22
     </div>
   </div>
 </template>

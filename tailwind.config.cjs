@@ -2,12 +2,12 @@
 module.exports = {
   content: [
     './index.html',
-    './src/**/*.{js,vue}',
+    './src/**/*.{js,vue}'
   ],
   theme: {
     extend: {
       colors: {
-        transparent: 'rgba(255, 255, 255, 0)',
+        transparent: 'rgba(255, 255, 255, 0)'
       },
       fontSize: {
         xss: '0.6rem'
@@ -16,5 +16,5 @@ module.exports = {
   },
   plugins: [
     require('@tailwindcss/forms')
-  ],
+  ]
 }
