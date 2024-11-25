@@ -155,7 +155,7 @@ const renameModalOpen = ref(false)
           @pointerdown="$emit('enable-drag')"
           @pointerup="$emit('disable-drag')"
         >
-          <i class="fa-solid fa-grip-dots h-3" />
+          <i class="fa-solid fa-grip-dots h-4" />
         </div>
         <Menu
           as="div"
@@ -169,7 +169,7 @@ const renameModalOpen = ref(false)
               <div
                 class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100"
               >
-                <i class="fa-solid h-3 fa-ellipsis-vertical" />
+                <i class="fa-solid h-4 fa-ellipsis-vertical" />
               </div>
             </MenuButton>
           </div>
