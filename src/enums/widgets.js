@@ -3,7 +3,7 @@ export const widgets = {
     label: 'Text',
     icon: 'fa-solid fa-align-left',
     indexContent: (doc) => {
-      return doc.content.ops?.reduce((acc, op) => {
+      return doc.content?.ops?.reduce((acc, op) => {
         return acc + op.insert
       }, '') ?? ''
     },
@@ -75,7 +75,6 @@ export const widgets = {
   display: {
     label: 'Display',
     icon: 'fa-solid fa-presentation-screen',
-    indexContent: true,
     expandable: true,
     previewComponent: 'DisplayPreview',
     expandedComponent: 'DisplayExpanded'
