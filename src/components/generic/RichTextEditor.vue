@@ -27,7 +27,10 @@ onMounted(() => {
   if (value.value?.ops) {
     quill.setContents(value.value)
   } else {
-    quill.setText(value.value)
+    quill.setContents([
+      { insert: value.value }
+    ])
+    emit('input', quill.getContents())
   }
 
   quill.on('text-change', (delta, oldDelta, source) => {
