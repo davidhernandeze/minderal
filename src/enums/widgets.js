@@ -1,3 +1,5 @@
+import Quill from 'quill'
+
 export const widgets = {
   text: {
     label: 'Text',
@@ -6,6 +8,11 @@ export const widgets = {
       return doc.content?.ops?.reduce((acc, op) => {
         return acc + op.insert
       }, '') ?? ''
+    },
+    toClipboard (doc) {
+      const quill = new Quill(document.createElement('div'))
+      quill.setContents(doc.content)
+      return quill.getText()
     },
     previewComponent: 'Text',
     expandedComponent: 'TextExpanded',
@@ -21,7 +28,8 @@ export const widgets = {
     expandedComponent: 'FolderExpanded',
     previewComponent: 'FolderPreview',
     showMainInput: true,
-    standalonePreview: true
+    standalonePreview: true,
+    hideCopyButton: true
   },
   url: {
     label: 'Url',

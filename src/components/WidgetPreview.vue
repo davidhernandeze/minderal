@@ -65,6 +65,15 @@ function startNameEdition (event) {
   input.focus()
 }
 
+function copyToClipboard () {
+  if (widgetProps.toClipboard) {
+    copy(widgetProps.toClipboard(props.doc))
+    return
+  }
+
+  copy(props.doc.content)
+}
+
 const rowActions = ref([
   {
     action: 'edit',
@@ -78,14 +87,7 @@ const rowActions = ref([
     action: 'copy_to_clipboard',
     label: 'Copy to clipboard',
     display: true,
-    onClick () {
-      if (widgetProps.toClipboard) {
-        copy(widgetProps.toClipboard(props.doc))
-        return
-      }
-
-      copy(props.doc.content)
-    }
+    onClick: copyToClipboard
   },
   {
     action: 'rename',
@@ -150,6 +152,13 @@ const renameModalOpen = ref(false)
         />
       </div>
       <div class="flex items-center gap-2">
+        <button
+          v-if="!widgetProps.hideCopyButton"
+          class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
+          @click="copyToClipboard"
+        >
+          <i class="fa-solid fa-copy h-4" />
+        </button>
         <div
           class="drag-zone rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
           @pointerdown="$emit('enable-drag')"
