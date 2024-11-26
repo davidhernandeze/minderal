@@ -86,6 +86,14 @@ export const widgets = {
     formComponent: 'ImageForm',
     previewComponent: 'ImagePreview',
     expandedComponent: 'ImageExpanded'
+  },
+  command: {
+    label: 'Command',
+    icon: 'fa-solid fa-square-terminal',
+    indexContent: (doc) => doc.content,
+    previewComponent: 'CommandPreview',
+    expandable: false,
+    createWithContent: true
   }
 }
 

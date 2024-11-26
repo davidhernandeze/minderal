@@ -9,6 +9,7 @@ import GenericButton from '@/components/GenericButton.vue'
 import TextInput from '@/components/TextInput.vue'
 import Modal from '@/components/Modal.vue'
 import WidgetForm from '@/components/WidgetForm.vue'
+import InvisibleInput from '@/components/InvisibleInput.vue'
 
 const props = defineProps({
   doc: {
@@ -50,18 +51,17 @@ async function clickAction () {
   }
 }
 
-async function endNameEdition () {
+async function endNameEdition (event) {
   if (!isEditingName.value) return
   isEditingName.value = false
   renameModalOpen.value = false
-  renameInputEl.value?.blur()
+  event.target?.blur()
   await workspace.renameDoc(props.doc, renameInput.value)
 }
 
 function startNameEdition (event) {
   isEditingName.value = true
   const input = event.target
-  input.setSelectionRange(0, input.value.length)
   input.focus()
 }
 
@@ -119,7 +119,7 @@ const renameModalOpen = ref(false)
 </script>
 <template>
   <div
-    :class="[ props.doc.widget === 'folder' ? 'h-18' : 'h-52 sm:h-52']"
+    :class="[ props.doc.widget === 'folder' ? 'h-18' : 'max-h-52']"
     class="preview-bounds relative flex overflow-visible flex-col bg-gray-700 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
   >
     <!--    <WidgetPreviewFloatingMenu />-->
@@ -139,15 +139,15 @@ const renameModalOpen = ref(false)
           :class="icon"
           class="h-3"
         />
-        <input
-          ref="renameInputEl"
-          v-model="renameInput"
+        <InvisibleInput
+          v-model:el="renameInputEl"
+          v-model:value="renameInput"
           v-on-click-outside="endNameEdition"
           class="flex-1 ml-2 text-sm bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-none p-0"
           @click.stop
           @focus="e => startNameEdition(e)"
           @keyup.enter="endNameEdition"
-        >
+        />
       </div>
       <div class="flex items-center gap-2">
         <div
