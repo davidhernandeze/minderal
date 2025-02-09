@@ -1,5 +1,5 @@
 <script setup>
-import { defineAsyncComponent, defineEmits, inject, ref, useTemplateRef, watch } from 'vue'
+import { defineAsyncComponent, defineEmits, inject, ref, toValue, useTemplateRef, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
@@ -14,8 +14,8 @@ import InvisibleInput from '@/components/InvisibleInput.vue'
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true
-  }
+    required: true,
+  },
 })
 
 defineEmits(['enable-drag', 'disable-drag'])
@@ -25,13 +25,17 @@ const { copy } = useClipboard()
 const navigate = inject('navigate')
 const workspace = inject('workspace')
 
+const renameModalOpen = ref(false)
 const renameInput = ref(props.doc.name)
 const renameInputEl = useTemplateRef('renameInputEl')
 
 const isEditingName = ref(false)
-watch(() => props.doc.name, () => {
-  renameInput.value = props.doc.name
-})
+watch(
+  () => props.doc.name,
+  () => {
+    renameInput.value = props.doc.name
+  },
+)
 
 const widgetFormOpen = ref(false)
 
@@ -41,7 +45,7 @@ const Widget = defineAsyncComponent(() => {
   return import(`./widgets/${widgetProps.previewComponent}.vue`)
 })
 
-async function clickAction () {
+async function clickAction() {
   if (widgetProps.expandable) {
     if (isEditingName.value) {
       isEditingName.value = false
@@ -51,21 +55,21 @@ async function clickAction () {
   }
 }
 
-async function endNameEdition (event) {
+async function endNameEdition(event) {
   if (!isEditingName.value) return
   isEditingName.value = false
   renameModalOpen.value = false
   event.target?.blur()
-  await workspace.renameDoc(props.doc, renameInput.value)
+  await workspace.renameDoc({ ...props.doc }, renameInput.value)
 }
 
-function startNameEdition (event) {
+function startNameEdition(event) {
   isEditingName.value = true
   const input = event.target
   input.focus()
 }
 
-function copyToClipboard () {
+function copyToClipboard() {
   if (widgetProps.toClipboard) {
     copy(widgetProps.toClipboard(props.doc))
     return
@@ -79,75 +83,67 @@ const rowActions = ref([
     action: 'edit',
     label: 'Edit',
     display: !!widgetProps.formComponent,
-    onClick () {
+    onClick() {
       widgetFormOpen.value = true
-    }
+    },
   },
   {
     action: 'copy_to_clipboard',
     label: 'Copy to clipboard',
     display: true,
-    onClick: copyToClipboard
+    onClick: copyToClipboard,
   },
   {
     action: 'rename',
     label: 'Rename',
     display: true,
-    onClick () {
+    onClick() {
       if (!widgetProps.standalonePreview) {
         renameInputEl.value.focus()
         return
       }
 
       renameModalOpen.value = true
-    }
+      isEditingName.value = true
+    },
   },
   {
     action: 'delete',
     label: 'Delete',
     display: true,
-    onClick () {
+    onClick() {
       workspace.deleteDocRecursively({ ...props.doc })
-    }
-  }
+    },
+  },
 ])
 
-function addActions (actions) {
+function addActions(actions) {
   rowActions.value = rowActions.value.concat(actions)
 }
-
-const renameModalOpen = ref(false)
-
 </script>
 <template>
   <div
-    :class="[ props.doc.widget === 'folder' ? 'h-18' : 'max-h-52']"
+    :class="[props.doc.widget === 'folder' ? 'h-24' : 'h-52']"
     class="preview-bounds relative flex overflow-visible flex-col bg-gray-700 rounded-sm shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
   >
     <!--    <WidgetPreviewFloatingMenu />-->
     <div
       :class="[
         widgetProps.standalonePreview ? 'shadow-none' : 'shadow-sm',
-        props.doc.widget === 'folder' ? 'h-auto p-2 pb-0' : 'p-2'
+        props.doc.widget === 'folder' ? 'h-auto p-2 pb-0' : 'p-2',
       ]"
       class="flex justify-between"
     >
       <div v-if="widgetProps.standalonePreview" />
-      <div
-        v-else
-        class="flex-1 flex justify-start items-center text-gray-400 truncate"
-      >
-        <i
-          :class="icon"
-          class="h-3"
-        />
+      <div v-else class="flex-1 flex justify-start items-center text-gray-400 truncate">
+        <i :class="icon" class="h-3" />
         <InvisibleInput
           v-model:el="renameInputEl"
           v-model:value="renameInput"
           v-on-click-outside="endNameEdition"
-          class="flex-1 ml-2 text-sm bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-hidden p-0"
+          class="flex-1 ml-2 bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-hidden p-0"
           @click.stop
-          @focus="e => startNameEdition(e)"
+          @focus="(e) => startNameEdition(e)"
           @keyup.enter="endNameEdition"
         />
       </div>
@@ -166,18 +162,10 @@ const renameModalOpen = ref(false)
         >
           <i class="fa-solid fa-grip-dots h-4" />
         </div>
-        <Menu
-          as="div"
-          class="relative inline-block text-left"
-        >
+        <Menu as="div" class="relative inline-block text-left">
           <div>
-            <MenuButton
-              class="flex items-start"
-              @click.stop
-            >
-              <div
-                class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100"
-              >
+            <MenuButton class="flex items-start" @click.stop>
+              <div class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100">
                 <i class="fa-solid h-4 fa-ellipsis-vertical" />
               </div>
             </MenuButton>
@@ -202,7 +190,10 @@ const renameModalOpen = ref(false)
                 >
                   <button
                     class="w-full text-left"
-                    :class="[active ? 'bg-gray-900 text-gray-100' : 'text-gray-200', 'block px-4 py-2 text-sm']"
+                    :class="[
+                      active ? 'bg-gray-900 text-gray-100' : 'text-gray-200',
+                      'block px-4 py-2 text-sm',
+                    ]"
                     @click.stop="rowAction.onClick"
                   >
                     {{ rowAction.label }}
@@ -214,51 +205,23 @@ const renameModalOpen = ref(false)
         </Menu>
       </div>
     </div>
-    <div
-      class="flex-1 overflow-hidden p-2"
-      @click="clickAction"
-    >
-      <Widget
-        :doc="doc"
-        @add-actions="addActions"
-      />
+    <div class="flex-1 overflow-hidden p-2 h-full" @click="clickAction">
+      <Widget :doc="doc" @add-actions="addActions" />
     </div>
-    <Modal
-      v-model:is-open="renameModalOpen"
-    >
+    <Modal v-model:is-open="renameModalOpen">
       <template #body>
-        <form
-          class="text-gray-200 text-xl "
-          @submit.prevent="endNameEdition"
-        >
-          <h1 class="mb-1">
-            Rename Widget
-          </h1>
-          <TextInput
-            v-model:value="renameInput"
-            label="New Name"
-            type="text"
-            class="my-3 w-full"
-          />
-          <GenericButton
-            class="bg-indigo-600 hover:bg-indigo-500 mt-6"
-            type="submit"
-          >
+        <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
+          <h1 class="mb-1">Rename Widget</h1>
+          <TextInput v-model:value="renameInput" label="New Name" type="text" class="my-3 w-full" />
+          <GenericButton class="bg-indigo-600 hover:bg-indigo-500 mt-6" type="submit">
             Rename
           </GenericButton>
         </form>
       </template>
     </Modal>
-    <Modal
-      v-if="widgetProps.formComponent"
-      v-model:is-open="widgetFormOpen"
-    >
+    <Modal v-if="widgetProps.formComponent" v-model:is-open="widgetFormOpen">
       <template #body>
-        <WidgetForm
-          :doc="doc"
-          :widget="widgetProps"
-          @save="widgetFormOpen = false"
-        />
+        <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />
       </template>
     </Modal>
   </div>
@@ -266,7 +229,8 @@ const renameModalOpen = ref(false)
 
 <style scoped>
 .widget-preview {
-  box-shadow:  9px 9px 24px #303946,
-  -9px -9px 24px #3e495c;
+  box-shadow:
+    9px 9px 24px #303946,
+    -9px -9px 24px #3e495c;
 }
 </style>

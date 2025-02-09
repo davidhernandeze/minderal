@@ -39,13 +39,13 @@ export default class Database extends EventEmitter {
   async createDoc (doc) {
     await this.startListening()
     doc.created_at = moment().toISOString()
-    return await this.connection.post(doc)
+    return await this.connection.post(JSON.parse(JSON.stringify(doc)))
   }
 
   async updateDoc (doc) {
     await this.startListening()
     doc.updated_at = moment().toISOString()
-    return await this.connection.put(doc, { attachments: false })
+    return await this.connection.put(JSON.parse(JSON.stringify(doc)), { attachments: false })
   }
 
   async deleteDoc (doc) {

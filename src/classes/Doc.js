@@ -5,7 +5,7 @@ export class Doc {
     if (data._rev) this._rev = data._rev
     this.parent_id = data.parent_id
     this.name = data.name
-    this.content = data.content
+    this.content = data.content ?? ''
     this.widget = data.widget
     this.created_by = data.created_by
     this.created_at = data.created_at

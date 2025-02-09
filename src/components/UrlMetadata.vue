@@ -7,13 +7,15 @@ defineProps({
 })
 </script>
 <template>
-  <div class="flex gap-4 h-full">
-    <img
-      v-if="urlPreview.image"
-      class="h-14"
-      :src="urlPreview.image"
-      :alt="urlPreview.title"
-    >
+  <div class="flex flex-col gap-4 h-full">
+    <div class="h-14 flex justify-center">
+      <img
+        v-if="urlPreview.image"
+        class="h-full"
+        :src="urlPreview.image"
+        :alt="urlPreview.title"
+      >
+    </div>
     <div class="flex-1 overflow-y-auto h-full">
       <h4 class="font-bold break-words">
         {{ urlPreview.title }}

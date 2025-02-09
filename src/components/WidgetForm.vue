@@ -4,13 +4,13 @@ import { defineAsyncComponent, inject } from 'vue'
 const props = defineProps({
   widget: {
     type: Object,
-    required: true
+    required: true,
   },
   doc: {
     type: Object,
     required: false,
-    default: () => ({})
-  }
+    default: () => ({}),
+  },
 })
 
 const emit = defineEmits(['save'])
@@ -23,12 +23,12 @@ const Form = defineAsyncComponent(() => {
 
 const workspace = inject('workspace')
 
-async function saveDoc (form) {
+async function saveDoc(form) {
   const name = form.name
   const content = form.content
 
   if (form._id) {
-    await workspace.updateDoc(form)
+    await workspace.updateDoc({ ...form })
     emit('save')
     return
   }
@@ -37,19 +37,14 @@ async function saveDoc (form) {
     name,
     content,
     widget: form.widget,
-    files: form.files
+    files: form.files,
   })
   emit('save')
 }
 </script>
 <template>
   <div>
-    <h1 class="mb-4 text-gray-200 text-xl">
-      {{ action }} {{ widget.label }}
-    </h1>
-    <Form
-      :doc="doc"
-      @save="saveDoc"
-    />
+    <h1 class="mb-4 text-gray-200 text-xl">{{ action }} {{ widget.label }}</h1>
+    <Form :doc="doc" @save="saveDoc" />
   </div>
 </template>

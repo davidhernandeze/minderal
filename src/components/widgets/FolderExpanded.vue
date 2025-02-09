@@ -13,24 +13,24 @@ defineEmits(['update-value'])
 defineProps({
   doc: {
     type: Doc,
-    required: false
-  }
+    required: false,
+  },
 })
 
 const { folderDocuments, widgetDocuments } = useFolder(workspace.childDocs, searchQuery)
 const dragDisabled = ref(true)
 
-function changeOrder (event) {
+function changeOrder() {
   dragDisabled.value = true
   const childDocs = folderDocuments.value.concat(widgetDocuments.value)
-  workspace.updateCurrentDocChildOrder(childDocs.map(doc => doc._id))
+  workspace.updateCurrentDocChildOrder(childDocs.map((doc) => doc._id))
 }
 
-function startFolderDrag (event) {
+function startFolderDrag(event) {
   dragDocStore.startDragging(folderDocuments.value[event.oldIndex])
 }
 
-function startWidgetDrag (event) {
+function startWidgetDrag(event) {
   dragDocStore.startDragging(widgetDocuments.value[event.oldIndex])
 }
 </script>
@@ -42,7 +42,7 @@ function startWidgetDrag (event) {
     :disabled="dragDisabled"
     item-key="_id"
     group="folder"
-    class="pr-6 pb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4 mt-"
+    class="pr-6 pb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
     @start="startFolderDrag"
     @end="changeOrder"
   >
