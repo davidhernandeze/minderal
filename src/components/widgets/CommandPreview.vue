@@ -29,7 +29,7 @@ const updateDebounced = useDebounceFn(async (content) => {
 </script>
 
 <template>
-  <div class="flex items-center bg-gray-800 rounded p-1">
+  <div class="flex items-center bg-gray-800 rounded-sm p-1">
     <i class="fa-solid fa-terminal h-3 text-gray-400 mr-2" />
     <HighlightEditor
       v-model="richText"

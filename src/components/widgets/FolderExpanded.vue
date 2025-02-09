@@ -38,6 +38,7 @@ function startWidgetDrag (event) {
 <template>
   <VueDraggable
     v-model="folderDocuments"
+    v-show="folderDocuments.length > 0"
     :disabled="dragDisabled"
     item-key="_id"
     group="folder"

@@ -47,12 +47,12 @@ function openConnectionSetup (connection) {
         <li
           v-for="connection in connections"
           :key="connection.id"
-          class="p-2 cursor-pointer rounded bg-gray-600 my-2 border border-gray-600 hover:border-gray-500 relative"
+          class="p-2 cursor-pointer rounded-sm bg-gray-600 my-2 border border-gray-600 hover:border-gray-500 relative"
           @click="openNewTab(connection.id, connection.name)"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="fa-solid fa-circle h-3 text-green-400" />
+              <i class="fa-solid text-xs fa-circle h-3 text-green-400" />
               <i
                 v-if="connection.host"
                 class="fa-solid fa-cloud-arrow-up h-4 text-blue-300"
@@ -70,7 +70,7 @@ function openConnectionSetup (connection) {
           </div>
         </li>
         <li
-          class="border flex-center h-10 rounded border-dashed border-gray-400 cursor-pointer hover:text-green-300 hover:border-green-300"
+          class="border flex-center h-10 rounded-sm border-dashed border-gray-400 cursor-pointer hover:text-green-300 hover:border-green-300"
           @click="isConnectionSetupModalOpen = true"
         >
           <i class="fa-solid h-3 fa-add mr-2" />

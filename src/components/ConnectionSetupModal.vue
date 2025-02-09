@@ -143,14 +143,14 @@ watch(isOpen, (value) => {
         <div v-else>
           <GenericButton
             v-if="!isRemoteConnection"
-            class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-none mr-2"
+            class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-hidden mr-2"
             @click="deleteDatabase"
           >
             <i class="fa-solid fa-triangle-exclamation h-3 mr-2" />
             Delete Database
           </GenericButton>
           <GenericButton
-            class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-none"
+            class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-hidden"
             @click="removeConnection"
           >
             Disconnect

@@ -60,7 +60,7 @@ onMounted(async () => {
         @keyup.enter="send"
       >
       <button
-        class="bg-green-700 py-2 px-4 rounded ml-4"
+        class="bg-green-700 py-2 px-4 rounded-sm ml-4"
         @click="send"
       >
         Send

@@ -22,7 +22,7 @@ const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() 
     <input
       ref="searchInput"
       v-model="newItem"
-      class="border-none bg-transparent p-1 focus:outline-none outline-none rounded focus:ring-0"
+      class="border-none bg-transparent p-1 focus:outline-hidden outline-hidden rounded-sm focus:ring-0"
       type="text"
       placeholder="New item"
       @keyup.enter="addItem"
@@ -35,14 +35,14 @@ const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() 
     <li
       v-for="(item, index) in visibleItems"
       :key="item.id"
-      class="group flex justify-between items-center p-1 pr-2 rounded hover:bg-gray-600"
+      class="group flex justify-between items-center p-1 pr-2 rounded-sm hover:bg-gray-600"
     >
       <div class="flex-1 flex items-center">
         <div class="flex h-10 items-center">
           <input
             :checked="item.checked"
             type="checkbox"
-            class="h-8 w-8 rounded border-gray-300 text-green-400 focus:ring-indigo-600 cursor-pointer"
+            class="h-8 w-8 rounded-sm border-gray-300 text-green-400 focus:ring-indigo-600 cursor-pointer"
             @input.stop="check(index)"
           >
         </div>

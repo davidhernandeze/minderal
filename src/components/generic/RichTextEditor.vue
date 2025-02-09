@@ -38,7 +38,7 @@ onMounted(() => {
       // console.log('An API call triggered this change.')
     } else if (source === 'user') {
       // console.log('A user action triggered this change.')
-      emit('input', quill.getContents())
+      value.value = quill.getContents()
     }
   })
 })

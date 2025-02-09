@@ -1,23 +1,33 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import 'tailwindcss';
 
-@layer utilities {
-    .flex-center {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
+@plugin '@tailwindcss/forms';
+
+@theme {
+  --color-transparent: rgba(255, 255, 255, 0);
+
+  --text-xss: 0.6rem;
 }
 
-html {
-    font-size: 14px;
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+  *,
+  ::after,
+  ::before,
+  ::backdrop,
+  ::file-selector-button {
+    border-color: var(--color-gray-200, currentColor);
+  }
 }
 
-@layer utilities {
-    .flex-center {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-    }
+@utility flex-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }

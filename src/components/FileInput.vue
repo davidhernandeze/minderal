@@ -28,7 +28,7 @@ function onSelect (event) {
 <template>
   <div
     ref="dropZoneRef"
-    class="mt-8 w-full h-[12rem] flex-center rounded hover:outline-gray-100 outline-gray-500 outline-dashed cursor-pointer"
+    class="mt-8 w-full h-[12rem] flex-center rounded-sm hover:outline-gray-100 outline-gray-500 outline-dashed cursor-pointer"
     @click="$refs.fileInputRef.click()"
   >
     <p v-if="files.length === 0">

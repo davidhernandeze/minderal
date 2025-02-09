@@ -122,12 +122,12 @@ const renameModalOpen = ref(false)
 <template>
   <div
     :class="[ props.doc.widget === 'folder' ? 'h-18' : 'max-h-52']"
-    class="preview-bounds relative flex overflow-visible flex-col bg-gray-700 rounded shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
+    class="preview-bounds relative flex overflow-visible flex-col bg-gray-700 rounded-sm shadow-md border border-gray-600 hover:border-gray-500 hover:shadow-2xl"
   >
     <!--    <WidgetPreviewFloatingMenu />-->
     <div
       :class="[
-        widgetProps.standalonePreview ? 'shadow-none' : 'shadow',
+        widgetProps.standalonePreview ? 'shadow-none' : 'shadow-sm',
         props.doc.widget === 'folder' ? 'h-auto p-2 pb-0' : 'p-2'
       ]"
       class="flex justify-between"
@@ -145,7 +145,7 @@ const renameModalOpen = ref(false)
           v-model:el="renameInputEl"
           v-model:value="renameInput"
           v-on-click-outside="endNameEdition"
-          class="flex-1 ml-2 text-sm bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-none p-0"
+          class="flex-1 ml-2 text-sm bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-hidden p-0"
           @click.stop
           @focus="e => startNameEdition(e)"
           @keyup.enter="endNameEdition"
@@ -191,7 +191,7 @@ const renameModalOpen = ref(false)
             leave-to-class="transform opacity-0 scale-95"
           >
             <MenuItems
-              class="absolute -translate-x-32 z-10 w-36 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-none"
+              class="absolute -translate-x-32 z-10 w-36 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-hidden"
             >
               <div>
                 <MenuItem

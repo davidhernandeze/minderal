@@ -20,14 +20,14 @@ const { visibleItems } = useChecklist(toRef(() => props.doc))
       <li
         v-for="item in visibleItems"
         :key="item.id"
-        class="flex items-center rounded hover:bg-gray-600"
+        class="flex items-center rounded-sm hover:bg-gray-600"
       >
         <div class="flex items-center">
           <input
             :checked="item.checked"
             name="candidates"
             type="checkbox"
-            class="w-3 h-3 rounded border-gray-300 text-green-400 focus:ring-indigo-600 cursor-pointer"
+            class="w-3 h-3 rounded-sm border-gray-300 text-green-400 focus:ring-indigo-600 cursor-pointer"
           >
         </div>
         <div class="ml-2 truncate">

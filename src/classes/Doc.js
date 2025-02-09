@@ -2,7 +2,7 @@
 export class Doc {
   constructor (data) {
     this._id = data._id
-    this._rev = data._rev
+    if (data._rev) this._rev = data._rev
     this.parent_id = data.parent_id
     this.name = data.name
     this.content = data.content
