@@ -1,15 +1,15 @@
 import { ref, toValue, watch } from 'vue'
 
-export function useDoc(workspace, doc) {
-  const content = ref(doc.value.content)
+export function useDoc(workspace, docRef) {
+  const content = ref(docRef.value.content)
   const isEditing = ref(false)
 
-  watch(doc, (value) => {
+  watch(docRef, (value) => {
     content.value = toValue(value.content)
   })
 
   function get() {
-    return toValue(doc.value)
+    return toValue(docRef.value)
   }
 
   function getContent() {
@@ -17,8 +17,8 @@ export function useDoc(workspace, doc) {
   }
 
   async function updateContent() {
-    const { rev } = await workspace.updateDoc(doc.value, { content: toValue(content.value) })
-    doc.value._rev = rev
+    const { rev } = await workspace.updateDoc(docRef.value, { content: toValue(content.value) })
+    docRef.value._rev = rev
   }
 
   async function startEdition() {

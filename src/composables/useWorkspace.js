@@ -234,6 +234,18 @@ export function useWorkspace({ connectionId, docId = '' }) {
     await updateDoc(docWithOrderProp, { child_order: childOrder })
   }
 
+  async function fetchDocRevisions(docId) {
+    return await db.getDocRevisions(docId)
+  }
+
+  async function getDocOnRevision(docId, revision) {
+    return new Doc(await db.getDocOnRevision(docId, revision))
+  }
+
+  async function migrateDatabase() {
+    await db.migrate()
+  }
+
   return {
     id: connectionId,
     connectDB,
@@ -251,5 +263,8 @@ export function useWorkspace({ connectionId, docId = '' }) {
     close,
     fetchFileDocs,
     updateCurrentDocChildOrder,
+    fetchDocRevisions,
+    getDocOnRevision,
+    migrateDatabase
   }
 }

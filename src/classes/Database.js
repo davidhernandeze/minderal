@@ -4,7 +4,7 @@ import { EventEmitter } from 'events'
 import { Doc } from '@/classes/Doc.js'
 
 export default class Database extends EventEmitter {
-  constructor ({ name, auth, listen = false }) {
+  constructor({ name, auth, listen = false }) {
     super()
     this.name = name
     this.connection = new PouchDB({ name, auth, skipSetup: true })
@@ -18,11 +18,11 @@ export default class Database extends EventEmitter {
     this.monitorConnection()
   }
 
-  async getInfo () {
+  async getInfo() {
     return await this.connection.info()
   }
 
-  async getOrCreateDoc (id, doc = {}) {
+  async getOrCreateDoc(id, doc = {}) {
     try {
       return await this.connection.get(id)
     } catch (e) {
@@ -32,37 +32,38 @@ export default class Database extends EventEmitter {
     }
   }
 
-  async getDoc (id, includeAttachments = false) {
+  async getDoc(id, includeAttachments = false) {
     return await this.connection.get(id, { attachments: includeAttachments })
   }
 
-  async createDoc (doc) {
+  async createDoc(doc) {
     await this.startListening()
     doc.created_at = moment().toISOString()
     return await this.connection.post(JSON.parse(JSON.stringify(doc)))
   }
 
-  async updateDoc (doc) {
+  async updateDoc(doc) {
     await this.startListening()
     doc.updated_at = moment().toISOString()
     return await this.connection.put(JSON.parse(JSON.stringify(doc)), { attachments: false })
   }
 
-  async deleteDoc (doc) {
+  async deleteDoc(doc) {
     await this.startListening()
     doc.deleted_at = moment().toISOString()
     await this.connection.put(doc)
   }
 
-  async startListening () {
+  async startListening() {
     const wasOffline = this.offline
     this.changesListener?.cancel()
-    this.changesListener = this.connection.changes({
-      since: 'now',
-      live: true,
-      include_docs: true,
-      timeout: false
-    })
+    this.changesListener = this.connection
+      .changes({
+        since: 'now',
+        live: true,
+        include_docs: true,
+        timeout: false,
+      })
       .on('change', (change) => {
         this.emit('change', change)
       })
@@ -80,46 +81,86 @@ export default class Database extends EventEmitter {
     if (wasOffline) this.emit('reconnect')
   }
 
-  async monitorConnection () {
+  async monitorConnection() {
     this.connectionCheckInterval = setInterval(async () => {
       await this.startListening()
     }, 10000)
   }
 
-  async indexBy (field) {
+  async indexBy(field) {
     await this.connection.createIndex({
       index: { fields: [field] },
-      ddoc: `by_${field}`
+      ddoc: `by_${field}`,
     })
   }
 
-  async getDocsByParentId (parentId) {
+  async getDocsByParentId(parentId) {
     const { docs } = await this.connection.find({
       selector: {
         parent_id: parentId,
-        deleted_at: null
-      }
+        deleted_at: null,
+      },
     })
-    return docs.map(doc => new Doc(doc))
+    return docs.map((doc) => new Doc(doc))
   }
 
-  async getDocsByIds (ids, includeAttachments = false) {
+  async getDocsByIds(ids, includeAttachments = false) {
     const { rows } = await this.connection.allDocs({
       keys: ids,
       include_docs: true,
-      attachments: includeAttachments
+      attachments: includeAttachments,
     })
-    return rows.map(row => row.doc)
+    return rows.map((row) => row.doc)
   }
 
-  async closeConnection () {
+  async closeConnection() {
     clearInterval(this.connectionCheckInterval)
     await this.connection.close()
   }
 
-  setOffline () {
+  async getDocRevisions(docId) {
+    const response = await this.connection.get(docId, {
+      revs: true,
+    })
+    let initialPrefix = response._revisions.start
+    return response._revisions?.ids.map((id) => {
+      return `${initialPrefix--}-${id}`
+    })
+  }
+
+  async getDocOnRevision(docId, revision) {
+    return await this.connection.get(docId, {
+      rev: revision,
+    })
+  }
+
+  setOffline() {
     this.emit('offline')
     this.offline = true
     console.log('Offline by external source')
+  }
+
+  async migrate () {
+    // this.connection.allDocs({ include_docs: true }).then((result) => {
+    //   const migratedDocs = result.rows
+    //     .filter((row) => {
+    //       return !row.id.includes('_design')
+    //     })
+    //     .filter((row) => {
+    //       return row.doc.widget === 'text'
+    //     })
+    //     .map((row) => {
+    //       const quill = new Quill(document.createElement('div'))
+    //       quill.setContents(row.doc.content)
+    //       const docText = quill.getText()
+    //       console.log(docText)
+    //       row.doc.content = quill.getText()
+    //       return row.doc
+    //     })
+    //   console.log(migratedDocs)
+    //   this.connection.bulkDocs(migratedDocs).then(() => {
+    //     console.log('Database migration complete')
+    //   })
+    // })
   }
 }

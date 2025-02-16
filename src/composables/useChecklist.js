@@ -2,20 +2,20 @@ import { computed, ref } from 'vue'
 import { v4 as getId } from 'uuid'
 import { useDoc } from '@/composables/useDoc.js'
 
-export default (docRef, emits) => {
-  const newItem = ref('')
-  const doc = useDoc(docRef)
+export default (workspace, docRef, emits) => {
+  const newItemInput = ref('')
+  const doc = useDoc(workspace, docRef)
   const visibleItems = computed(() => doc.getContent())
 
   async function addItem () {
     const updatedList = doc.getContent()
     updatedList.push({
       id: getId(),
-      value: newItem.value,
+      value: newItemInput.value,
       checked: false
     })
     emits('update-value', { content: updatedList })
-    newItem.value = ''
+    newItemInput.value = ''
   }
 
   async function check (index) {
@@ -32,7 +32,7 @@ export default (docRef, emits) => {
 
   return {
     visibleItems,
-    newItem,
+    newItemInput,
     addItem,
     check,
     remove

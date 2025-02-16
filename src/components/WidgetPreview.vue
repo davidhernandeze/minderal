@@ -1,5 +1,5 @@
 <script setup>
-import { defineAsyncComponent, defineEmits, inject, ref, toValue, useTemplateRef, watch } from 'vue'
+import { defineAsyncComponent, defineEmits, inject, ref, useTemplateRef, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
@@ -10,6 +10,7 @@ import TextInput from '@/components/TextInput.vue'
 import Modal from '@/components/Modal.vue'
 import WidgetForm from '@/components/WidgetForm.vue'
 import InvisibleInput from '@/components/InvisibleInput.vue'
+import WidgetVersionsModal from '@/components/WidgetVersionsModal.vue'
 
 const props = defineProps({
   doc: {
@@ -24,6 +25,8 @@ const { copy } = useClipboard()
 
 const navigate = inject('navigate')
 const workspace = inject('workspace')
+
+const versionsModalOpen = ref(false)
 
 const renameModalOpen = ref(false)
 const renameInput = ref(props.doc.name)
@@ -108,6 +111,14 @@ const rowActions = ref([
     },
   },
   {
+    action: 'version_history',
+    label: 'Version history',
+    display: true,
+    onClick() {
+      versionsModalOpen.value = true
+    },
+  },
+  {
     action: 'delete',
     label: 'Delete',
     display: true,
@@ -165,7 +176,9 @@ function addActions(actions) {
         <Menu as="div" class="relative inline-block text-left">
           <div>
             <MenuButton class="flex items-start" @click.stop>
-              <div class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100">
+              <div
+                class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
+              >
                 <i class="fa-solid h-4 fa-ellipsis-vertical" />
               </div>
             </MenuButton>
@@ -219,6 +232,7 @@ function addActions(actions) {
         </form>
       </template>
     </Modal>
+    <WidgetVersionsModal :doc="doc" v-model:is-open="versionsModalOpen" />
     <Modal v-if="widgetProps.formComponent" v-model:is-open="widgetFormOpen">
       <template #body>
         <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />

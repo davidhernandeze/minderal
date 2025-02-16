@@ -2,6 +2,7 @@
 import { Doc } from '@/classes/Doc.js'
 import useChecklist from '@/composables/useChecklist.js'
 import { toRef } from '@vueuse/core'
+import { inject } from 'vue'
 
 const props = defineProps({
   doc: {
@@ -10,7 +11,9 @@ const props = defineProps({
   }
 })
 
-const { visibleItems } = useChecklist(toRef(() => props.doc))
+const doc = toRef(props, 'doc');
+const workspace = inject('workspace');
+const { visibleItems } = useChecklist(workspace, doc)
 
 </script>
 

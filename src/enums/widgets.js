@@ -38,6 +38,7 @@ export const widgets = {
       return JSON.stringify(doc.content)
     },
     previewComponent: 'UrlPreview',
+    expandedComponent: 'UrlPreview',
     formComponent: 'UrlForm',
     toClipboard: doc => doc.content.url
   },
@@ -46,6 +47,7 @@ export const widgets = {
     icon: 'fa-solid fa-toggle-on',
     defaultContent: false,
     previewComponent: 'Switch',
+    expandedComponent: 'Switch',
     standalonePreview: true
   },
   audio: {
@@ -100,6 +102,7 @@ export const widgets = {
     icon: 'fa-solid fa-square-terminal',
     indexContent: (doc) => doc.content,
     previewComponent: 'CommandPreview',
+    expandedComponent: 'CommandPreview',
     expandable: false,
     createWithContent: true
   }

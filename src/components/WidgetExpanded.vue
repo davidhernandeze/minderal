@@ -1,10 +1,11 @@
 <script setup>
 import { defineAsyncComponent, inject } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
+import { Doc } from '@/classes/Doc.js'
 
 const props = defineProps({
   doc: {
-    type: Object,
+    type: Doc,
     required: false
   }
 })

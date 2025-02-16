@@ -3,15 +3,18 @@ import GenericButton from '@/components/GenericButton.vue'
 import useChecklist from '@/composables/useChecklist.js'
 import { Doc } from '@/classes/Doc.js'
 import { toRef } from '@vueuse/core'
+import { inject } from 'vue'
 
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true
-  }
+    required: true,
+  },
 })
-const emits = defineEmits(['update'])
-const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() => props.doc), emits)
+const emits = defineEmits(['update-value'])
+const doc = toRef(props, 'doc')
+const workspace = inject('workspace')
+const { newItemInput, addItem, check, visibleItems, remove } = useChecklist(workspace, doc, emits)
 </script>
 
 <template>
@@ -20,16 +23,13 @@ const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() 
   </div>
   <div class="flex items-center justify-center">
     <input
-      ref="searchInput"
-      v-model="newItem"
+      v-model="newItemInput"
       class="border-none bg-transparent p-1 focus:outline-hidden outline-hidden rounded-sm focus:ring-0"
       type="text"
       placeholder="New item"
       @keyup.enter="addItem"
-    >
-    <GenericButton @click="addItem">
-      Add
-    </GenericButton>
+    />
+    <GenericButton @click="addItem"> Add </GenericButton>
   </div>
   <ol class="mt-4">
     <li
@@ -44,25 +44,18 @@ const { newItem, addItem, check, visibleItems, remove } = useChecklist(toRef(() 
             type="checkbox"
             class="h-8 w-8 rounded-sm border-gray-300 text-green-400 focus:ring-indigo-600 cursor-pointer"
             @input.stop="check(index)"
-          >
+          />
         </div>
-        <div
-          :class="{'line-through': item.checked}"
-          class="text-xl ml-4 break-words"
-        >
+        <div :class="{ 'line-through': item.checked }" class="text-xl ml-4 break-words">
           {{ item.value }}
         </div>
       </div>
-      <div
-        class="w-10 flex-center text-gray-400 hover:text-red-500 cursor-pointer"
-      >
+      <div class="w-10 flex-center text-gray-400 hover:text-red-500 cursor-pointer">
         <div
           class="hidden group-hover:flex-center text-gray-400 hover:text-red-500 cursor-pointer"
           @click.stop="remove(index)"
         >
-          <i
-            class="fa-solid h-4 fa-trash"
-          />
+          <i class="fa-solid h-4 fa-trash" />
         </div>
       </div>
     </li>

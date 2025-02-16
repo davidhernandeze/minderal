@@ -120,6 +120,7 @@ onBeforeUnmount(async () => {
     <div class="flex-1 overflow-y-auto">
       <WidgetExpanded v-if="connectionDone" :doc="currentDoc" />
     </div>
+    <button class="hidden" @click="workspace.migrateDatabase()">migrate</button>
     <div
       v-show="showMainInput"
       class="fixed right-0 bottom-0 px-0 p-3 pt-0 pb-0 w-full flex justify-center"
