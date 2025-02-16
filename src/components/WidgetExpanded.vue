@@ -10,6 +10,8 @@ const props = defineProps({
   }
 })
 
+console.log(props.doc)
+
 const workspace = inject('workspace')
 
 const widgetProps = getWidgetProps(props.doc?.widget || 'folder')

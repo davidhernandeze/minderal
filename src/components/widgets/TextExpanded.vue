@@ -3,7 +3,7 @@ import { inject } from 'vue'
 import { Doc } from '@/classes/Doc.js'
 import { useDoc } from '@/composables/useDoc.js'
 import { toRef } from '@vueuse/core'
-import InvisibleInput from '@/components/InvisibleInput.vue'
+import InvisibleTextInput from '@/components/generic/InvisibleTextInput.vue'
 
 const props = defineProps({
   doc: {
@@ -19,7 +19,7 @@ const { content, startEdition, exitEdition } = useDoc(workspace, doc)
 </script>
 
 <template>
-  <InvisibleInput
+  <InvisibleTextInput
     v-model="content"
     class="w-full h-full break-words pr-2"
     @focusout="exitEdition"
