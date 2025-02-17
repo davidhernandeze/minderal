@@ -5,11 +5,13 @@ export const widgets = {
     label: 'Text',
     icon: 'fa-solid fa-align-left',
     indexContent: (doc) => {
-      return doc.content?.ops?.reduce((acc, op) => {
-        return acc + op.insert
-      }, '') ?? ''
+      return (
+        doc.content?.ops?.reduce((acc, op) => {
+          return acc + op.insert
+        }, '') ?? ''
+      )
     },
-    toClipboard (doc) {
+    toClipboard(doc) {
       const quill = new Quill(document.createElement('div'))
       quill.setContents(doc.content)
       return quill.getText()
@@ -18,7 +20,7 @@ export const widgets = {
     expandedComponent: 'TextExpanded',
     expandable: false,
     showMainInput: false,
-    createWithContent: true
+    createWithContent: true,
   },
   folder: {
     label: 'Folder',
@@ -29,7 +31,7 @@ export const widgets = {
     previewComponent: 'FolderPreview',
     showMainInput: true,
     standalonePreview: true,
-    hideCopyButton: true
+    hideCopyButton: true,
   },
   url: {
     label: 'Url',
@@ -40,7 +42,7 @@ export const widgets = {
     previewComponent: 'UrlPreview',
     expandedComponent: 'UrlPreview',
     formComponent: 'UrlForm',
-    toClipboard: doc => doc.content.url
+    toClipboard: (doc) => doc.content.url,
   },
   switch: {
     label: 'Switch',
@@ -48,12 +50,11 @@ export const widgets = {
     defaultContent: false,
     previewComponent: 'Switch',
     expandedComponent: 'Switch',
-    standalonePreview: true
   },
   audio: {
     label: 'Audio',
     icon: 'fa-solid fa-microphone',
-    previewComponent: 'Text'
+    previewComponent: 'Text',
   },
   counter: {
     label: 'Counter',
@@ -61,12 +62,12 @@ export const widgets = {
     previewComponent: 'Counter',
     expandedComponent: 'Counter',
     expandable: false,
-    defaultContent: 0
+    defaultContent: 0,
   },
   countdown: {
     label: 'Countdown',
     icon: 'fa-solid fa-hourglass-half',
-    previewComponent: 'Text'
+    previewComponent: 'Text',
   },
   checklist: {
     label: 'Checklist',
@@ -74,7 +75,7 @@ export const widgets = {
     expandable: true,
     defaultContent: [],
     previewComponent: 'ChecklistPreview',
-    expandedComponent: 'ChecklistExpanded'
+    expandedComponent: 'ChecklistExpanded',
   },
   chat: {
     label: 'Chat',
@@ -83,14 +84,14 @@ export const widgets = {
     expandable: true,
     defaultContent: [],
     previewComponent: 'ChatPreview',
-    expandedComponent: 'ChatExpanded'
+    expandedComponent: 'ChatExpanded',
   },
   display: {
     label: 'Display',
     icon: 'fa-solid fa-presentation-screen',
     expandable: true,
     previewComponent: 'DisplayPreview',
-    expandedComponent: 'DisplayExpanded'
+    expandedComponent: 'DisplayExpanded',
   },
   image: {
     label: 'Image',
@@ -98,7 +99,7 @@ export const widgets = {
     expandable: true,
     formComponent: 'ImageForm',
     previewComponent: 'ImagePreview',
-    expandedComponent: 'ImageExpanded'
+    expandedComponent: 'ImageExpanded',
   },
   command: {
     label: 'Command',
@@ -107,8 +108,8 @@ export const widgets = {
     previewComponent: 'CommandPreview',
     expandedComponent: 'CommandPreview',
     expandable: false,
-    createWithContent: true
-  }
+    createWithContent: true,
+  },
 }
 
 export const getWidgetList = () => {
@@ -122,5 +123,5 @@ export const getWidgetProps = (name) => {
 }
 
 export const getWidgetKey = (widget) => {
-  return Object.keys(widgets).find(key => widgets[key] === widget)
+  return Object.keys(widgets).find((key) => widgets[key] === widget)
 }

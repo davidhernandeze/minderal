@@ -1,34 +1,30 @@
 <script setup>
-import SwitchInput from '@/components/SwitchInput.vue'
 import { Doc } from '@/classes/Doc.js'
-import { inject } from 'vue'
+import { inject, ref, watch } from 'vue'
+import { ToggleSwitch } from 'primevue'
 
 defineEmits(['update'])
-defineProps({
+const props = defineProps({
   doc: {
     type: Doc,
-    required: true
-  }
+    required: true,
+  },
 })
 
 const workspace = inject('workspace')
+const checked = ref(props.doc.content)
 
+watch(checked, async (value) => {
+  await workspace.updateDoc(props.doc, { content: value })
+})
 </script>
 
 <template>
-  <div class="flex justify-center h-full items-start box-border">
-    <div>
-      <div
-        class="flex justify-center h-7"
-        @click.stop="workspace.updateDoc(doc, { content: !doc.content })"
-      >
-        <SwitchInput
-          :model-value="doc.content"
-        />
-      </div>
-      <div class="text-sm mt-1">
-        {{ doc.name }}
-      </div>
-    </div>
+  <div class="flex justify-center h-full items-center scale-150">
+    <ToggleSwitch v-model="checked"/>
   </div>
 </template>
+
+<style scoped>
+
+</style>
