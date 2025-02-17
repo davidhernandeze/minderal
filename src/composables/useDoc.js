@@ -37,5 +37,6 @@ export function useDoc(workspace, docRef) {
     getContent,
     startEdition,
     exitEdition,
+    updateContent
   }
 }

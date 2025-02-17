@@ -2,6 +2,8 @@
 import { Doc } from '@/classes/Doc.js'
 import { inject, ref, watch } from 'vue'
 import { ToggleSwitch } from 'primevue'
+import { useDoc } from '@/composables/useDoc.js'
+import { toRef } from '@vueuse/core'
 
 defineEmits(['update'])
 const props = defineProps({
@@ -12,19 +14,17 @@ const props = defineProps({
 })
 
 const workspace = inject('workspace')
-const checked = ref(props.doc.content)
+const { content, updateContent } = useDoc(workspace, toRef(props, 'doc'))
 
-watch(checked, async (value) => {
-  await workspace.updateDoc(props.doc, { content: value })
-})
+async function switchValue() {
+  await updateContent()
+}
 </script>
 
 <template>
   <div class="flex justify-center h-full items-center scale-150">
-    <ToggleSwitch v-model="checked"/>
+    <ToggleSwitch v-model="content" @change="switchValue" />
   </div>
 </template>
 
-<style scoped>
-
-</style>
+<style scoped></style>
