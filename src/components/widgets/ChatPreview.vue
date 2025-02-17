@@ -11,9 +11,9 @@ defineProps({
 
 <template>
   <div class="flex justify-center h-full items-center box-border text-2xl">
-    <div>
+    <div class="cursor-pointer">
       <div class="flex justify-center">
-        <i class="fa-solid fa-messages h-10 hover:h-11" />
+        <i class="bi bi-chat" />
       </div>
       <div class="flex justify-center">
         {{ doc.name }}

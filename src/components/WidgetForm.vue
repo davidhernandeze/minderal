@@ -24,20 +24,18 @@ const Form = defineAsyncComponent(() => {
 const workspace = inject('workspace')
 
 async function saveDoc(form) {
-  const name = form.name
-  const content = form.content
-
   if (form._id) {
-    await workspace.updateDoc({ ...form })
+    await workspace.updateDoc(props.doc, { ...form })
     emit('save')
     return
   }
 
   await workspace.createDoc({
-    name,
-    content,
+    name : form.name,
+    content: form.content,
     widget: form.widget,
     files: form.files,
+    settings: form.settings,
   })
   emit('save')
 }
@@ -45,6 +43,6 @@ async function saveDoc(form) {
 <template>
   <div>
     <h1 class="mb-4 text-gray-200 text-xl">{{ action }} {{ widget.label }}</h1>
-    <Form :doc="doc" @save="saveDoc" />
+    <Form :doc="doc" @submit="saveDoc" />
   </div>
 </template>

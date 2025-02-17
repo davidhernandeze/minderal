@@ -57,7 +57,7 @@ const errorAreaId = getId()
         v-if="error"
         class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
       >
-        <i class="fa-solid fa-exclamation h-3" />
+        <i class="bi bi-exclamation" />
       </div>
     </div>
     <p

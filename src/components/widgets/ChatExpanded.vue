@@ -36,7 +36,7 @@ onMounted(async () => {
         >
           <div class="flex items-center">
             <div class="flex items-center text-gray-300">
-              <i class="fa-solid fa-ghost text-xs mr-1" />
+              <i class="bi bi-person-fill text-xs mr-1" />
               <span class="text-xs mr-1">{{ sent_by }}</span>
               <span
                 v-if="is_own"

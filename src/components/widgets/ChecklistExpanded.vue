@@ -55,7 +55,7 @@ const { newItemInput, addItem, check, visibleItems, remove } = useChecklist(work
           class="hidden group-hover:flex-center text-gray-400 hover:text-red-500 cursor-pointer"
           @click.stop="remove(index)"
         >
-          <i class="fa-solid h-4 fa-trash" />
+          <i class="bi bi-trash" />
         </div>
       </div>
     </li>

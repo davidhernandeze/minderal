@@ -154,6 +154,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
       route.push({
         id: parentId,
         name: parentDoc.name,
+        widget: parentDoc.widget
       })
       parentId = parentDoc.parent_id
     }
@@ -194,7 +195,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
       parent_id: currentDocId.value ?? '',
       files: filesIds,
     })
-    await db.createDoc(newDoc)
+    console.log(await db.createDoc(newDoc))
     isLoading.value = false
   }
 

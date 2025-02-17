@@ -18,10 +18,10 @@ const { value, increment, decrement } = useCounter(workspace, toRef(props, 'doc'
 
 <template>
   <div class="h-full flex flex-col">
-    <p class="flex-1 text-[500%] text-center">{{ value }}</p>
+    <p class="flex-1 text-[400%] text-center">{{ value }}</p>
     <div class="h-8 flex gap-4 justify-center">
-      <Button @click="decrement" icon="fa-solid fa-minus" severity="secondary" />
-      <Button @click="increment" icon="fa-solid fa-plus" severity="secondary" />
+      <Button @click="decrement" icon="bi bi-dash" severity="secondary" />
+      <Button @click="increment" icon="bi bi-plus" severity="secondary" />
     </div>
   </div>
 </template>

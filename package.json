@@ -19,6 +19,7 @@
     "@vite-pwa/assets-generator": "^0.2.4",
     "@vueuse/components": "^12.5.0",
     "@vueuse/core": "^12.5.0",
+    "bootstrap-icons": "^1.11.3",
     "events": "^3.3.0",
     "highlight.js": "^11.10.0",
     "pinia": "^2.3.1",

@@ -59,7 +59,7 @@ const filteredWidgets = computed(() => {
           >
             <i
               :class="widget.icon"
-              class="h-3 mr-2"
+              class="mr-2"
             />
             {{ widget.label }}
           </button>

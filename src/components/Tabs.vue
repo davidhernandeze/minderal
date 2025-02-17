@@ -26,7 +26,7 @@ const { isSidebarVisible } = sidebarStore
         @click.stop="metadataStore.closeTab(index)"
       >
         <i
-          class="fa-solid fa-times h-[0.8rem]"
+          class="bi bi-x"
         />
       </div>
     </div>
@@ -35,7 +35,7 @@ const { isSidebarVisible } = sidebarStore
       class="p-2 rounded-t w-8 flex-center cursor-pointer mr-0.5"
       @click="sidebarStore.showSidebar()"
     >
-      <i class="fa-light h-3 fa-add" />
+      <i class="bi bi-plus" />
     </div>
   </div>
 </template>

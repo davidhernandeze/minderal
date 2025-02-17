@@ -25,10 +25,10 @@ function close () {
     :style="{'background-color': doc.settings?.bg_color, 'color': doc.settings?.text_color}"
   >
     <button
-      class="absolute right-0 m-4"
+      class="absolute right-0 m-4 text-2xl cursor-pointer bg-white rounded-full w-10 h-10"
       @click="close"
     >
-      <i class="fa-light fa-times opacity-30" />
+      <i class="text-black bi bi-x" />
     </button>
     <div class="text-2xl p-8">
       {{ doc.content }}

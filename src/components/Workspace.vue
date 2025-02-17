@@ -123,7 +123,7 @@ onBeforeUnmount(async () => {
       <input
         ref="searchInput"
         v-model="searchQuery"
-        class="border-none bg-transparent p-1 pl-0 focus:outline-hidden outline-hidden w-full rounded-sm focus:ring-0 text-lg my-4"
+        class="border-none bg-transparent p-1 pl-0 focus:outline-hidden outline-hidden w-full rounded-sm focus:ring-0 text-2xl mb-2"
         type="text"
         placeholder="Search..."
       />

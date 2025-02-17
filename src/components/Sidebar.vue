@@ -33,15 +33,15 @@ function openConnectionSetup (connection) {
       class="absolute right-0 top-0 p-2 cursor-pointer text-gray-400 hover:text-gray-50"
       @click="sidebarStore.hideSidebar()"
     >
-      <i class="fa-light fa-times" />
+      <i class="bi bi-x text-lg" />
     </div>
     <div class="p-2 text-xs">
       minderal 2.0
     </div>
     <div class="p-2">
-      <div class="text-xss uppercase flex items-center mb-2">
-        <i class="fa-light fa-database mr-1" />
-        DATABASES
+      <div class="text-xs uppercase flex items-center mb-2">
+        <i class="bi bi-database mr-1" />
+        <span class="font-bold">DATABASES</span>
       </div>
       <ul class="my-1">
         <li
@@ -52,10 +52,10 @@ function openConnectionSetup (connection) {
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="fa-solid text-xs fa-circle h-3 text-green-400" />
+              <i class="bi bi-circle-fill text-xs text-green-400" />
               <i
                 v-if="connection.host"
-                class="fa-solid fa-cloud-arrow-up h-4 text-blue-300"
+                class="bi bi-cloud-check-fill text-blue-300"
               />
               <div class="text-sm">
                 {{ connection.name }}
@@ -65,7 +65,7 @@ function openConnectionSetup (connection) {
               class="rounded-full w-6 text-gray-400 hover:text-gray-50 flex-center"
               @click.stop="openConnectionSetup(connection)"
             >
-              <i class="fa-light h-4 fa-gear" />
+              <i class="bi bi-gear" />
             </div>
           </div>
         </li>
@@ -73,7 +73,7 @@ function openConnectionSetup (connection) {
           class="border flex-center h-10 rounded-sm border-dashed border-gray-400 cursor-pointer hover:text-green-300 hover:border-green-300"
           @click="isConnectionSetupModalOpen = true"
         >
-          <i class="fa-solid h-3 fa-add mr-2" />
+          <i class="bi bi-plus text-xl mr-2" />
           <span class="uppercase text-xss">New Database</span>
         </li>
       </ul>

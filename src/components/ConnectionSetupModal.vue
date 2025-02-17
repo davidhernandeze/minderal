@@ -146,7 +146,7 @@ watch(isOpen, (value) => {
             class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-hidden mr-2"
             @click="deleteDatabase"
           >
-            <i class="fa-solid fa-triangle-exclamation h-3 mr-2" />
+            <i class="bi-exclamation-triangle-fill mr-2" />
             Delete Database
           </GenericButton>
           <GenericButton

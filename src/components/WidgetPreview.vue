@@ -147,7 +147,7 @@ function addActions(actions) {
     >
       <div v-if="widgetProps.standalonePreview" />
       <div v-else class="flex-1 flex justify-start items-center text-gray-400 truncate">
-        <i :class="icon" class="h-3" />
+        <i class="text-xl" :class="icon" />
         <InvisibleInput
           v-model:el="renameInputEl"
           v-model:value="renameInput"
@@ -164,14 +164,14 @@ function addActions(actions) {
           class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
           @click="copyToClipboard"
         >
-          <i class="fa-solid fa-copy h-4" />
+          <i class="bi bi-copy" />
         </button>
         <div
           class="drag-zone rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
           @pointerdown="$emit('enable-drag')"
           @pointerup="$emit('disable-drag')"
         >
-          <i class="fa-solid fa-grip-dots h-4" />
+          <i class="bi bi-grip-horizontal" />
         </div>
         <Menu as="div" class="relative inline-block text-left">
           <div>
@@ -179,7 +179,7 @@ function addActions(actions) {
               <div
                 class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
               >
-                <i class="fa-solid h-4 fa-ellipsis-vertical" />
+                <i class="bi bi-three-dots-vertical" />
               </div>
             </MenuButton>
           </div>
@@ -218,7 +218,7 @@ function addActions(actions) {
         </Menu>
       </div>
     </div>
-    <div class="flex-1 overflow-hidden p-2 h-full" @click="clickAction">
+    <div class="flex-1 overflow-hidden p-2 h-full" :class="{'pt-0': widgetProps.standalonePreview}" @click="clickAction">
       <Widget :doc="doc" @add-actions="addActions" />
     </div>
     <Modal v-model:is-open="renameModalOpen">

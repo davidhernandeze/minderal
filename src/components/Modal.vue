@@ -54,7 +54,7 @@ defineProps({
                 @click="$emit('update:isOpen', false)"
               >
                 <span class="text-xs mr-1">ESC</span>
-                <i class="fa-solid fa-times h-3 mr-2" />
+                <i class="bi bi-x mr-2" />
               </div>
               <slot name="body" />
             </div>

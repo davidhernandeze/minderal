@@ -1,7 +1,7 @@
 export const widgets = {
   text: {
     label: 'Text',
-    icon: 'fa-solid fa-align-left',
+    icon: 'bi bi-text-paragraph',
     indexContent: (doc) => doc.content,
     previewComponent: 'Text',
     expandedComponent: 'TextExpanded',
@@ -11,7 +11,7 @@ export const widgets = {
   },
   folder: {
     label: 'Folder',
-    icon: 'fa-solid fa-folder',
+    icon: 'bi bi-folder',
     expandable: true,
     baseDir: 'Folder',
     expandedComponent: 'FolderExpanded',
@@ -22,7 +22,7 @@ export const widgets = {
   },
   url: {
     label: 'Url',
-    icon: 'fa-solid fa-link',
+    icon: 'bi bi-link',
     indexContent: (doc) => {
       return JSON.stringify(doc.content)
     },
@@ -33,19 +33,19 @@ export const widgets = {
   },
   switch: {
     label: 'Switch',
-    icon: 'fa-solid fa-toggle-on',
+    icon: 'bi bi-toggle-on',
     defaultContent: false,
     previewComponent: 'Switch',
     expandedComponent: 'Switch',
   },
   audio: {
     label: 'Audio',
-    icon: 'fa-solid fa-microphone',
+    icon: 'bi bi-mic',
     previewComponent: 'Text',
   },
   counter: {
     label: 'Counter',
-    icon: 'fa-solid fa-plus-minus',
+    icon: 'bi bi-plus-slash-minus',
     previewComponent: 'Counter',
     expandedComponent: 'Counter',
     expandable: false,
@@ -53,12 +53,12 @@ export const widgets = {
   },
   countdown: {
     label: 'Countdown',
-    icon: 'fa-solid fa-hourglass-half',
+    icon: 'bi bi-hourglass',
     previewComponent: 'Text',
   },
   checklist: {
     label: 'Checklist',
-    icon: 'fa-solid fa-list-check',
+    icon: 'bi bi-list-check',
     expandable: true,
     defaultContent: [],
     previewComponent: 'ChecklistPreview',
@@ -66,7 +66,7 @@ export const widgets = {
   },
   chat: {
     label: 'Chat',
-    icon: 'fa-solid fa-messages',
+    icon: 'bi bi-chat',
     standalonePreview: true,
     expandable: true,
     defaultContent: [],
@@ -75,14 +75,15 @@ export const widgets = {
   },
   display: {
     label: 'Display',
-    icon: 'fa-solid fa-presentation-screen',
+    icon: 'bi bi-display',
     expandable: true,
+    formComponent: 'DisplayForm',
     previewComponent: 'DisplayPreview',
     expandedComponent: 'DisplayExpanded',
   },
   image: {
     label: 'Image',
-    icon: 'fa-solid fa-image',
+    icon: 'bi bi-card-image',
     expandable: true,
     formComponent: 'ImageForm',
     previewComponent: 'ImagePreview',
@@ -90,7 +91,7 @@ export const widgets = {
   },
   command: {
     label: 'Command',
-    icon: 'fa-solid fa-square-terminal',
+    icon: 'bi bi-terminal',
     indexContent: (doc) => doc.content,
     previewComponent: 'CommandPreview',
     expandedComponent: 'CommandPreview',

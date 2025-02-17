@@ -19,10 +19,10 @@ const { content, startEdition, exitEdition } = useDoc(workspace, doc)
 
 <template>
   <div class="relative bg-gray-800 text-green-200 h-full p-2">
-    <i class="absolute fa-solid fa-terminal h-3 text-gray-400 m-1 mr-2" />
+    <span class="absolute text-gray-400 mr-1 font-bold">></span>
     <InvisibleTextInput
       v-model="content"
-      class="w-full h-full break-words px-8"
+      class="w-full h-full break-words px-4"
       @focusout="exitEdition"
       @focusin="startEdition"
     />

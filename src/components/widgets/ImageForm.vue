@@ -4,7 +4,7 @@ import TextInput from '@/components/TextInput.vue'
 import GenericButton from '@/components/GenericButton.vue'
 import FileInput from '@/components/FileInput.vue'
 
-const emits = defineEmits(['save'])
+const emits = defineEmits(['submit'])
 
 const form = ref({
   name: '',
@@ -14,7 +14,7 @@ const form = ref({
 })
 
 function submit () {
-  emits('save', form.value)
+  emits('submit', form.value)
 }
 
 </script>
