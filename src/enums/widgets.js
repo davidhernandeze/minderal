@@ -58,7 +58,10 @@ export const widgets = {
   counter: {
     label: 'Counter',
     icon: 'fa-solid fa-plus-minus',
-    previewComponent: 'Text'
+    previewComponent: 'Counter',
+    expandedComponent: 'Counter',
+    expandable: false,
+    defaultContent: 0
   },
   countdown: {
     label: 'Countdown',

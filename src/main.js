@@ -9,17 +9,20 @@ import { createPinia } from 'pinia'
 import find from 'pouchdb-find'
 import PouchDB from 'pouchdb-browser'
 import * as Sentry from '@sentry/vue'
+import PrimeVue from 'primevue/config'
+import Aura from '@primevue/themes/aura'
 
 PouchDB.plugin(find)
 
 const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
+app.use(PrimeVue, { theme: { preset: Aura } })
 
 if (process.env.NODE_ENV !== 'development') {
   Sentry.init({
     app,
-    dsn: 'https://08d470a3d023b85f1945caa859f33907@o4506906515406848.ingest.us.sentry.io/4506906544242688'
+    dsn: 'https://08d470a3d023b85f1945caa859f33907@o4506906515406848.ingest.us.sentry.io/4506906544242688',
   })
 }
 
