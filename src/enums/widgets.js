@@ -1,21 +1,8 @@
-import Quill from 'quill'
-
 export const widgets = {
   text: {
     label: 'Text',
     icon: 'fa-solid fa-align-left',
-    indexContent: (doc) => {
-      return (
-        doc.content?.ops?.reduce((acc, op) => {
-          return acc + op.insert
-        }, '') ?? ''
-      )
-    },
-    toClipboard(doc) {
-      const quill = new Quill(document.createElement('div'))
-      quill.setContents(doc.content)
-      return quill.getText()
-    },
+    indexContent: (doc) => doc.content,
     previewComponent: 'Text',
     expandedComponent: 'TextExpanded',
     expandable: false,
