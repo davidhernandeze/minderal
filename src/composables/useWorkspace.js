@@ -29,6 +29,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
   const rootDoc = ref(null)
   const currentRoute = ref([])
   const connectionDone = ref(false)
+  const isLoading = ref(false)
 
   async function connectDB() {
     const info = await metadataStore.getConnectionInfo(connectionId)
@@ -85,9 +86,11 @@ export function useWorkspace({ connectionId, docId = '' }) {
   }
 
   async function fetch() {
+    isLoading.value = true
     await fetchCurrentDoc()
     await fetchChildDocs()
     connectionDone.value = true
+    isLoading.value = false
   }
 
   async function fetchCurrentDoc() {
@@ -164,6 +167,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
     settings = {},
     files = [],
   }) {
+    isLoading.value = true
     const widgetInfo = widgets[widget]
     const filesIds = []
 
@@ -191,15 +195,21 @@ export function useWorkspace({ connectionId, docId = '' }) {
       files: filesIds,
     })
     await db.createDoc(newDoc)
+    isLoading.value = false
   }
 
-  async function updateDoc (doc, updatedFields) {
+  async function updateDoc(doc, updatedFields) {
+    isLoading.value = true
     const updatedDoc = new Doc({ ...doc, ...updatedFields })
-    return await db.updateDoc({ ...updatedDoc })
+    const response = await db.updateDoc({ ...updatedDoc })
+    isLoading.value = false
+    return response
   }
 
   async function deleteDoc(doc) {
+    isLoading.value = true
     await db.deleteDoc(doc)
+    isLoading.value = false
   }
 
   async function deleteDocRecursively(doc) {
@@ -211,8 +221,10 @@ export function useWorkspace({ connectionId, docId = '' }) {
   }
 
   async function renameDoc(doc, name) {
+    isLoading.value = true
     doc.name = name
     await db.updateDoc(doc)
+    isLoading.value = false
   }
 
   async function setCurrentDoc(docId) {
@@ -265,6 +277,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
     updateCurrentDocChildOrder,
     fetchDocRevisions,
     getDocOnRevision,
-    migrateDatabase
+    migrateDatabase,
+    isLoading,
   }
 }

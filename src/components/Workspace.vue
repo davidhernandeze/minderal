@@ -10,6 +10,7 @@ import { useWorkspace } from '@/composables/useWorkspace.js'
 import sidebarStore from '@/stores/sidebar.js'
 import Modal from '@/components/Modal.vue'
 import WidgetForm from '@/components/WidgetForm.vue'
+import ProgressSpinner from 'primevue/progressspinner'
 
 const props = defineProps({
   connectionId: {
@@ -25,7 +26,7 @@ const props = defineProps({
 const emits = defineEmits(['navigate', 'change-tab-label'])
 
 const workspace = useWorkspace({ connectionId: props.connectionId, docId: props.docId })
-const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute } = workspace
+const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading } = workspace
 
 onBeforeMount(async () => {
   await connectDB()
@@ -104,7 +105,17 @@ onBeforeUnmount(async () => {
 </script>
 
 <template>
-  <div class="h-full flex flex-col bg-gray-700 p-6 pr-0 pb-[5rem] overflow-visible">
+  <div class="relative h-full flex flex-col bg-gray-700 p-6 pr-0 pb-[5rem] overflow-visible">
+    <div class="absolute right-[1rem] top-[1rem] z-99">
+      <ProgressSpinner
+        v-show="isLoading"
+        style="width: 30px; height: 30px"
+        strokeWidth="8"
+        fill="transparent"
+        animationDuration="0.6s"
+        aria-label="Custom ProgressSpinner"
+      />
+    </div>
     <div class="grow-0 bg-gray-700 z-10 mb-2">
       <div class="flex items-center">
         <DocRoute :route="currentRoute" @navigate="(docId) => $emit('navigate', docId)" />
