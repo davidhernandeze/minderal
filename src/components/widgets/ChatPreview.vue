@@ -10,7 +10,7 @@ defineProps({
 </script>
 
 <template>
-  <div class="flex justify-center h-full items-center box-border">
+  <div class="flex justify-center h-full items-center box-border text-2xl">
     <div>
       <div class="flex justify-center">
         <i class="fa-solid fa-messages h-10 hover:h-11" />

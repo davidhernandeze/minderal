@@ -1,40 +1,30 @@
 <script setup>
+import { inject } from 'vue'
 import { Doc } from '@/classes/Doc.js'
-import { inject, ref, watch } from 'vue'
-import { useDebounceFn } from '@vueuse/core'
-import HighlightEditor from '@/components/HighlightEditor.vue'
+import { useDoc } from '@/composables/useDoc.js'
+import InvisibleTextInput from '@/components/generic/InvisibleTextInput.vue'
+import { toRef } from '@vueuse/core'
 
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true
-  }
+    required: true,
+  },
 })
 
-const workspace = inject('workspace')
-let revision = ''
-
-watch(() => props.doc.content, () => {
-  if (props.doc._rev === revision) return
-  richText.value = props.doc.content
-})
-
-const richText = ref(props.doc.content)
-
-const updateDebounced = useDebounceFn(async (content) => {
-  const { rev } = await workspace.updateDoc(props.doc, { content })
-  revision = rev
-}, 1000)
-
+const workspace = inject('workspace');
+const doc = toRef(props, 'doc');
+const { content, startEdition, exitEdition } = useDoc(workspace, doc)
 </script>
 
 <template>
-  <div class="flex items-center bg-gray-800 rounded-sm p-1">
-    <i class="fa-solid fa-terminal h-3 text-gray-400 mr-2" />
-    <HighlightEditor
-      v-model="richText"
-      class="w-full break-words"
-      @input="updateDebounced"
+  <div class="relative bg-gray-800 text-green-200 h-full p-2">
+    <i class="absolute fa-solid fa-terminal h-3 text-gray-400 m-1 mr-2" />
+    <InvisibleTextInput
+      v-model="content"
+      class="w-full h-full break-words px-8"
+      @focusout="exitEdition"
+      @focusin="startEdition"
     />
   </div>
 </template>
