@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, provide, ref, watch } from 'vue'
 import DocRoute from '@/components/DocRoute.vue'
-import { useMagicKeys } from '@vueuse/core'
+import { toRef, useMagicKeys } from '@vueuse/core'
 import { getWidgetList, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
@@ -25,7 +25,8 @@ const props = defineProps({
 
 const emits = defineEmits(['navigate', 'change-tab-label'])
 
-const workspace = useWorkspace({ connectionId: props.connectionId, docId: props.docId })
+const docId = toRef(props, 'docId')
+const workspace = useWorkspace({ connectionId: props.connectionId, docIdRef: docId})
 const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading } = workspace
 
 onBeforeMount(async () => {
