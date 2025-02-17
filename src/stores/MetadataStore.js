@@ -39,10 +39,12 @@ export const useMetadataStore = defineStore('metadata', () => {
     await newDatabase.indexBy('parent_id')
     await newDatabase.indexBy('deleted_at')
 
-    connections.value.push({ id: getId(), name, host, connectionOptions: optionsToStore, username: username || 'local' })
+    const connection = { id: getId(), name, host, connectionOptions: optionsToStore, username: username || 'local' }
+    connections.value.push(connection)
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.connections = connections.value
     await metaDatabase.updateDoc(metaDocument)
+    await openNewTab(connection.id, connection.name)
   }
 
   async function removeConnection (connectionId) {

@@ -142,7 +142,7 @@ onBeforeUnmount(async () => {
         >
           <div class="w-full sm:w-auto py-2">
             <button
-              class="px-4 py-2 rounded-sm mr-2 hover:bg-gray-600"
+              class="px-4 py-2 rounded-sm mr-2 hover:bg-gray-600 cursor-pointer"
               @click="isTypesModalOpen = true"
             >
               <span v-if="iconRerender">
@@ -161,7 +161,7 @@ onBeforeUnmount(async () => {
             />
           </div>
           <div class="flex-center p-2">
-            <GenericButton class="bg-indigo-600 hover:bg-indigo-500" @click="createDoc">
+            <GenericButton class="bg-indigo-600 hover:bg-indigo-500 cursor-pointer" @click="createDoc">
               Create
             </GenericButton>
           </div>

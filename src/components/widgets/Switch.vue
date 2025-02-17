@@ -1,6 +1,6 @@
 <script setup>
 import { Doc } from '@/classes/Doc.js'
-import { inject, ref, watch } from 'vue'
+import { inject } from 'vue'
 import { ToggleSwitch } from 'primevue'
 import { useDoc } from '@/composables/useDoc.js'
 import { toRef } from '@vueuse/core'
