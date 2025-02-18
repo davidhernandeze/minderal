@@ -18,7 +18,10 @@ const { isSidebarVisible } = sidebarStore
       @click="metadataStore.openTab(index)"
     >
       <div>
-        <p class="truncate text-sm">{{ tab.label || 'home' }}</p>
+        <div class="flex items-center">
+          <i class="mr-2" :class="tab.icon" />
+          <p class="truncate text-sm">{{ tab.label || 'home' }}</p>
+        </div>
         <p class="truncate text-xss font-light tracking-wider">@{{ tab.name }}</p>
       </div>
       <div

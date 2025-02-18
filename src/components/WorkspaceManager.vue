@@ -6,6 +6,10 @@ import { storeToRefs } from 'pinia'
 const metadataStore = useMetadataStore()
 const { tabs } = storeToRefs(metadataStore)
 
+function updateLabel(tab, newLabel) {
+  tab.label = newLabel.label
+  tab.icon = newLabel.icon
+}
 </script>
 
 <template>
@@ -16,7 +20,7 @@ const { tabs } = storeToRefs(metadataStore)
       :key="tab.id"
       :connection-id="tab.connectionId"
       :doc-id="tab.docId"
-      @change-tab-label="(label) => tab.label = label"
+      @change-tab-label="(newLabel) => updateLabel(tab, newLabel)"
       @navigate="(docId) => metadataStore.updateTabDoc(index, docId)"
     />
   </div>

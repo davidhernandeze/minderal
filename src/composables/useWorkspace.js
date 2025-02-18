@@ -7,7 +7,7 @@ import { widgets } from '@/enums/widgets.js'
 import DebugStore from '@/stores/DebugStore.js'
 import { useNetwork } from '@vueuse/core'
 
-export function useWorkspace({ connectionId, docIdRef }) {
+export function useWorkspace({ connectionId, docId = '' }) {
   const databasePoolStore = useDatabasePoolStore()
   const metadataStore = useMetadataStore()
   const { lastReconnect, reconnects, offline } = DebugStore
@@ -25,6 +25,7 @@ export function useWorkspace({ connectionId, docIdRef }) {
   const childDocs = ref([])
   const username = ref('')
   const currentDoc = ref(null)
+  const currentDocId = ref(docId)
   const rootDoc = ref(null)
   const currentRoute = ref([])
   const connectionDone = ref(false)
@@ -49,17 +50,16 @@ export function useWorkspace({ connectionId, docIdRef }) {
 
   async function onDatabaseChange(change) {
     // To-do cases: delete/modify the current doc, delete/modify a doc in the route
-    if (change.id === docIdRef.value) {
-      console.log('es')
+    if (change.id === currentDocId.value) {
       await fetchCurrentDoc()
       await fetchChildDocs()
       return
     }
     const docIndex = childDocs.value.findIndex((doc) => change.id === doc._id)
     const exists = docIndex !== -1
-    let isChild = (change.doc?.parent_id || '') === docIdRef.value
+    let isChild = (change.doc?.parent_id || '') === currentDocId.value
     if (change.doc?.deleted_at) {
-      isChild = (childDocs.value?.[docIndex]?.parent_id || '') === docIdRef.value
+      isChild = (childDocs.value?.[docIndex]?.parent_id || '') === currentDocId.value
     }
     if (!isChild) return
 
@@ -94,20 +94,20 @@ export function useWorkspace({ connectionId, docIdRef }) {
   }
 
   async function fetchCurrentDoc() {
-    if (docIdRef.value === '') {
+    if (currentDocId.value === '') {
       currentDoc.value = null
       rootDoc.value = await db.getOrCreateDoc('root', { parent_id: 'root' })
       await fetchCurrentDocRoute()
       return
     }
-    const doc = await db.getDoc(docIdRef.value)
+    const doc = await db.getDoc(currentDocId.value)
     currentDoc.value = new Doc(doc)
     rootDoc.value = null
     await fetchCurrentDocRoute()
   }
 
   async function fetchChildDocs() {
-    childDocs.value = await db.getDocsByParentId(docIdRef.value)
+    childDocs.value = await db.getDocsByParentId(currentDocId.value)
     await sortChildDocs()
   }
 
@@ -147,7 +147,7 @@ export function useWorkspace({ connectionId, docIdRef }) {
   }
 
   async function fetchCurrentDocRoute() {
-    let parentId = docIdRef.value
+    let parentId = currentDocId.value
     const route = []
     while (parentId) {
       const parentDoc = await db.getDoc(parentId)
@@ -192,7 +192,7 @@ export function useWorkspace({ connectionId, docIdRef }) {
       name,
       widget,
       settings,
-      parent_id: docIdRef.value ?? '',
+      parent_id: currentDocId.value ?? '',
       files: filesIds,
     })
     console.log(await db.createDoc(newDoc))
@@ -230,7 +230,7 @@ export function useWorkspace({ connectionId, docIdRef }) {
 
   async function setCurrentDoc(docId) {
     connectionDone.value = false
-    docIdRef.value = docId
+    currentDocId.value = docId
     await fetch()
   }
 

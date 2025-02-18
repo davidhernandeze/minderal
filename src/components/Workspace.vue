@@ -2,7 +2,7 @@
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, provide, ref, watch } from 'vue'
 import DocRoute from '@/components/DocRoute.vue'
 import { toRef, useMagicKeys } from '@vueuse/core'
-import { getWidgetList, widgets } from '@/enums/widgets.js'
+import { getWidgetList, getWidgetProps, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import GenericButton from '@/components/GenericButton.vue'
@@ -25,8 +25,7 @@ const props = defineProps({
 
 const emits = defineEmits(['navigate', 'change-tab-label'])
 
-const docId = toRef(props, 'docId')
-const workspace = useWorkspace({ connectionId: props.connectionId, docIdRef: docId})
+const workspace = useWorkspace({ connectionId: props.connectionId, docId: props.docId })
 const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading } = workspace
 
 onBeforeMount(async () => {
@@ -37,7 +36,8 @@ watch(
   () => props.docId,
   async (value) => {
     await setCurrentDoc(value)
-    emits('change-tab-label', currentDoc.value?.name)
+    const icon = getWidgetProps(currentDoc.value?.widget || 'folder')?.icon
+    emits('change-tab-label', { label: currentDoc.value?.name, icon })
   },
 )
 
@@ -162,7 +162,10 @@ onBeforeUnmount(async () => {
             />
           </div>
           <div class="flex-center p-2">
-            <GenericButton class="bg-indigo-600 hover:bg-indigo-500 cursor-pointer" @click="createDoc">
+            <GenericButton
+              class="bg-indigo-600 hover:bg-indigo-500 cursor-pointer"
+              @click="createDoc"
+            >
               Create
             </GenericButton>
           </div>
