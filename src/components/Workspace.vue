@@ -1,7 +1,7 @@
 <script setup>
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, provide, ref, watch } from 'vue'
 import DocRoute from '@/components/DocRoute.vue'
-import { toRef, useMagicKeys } from '@vueuse/core'
+import { useMagicKeys } from '@vueuse/core'
 import { getWidgetList, getWidgetProps, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'

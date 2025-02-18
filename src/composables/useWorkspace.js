@@ -195,7 +195,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
       parent_id: currentDocId.value ?? '',
       files: filesIds,
     })
-    console.log(await db.createDoc(newDoc))
+    await db.createDoc(newDoc)
     isLoading.value = false
   }
 
@@ -260,6 +260,16 @@ export function useWorkspace({ connectionId, docId = '' }) {
     await db.migrate()
   }
 
+  async function fetchDocsByParentId (parentId, widget = null) {
+    return await db.getDocsByParentId(parentId, widget)
+  }
+
+  async function moveDoc(doc, newParentId) {
+    const updatedDoc = new Doc({ ...doc, parent_id: newParentId })
+    await db.updateDoc(updatedDoc)
+    await fetchChildDocs()
+  }
+
   return {
     id: connectionId,
     connectDB,
@@ -281,5 +291,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
     getDocOnRevision,
     migrateDatabase,
     isLoading,
+    fetchDocsByParentId,
+    moveDoc
   }
 }

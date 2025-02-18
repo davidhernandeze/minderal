@@ -38,6 +38,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     const newDatabase = new Database(options)
     await newDatabase.indexBy('parent_id')
     await newDatabase.indexBy('deleted_at')
+    await newDatabase.indexBy('widget')
 
     const connection = { id: getId(), name, host, connectionOptions: optionsToStore, username: username || 'local' }
     connections.value.push(connection)

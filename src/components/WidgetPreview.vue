@@ -11,6 +11,7 @@ import Modal from '@/components/Modal.vue'
 import WidgetForm from '@/components/WidgetForm.vue'
 import InvisibleInput from '@/components/InvisibleInput.vue'
 import WidgetVersionsModal from '@/components/WidgetVersionsModal.vue'
+import DocSelector from '@/components/DocSelector.vue'
 
 const props = defineProps({
   doc: {
@@ -27,6 +28,8 @@ const navigate = inject('navigate')
 const workspace = inject('workspace')
 
 const versionsModalOpen = ref(false)
+
+const moveToModalOpen = ref(false)
 
 const renameModalOpen = ref(false)
 const renameInput = ref(props.doc.name)
@@ -111,6 +114,14 @@ const rowActions = ref([
     },
   },
   {
+    action: 'move_to',
+    label: 'Move to...',
+    display: true,
+    onClick() {
+      moveToModalOpen.value = true
+    },
+  },
+  {
     action: 'version_history',
     label: 'Version history',
     display: true,
@@ -130,6 +141,11 @@ const rowActions = ref([
 
 function addActions(actions) {
   rowActions.value = rowActions.value.concat(actions)
+}
+
+async function moveDoc(parentDoc) {
+  await workspace.moveDoc({ ...props.doc }, parentDoc)
+  moveToModalOpen.value = false
 }
 </script>
 <template>
@@ -218,7 +234,11 @@ function addActions(actions) {
         </Menu>
       </div>
     </div>
-    <div class="flex-1 overflow-hidden p-2 h-full" :class="{'pt-0': widgetProps.standalonePreview}" @click="clickAction">
+    <div
+      class="flex-1 overflow-hidden p-2 h-full"
+      :class="{ 'pt-0': widgetProps.standalonePreview }"
+      @click="clickAction"
+    >
       <Widget :doc="doc" @add-actions="addActions" />
     </div>
     <Modal v-model:is-open="renameModalOpen">
@@ -236,6 +256,11 @@ function addActions(actions) {
     <Modal v-if="widgetProps.formComponent" v-model:is-open="widgetFormOpen">
       <template #body>
         <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />
+      </template>
+    </Modal>
+    <Modal v-model:is-open="moveToModalOpen">
+      <template #body>
+        <DocSelector @select="moveDoc" :parents-only="true" :exclude-doc-ids="[props.doc._id]" />
       </template>
     </Modal>
   </div>

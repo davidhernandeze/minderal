@@ -94,12 +94,17 @@ export default class Database extends EventEmitter {
     })
   }
 
-  async getDocsByParentId(parentId) {
+  async getDocsByParentId(parentId, widget = null) {
+    const selector = {
+      parent_id: parentId,
+      deleted_at: null,
+    }
+    if (widget) {
+      selector.widget = widget
+    }
+
     const { docs } = await this.connection.find({
-      selector: {
-        parent_id: parentId,
-        deleted_at: null,
-      },
+      selector
     })
     return docs.map((doc) => new Doc(doc))
   }
