@@ -16,10 +16,7 @@ pub fn run() {
         )?;
       }
 
-
-      let mindbar_window = tauri::WebviewWindowBuilder::new(app, "mindbar", tauri::WebviewUrl::App("index.html".into()))
-        .title("Mindbar")
-        .build()?;
+      let mindbar_window = app.handle().get_webview_window("mindbar").unwrap();
       mindbar_window.hide().unwrap();
       let mindbar_window_clone = mindbar_window.clone();
 
@@ -31,7 +28,6 @@ pub fn run() {
         if let tauri::WindowEvent::Focused(focused) = event {
           if !focused {
             mindbar_window_clone.hide().unwrap();
-            println!("Mindbar unfocused");
           }
         }
       });

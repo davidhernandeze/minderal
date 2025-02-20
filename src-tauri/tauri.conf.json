@@ -10,13 +10,32 @@
     "beforeBuildCommand": "npm run build"
   },
   "app": {
+    "macOSPrivateApi": true,
     "windows": [
       {
         "title": "Minderal - Widget OS",
-        "width": 800,
-        "height": 600,
+        "width": 1200,
+        "visible": true,
+        "height": 800,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "transparent": true,
+        "dragDropEnabled": false
+      },
+      {
+        "title": "Mindbar - Search Engine",
+        "label": "mindbar",
+        "url": "/mindbar",
+        "center": true,
+        "visible": false,
+        "width": 800,
+        "height": 300,
+        "resizable": false,
+        "fullscreen": false,
+        "transparent": true,
+        "decorations": false,
+        "alwaysOnTop": true,
+        "dragDropEnabled": false
       }
     ],
     "security": {
