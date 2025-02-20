@@ -1,7 +1,7 @@
 <script setup>
 import Quill from 'quill'
 import hljs from 'highlight.js'
-import { defineModel, onMounted, useTemplateRef, watch } from 'vue'
+import { onMounted, useTemplateRef, watch } from 'vue'
 
 const value = defineModel()
 const editor = useTemplateRef('editor')

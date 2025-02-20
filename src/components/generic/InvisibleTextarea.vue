@@ -1,5 +1,4 @@
 <script setup>
-import { defineModel } from 'vue'
 import RichTextEditor from '@/components/generic/RichTextEditor.vue'
 
 const value = defineModel()

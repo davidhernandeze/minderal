@@ -1,6 +1,4 @@
 <script setup>
-import { defineModel } from 'vue'
-
 const value = defineModel('value')
 const el = defineModel('el')
 
