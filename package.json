@@ -8,7 +8,8 @@
     "build": "vite build",
     "preview": "vite preview",
     "generate-pwa-assets": "pwa-assets-generator",
-    "lint": "eslint --fix"
+    "lint": "eslint --fix",
+    "tauri": "tauri"
   },
   "dependencies": {
     "@headlessui/vue": "^1.7.23",
@@ -16,6 +17,7 @@
     "@sentry/vite-plugin": "^3.1.2",
     "@sentry/vue": "^8.54.0",
     "@tailwindcss/forms": "^0.5.10",
+    "@tauri-apps/plugin-global-shortcut": "~2",
     "@vite-pwa/assets-generator": "^0.2.4",
     "@vueuse/components": "^12.5.0",
     "@vueuse/core": "^12.5.0",
@@ -32,6 +34,7 @@
   "devDependencies": {
     "@eslint/js": "^9.18.0",
     "@tailwindcss/vite": "^4.0.6",
+    "@tauri-apps/cli": "^2.2.7",
     "@vitejs/plugin-vue": "^5.2.1",
     "@vue/eslint-config-prettier": "^10.1.0",
     "eslint": "^9.20.1",

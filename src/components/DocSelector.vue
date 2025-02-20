@@ -1,5 +1,5 @@
 <script setup>
-import { defineProps, onMounted, inject, ref } from 'vue'
+import { onMounted, inject, ref } from 'vue'
 import Tree from 'primevue/tree'
 import Button from 'primevue/button'
 import { getWidgetProps } from '@/enums/widgets.js'

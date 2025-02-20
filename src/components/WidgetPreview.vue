@@ -1,5 +1,5 @@
 <script setup>
-import { defineAsyncComponent, defineEmits, inject, ref, useTemplateRef, watch } from 'vue'
+import { defineAsyncComponent, inject, ref, useTemplateRef, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
