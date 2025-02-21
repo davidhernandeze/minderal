@@ -1,8 +1,8 @@
 {
   "$schema": "../node_modules/@tauri-apps/cli/config.schema.json",
   "productName": "Minderal",
-  "version": "0.1.0",
-  "identifier": "com.tauri.dev",
+  "version": "0.30.0",
+  "identifier": "com.minderal.app",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:4020",
@@ -33,13 +33,26 @@
         "resizable": false,
         "fullscreen": false,
         "transparent": true,
+        "shadow": false,
         "decorations": false,
+        "devtools": true,
         "alwaysOnTop": true,
         "dragDropEnabled": false
       }
     ],
     "security": {
-      "csp": null
+      "csp": null,
+      "capabilities": [
+        {
+          "identifier": "draggable-window",
+          "windows": [
+            "mindbar"
+          ],
+          "permissions": [
+            "core:window:allow-start-dragging"
+          ]
+        }
+      ]
     }
   },
   "bundle": {

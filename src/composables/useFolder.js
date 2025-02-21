@@ -15,6 +15,15 @@ export default (documents, searchQuery) => {
       }
       return searchableContent.toLowerCase().indexOf(searchQuery.value.toLowerCase()) > -1
     })
+    filteredDocuments.value = filteredDocuments.value.sort((a, b) => {
+      if (a.widget === 'folder' && b.widget !== 'folder') {
+        return -1
+      }
+      if (a.widget !== 'folder' && b.widget === 'folder') {
+        return 1
+      }
+      return 0
+    })
     folderDocuments.value = filteredDocuments.value.filter((doc) => doc.widget === 'folder')
     widgetDocuments.value = filteredDocuments.value.filter((doc) => doc.widget !== 'folder')
   })

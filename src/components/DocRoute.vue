@@ -23,6 +23,7 @@ watch(
 <template>
   <nav
     ref="container"
+    v-bind="$attrs"
     class="flex w-full overflow-x-auto pb-3 pr-3 text-lg"
     aria-label="Breadcrumb"
   >

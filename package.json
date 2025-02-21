@@ -17,6 +17,7 @@
     "@sentry/vite-plugin": "^3.1.2",
     "@sentry/vue": "^8.54.0",
     "@tailwindcss/forms": "^0.5.10",
+    "@tauri-apps/api": "^2.2.0",
     "@tauri-apps/plugin-global-shortcut": "~2",
     "@vite-pwa/assets-generator": "^0.2.4",
     "@vueuse/components": "^12.5.0",

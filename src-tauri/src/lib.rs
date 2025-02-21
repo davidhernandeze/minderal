@@ -1,12 +1,42 @@
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager};
+use tauri::{AppHandle, Manager, WebviewWindow};
+use std::sync::Mutex;
+
+struct AppState {
+  mindbar_locked: bool,
+}
+
+impl AppState {
+  fn new() -> Self {
+    AppState {
+      mindbar_locked: false,
+    }
+  }
+}
+
+#[tauri::command]
+fn hide_mindbar(webview_window: WebviewWindow) {
+  webview_window.hide().unwrap();
+}
+
+#[tauri::command]
+fn lock_mindbar(webview_window: WebviewWindow) {
+  println!("Locking mindbar");
+  let app_handle = webview_window.app_handle();
+  let state = app_handle.state::<Mutex<AppState>>();
+  let mut state = state.lock().unwrap();
+  state.mindbar_locked = true;
+}
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
   tauri::Builder::default()
+    .invoke_handler(tauri::generate_handler![hide_mindbar, lock_mindbar])
     .setup(|app| {
       use tauri_plugin_global_shortcut::{Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState};
+
+      app.manage(Mutex::new(AppState::new()));
 
       if cfg!(debug_assertions) {
         app.handle().plugin(
@@ -27,7 +57,19 @@ pub fn run() {
         }
         if let tauri::WindowEvent::Focused(focused) = event {
           if !focused {
-            mindbar_window_clone.hide().unwrap();
+            println!("Mindbar lost focus");
+            let app_handle = mindbar_window_clone.app_handle();
+            let state = app_handle.state::<Mutex<AppState>>();
+            let mut state = state.lock().unwrap();
+            println!("Mindbar locked: {}", state.mindbar_locked);
+            if state.mindbar_locked {
+              state.mindbar_locked = false;
+              mindbar_window_clone.show().unwrap();
+              mindbar_window_clone.set_focus().unwrap();
+            } else {
+              mindbar_window_clone.hide().unwrap();
+              app_handle.get_webview_window("main").unwrap().hide().unwrap();
+            }
           }
         }
       });
@@ -35,12 +77,10 @@ pub fn run() {
       let ctrl_n_shortcut = Shortcut::new(Some(Modifiers::CONTROL), Code::Space);
       app.handle().plugin(
         tauri_plugin_global_shortcut::Builder::new().with_handler(move |_app, shortcut, event| {
-          println!("{:?}", shortcut);
           let mindbar_window = _app.get_webview_window("mindbar").unwrap();
           if shortcut == &ctrl_n_shortcut {
             match event.state() {
               ShortcutState::Released => {
-                println!("Ctrl-N Released!");
                 mindbar_window.show().unwrap();
                 mindbar_window.set_focus().unwrap();
               }
