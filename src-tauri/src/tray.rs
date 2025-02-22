@@ -1,4 +1,4 @@
-use tauri::{App, AppHandle, Manager, WebviewWindow, Window};
+use tauri::{App, AppHandle, Manager};
 use tauri::menu::{Menu, MenuItem};
 use tauri::tray::TrayIconBuilder;
 
@@ -24,5 +24,5 @@ pub fn attach_tray(app: &App) {
       }
     })
     .icon(app.default_window_icon().unwrap().clone())
-    .build(app).unwrap() ;
+    .build(app).unwrap();
 }

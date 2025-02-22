@@ -41,6 +41,7 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   border-radius: 0.375rem;
+  overflow: hidden;
 }
 
 @font-face {

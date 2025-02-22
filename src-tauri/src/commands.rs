@@ -9,14 +9,16 @@ use crate::state::AppState;
 
 
 #[tauri::command]
-fn lock_mindbar(state: State<'_, Mutex<AppState>>) {
+pub fn lock(window: WebviewWindow, state: State<'_, Mutex<AppState>>) {
   let mut state = state.lock().unwrap();
-  state.locked = true
+  window.set_always_on_top(true).unwrap();
+  state.locked = true;
 }
 
 #[tauri::command]
-fn unlock_mindbar(state: State<'_, Mutex<AppState>>) {
+pub fn unlock(window: WebviewWindow, state: State<'_, Mutex<AppState>>) {
   let mut state = state.lock().unwrap();
+  window.set_always_on_top(false).unwrap();
   state.locked = false
 }
 
@@ -29,13 +31,6 @@ pub fn show(app_handle: AppHandle) {
 
 #[tauri::command]
 pub fn hide(app_handle: AppHandle) {
-  let state = app_handle.state::<Mutex<AppState>>();
-  let mut state = state.lock().unwrap();
-
-  if  { state.mindbar_locked } {
-    return;
-  }
-
   let panel = app_handle.get_webview_panel(SPOTLIGHT_LABEL).unwrap();
 
   if panel.is_visible() {

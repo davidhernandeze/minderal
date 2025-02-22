@@ -20,28 +20,40 @@ pub const SPOTLIGHT_LABEL: &str = "mindbar";
 
 pub fn run() {
   tauri::Builder::default()
-    .invoke_handler(tauri::generate_handler![commands::show, commands::hide])
+    .invoke_handler(tauri::generate_handler![
+      commands::show,
+      commands::hide,
+      commands::lock,
+      commands::unlock
+    ])
     .plugin(tauri_nspanel::init())
     .plugin(tauri_plugin_clipboard_manager::init())
     .setup(move |app| {
-      // Set activation poicy to Accessory to prevent the app icon from showing on the dock
       app.set_activation_policy(tauri::ActivationPolicy::Accessory);
-
-      app.manage(Mutex::new(AppState::new()));
 
       let handle = app.app_handle();
 
-      let window = handle.get_webview_window(SPOTLIGHT_LABEL).unwrap();
+      let mindbar_window = handle.get_webview_window(SPOTLIGHT_LABEL).unwrap();
 
-      let panel = window.to_spotlight_panel()?;
+      app.manage(Mutex::new(AppState::new()));
 
+      let panel = mindbar_window.to_spotlight_panel()?;
+
+      let minderal_window_clone = mindbar_window.clone();
+      let main_window = handle.get_webview_window("main").unwrap();
       handle.listen(format!("{}_panel_did_resign_key", SPOTLIGHT_LABEL), move |_| {
-        // Hide the panel when it's no longer the key window
-        // This ensures the panel doesn't remain visible when it's not actively being used
-        panel.order_out(None);
+        let state = minderal_window_clone.app_handle().state::<Mutex<AppState>>();
+        let state = state.lock().unwrap();
+
+        if state.locked {
+          minderal_window_clone.show().unwrap();
+        } else {
+          panel.order_out(None);
+          main_window.hide().unwrap();
+        }
       });
 
-      attach_tray(&app);
+      attach_tray(app);
 
       Ok(())
     })
@@ -70,6 +82,13 @@ pub fn run() {
         })
         .build(),
     )
+    .on_window_event(|window, event| {
+      if let tauri::WindowEvent::CloseRequested { api, .. } = event {
+        window.hide().unwrap();
+        api.prevent_close();
+      }
+    })
+
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }
