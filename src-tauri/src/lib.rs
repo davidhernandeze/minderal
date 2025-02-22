@@ -1,146 +1,75 @@
+#![cfg_attr(
+  all(not(debug_assertions), target_os = "windows"),
+  windows_subsystem = "windows"
+)]
+
 use std::sync::Mutex;
-use tauri::menu::{Menu, MenuItem};
-use tauri::tray::TrayIconBuilder;
-use tauri::{AppHandle, Manager, WebviewWindow};
+use tauri::{Listener, Manager};
+use tauri_nspanel::ManagerExt;
+use tauri_plugin_global_shortcut::{Code, Modifiers, Shortcut, ShortcutState};
+use window::WebviewWindowExt;
+use crate::state::AppState;
+use crate::tray::attach_tray;
 
-struct AppState {
-    mindbar_locked: bool,
-}
+mod commands;
+mod window;
+mod tray;
+mod state;
 
-impl AppState {
-    fn new() -> Self {
-        AppState {
-            mindbar_locked: false,
-        }
-    }
-}
+pub const SPOTLIGHT_LABEL: &str = "mindbar";
 
-#[tauri::command]
-fn hide_mindbar(webview_window: WebviewWindow) {
-    webview_window.hide().unwrap();
-}
-
-#[tauri::command]
-fn lock_mindbar(webview_window: WebviewWindow) {
-    let app_handle = webview_window.app_handle();
-    let state = app_handle.state::<Mutex<AppState>>();
-    let mut state = state.lock().unwrap();
-    state.mindbar_locked = true;
-}
-
-#[tauri::command]
-fn unlock_mindbar(webview_window: WebviewWindow) {
-    let app_handle = webview_window.app_handle();
-    let state = app_handle.state::<Mutex<AppState>>();
-    let mut state = state.lock().unwrap();
-    state.mindbar_locked = false;
-}
-
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
-        .plugin(tauri_plugin_clipboard_manager::init())
-        .invoke_handler(tauri::generate_handler![
-            hide_mindbar,
-            lock_mindbar,
-            unlock_mindbar
-        ])
-        .setup(|app| {
-            use tauri_plugin_global_shortcut::{
-                Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
-            };
+  tauri::Builder::default()
+    .invoke_handler(tauri::generate_handler![commands::show, commands::hide])
+    .plugin(tauri_nspanel::init())
+    .plugin(tauri_plugin_clipboard_manager::init())
+    .setup(move |app| {
+      // Set activation poicy to Accessory to prevent the app icon from showing on the dock
+      app.set_activation_policy(tauri::ActivationPolicy::Accessory);
 
-            app.manage(Mutex::new(AppState::new()));
+      app.manage(Mutex::new(AppState::new()));
 
-            if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
+      let handle = app.app_handle();
+
+      let window = handle.get_webview_window(SPOTLIGHT_LABEL).unwrap();
+
+      let panel = window.to_spotlight_panel()?;
+
+      handle.listen(format!("{}_panel_did_resign_key", SPOTLIGHT_LABEL), move |_| {
+        // Hide the panel when it's no longer the key window
+        // This ensures the panel doesn't remain visible when it's not actively being used
+        panel.order_out(None);
+      });
+
+      attach_tray(&app);
+
+      Ok(())
+    })
+    // Register a global shortcut (⌘+K) to toggle the visibility of the spotlight panel
+    .plugin(
+      tauri_plugin_global_shortcut::Builder::new()
+        .with_shortcut(Shortcut::new(Some(Modifiers::CONTROL), Code::Space))
+        .unwrap()
+        .with_handler(|app, shortcut, event| {
+          if event.state == ShortcutState::Pressed
+            && shortcut.matches(Modifiers::CONTROL, Code::Space)
+          {
+            let window = app.get_webview_window(SPOTLIGHT_LABEL).unwrap();
+
+            let panel = app.get_webview_panel(SPOTLIGHT_LABEL).unwrap();
+
+            if panel.is_visible() {
+              panel.order_out(None);
+            } else {
+              window.center_at_cursor_monitor().unwrap();
+
+              panel.show();
+              window.set_focus().unwrap();
             }
-
-            let mindbar_window = app.handle().get_webview_window("mindbar").unwrap();
-            mindbar_window.hide().unwrap();
-            let mindbar_window_clone = mindbar_window.clone();
-
-            mindbar_window.on_window_event(move |event| {
-                if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                    mindbar_window_clone.hide().unwrap();
-                    api.prevent_close();
-                }
-                if let tauri::WindowEvent::Focused(focused) = event {
-                    if *focused {
-                        return;
-                    }
-                    let app_handle = mindbar_window_clone.app_handle();
-                    let state = app_handle.state::<Mutex<AppState>>();
-                    let state = state.lock().unwrap();
-
-                    if state.mindbar_locked {
-                        mindbar_window_clone.show().unwrap();
-                        return;
-                    }
-
-                    mindbar_window_clone.hide().unwrap();
-                    app_handle
-                        .get_webview_window("main")
-                        .unwrap()
-                        .hide()
-                        .unwrap();
-                }
-            });
-
-            let ctrl_n_shortcut = Shortcut::new(Some(Modifiers::CONTROL), Code::Space);
-            app.handle().plugin(
-                tauri_plugin_global_shortcut::Builder::new()
-                    .with_handler(move |_app, shortcut, event| {
-                        let mindbar_window = _app.get_webview_window("mindbar").unwrap();
-                        if shortcut == &ctrl_n_shortcut {
-                            match event.state() {
-                                ShortcutState::Released => {
-                                    mindbar_window.show().unwrap();
-                                    mindbar_window.set_focus().unwrap();
-                                }
-                                _ => {}
-                            }
-                        }
-                    })
-                    .build(),
-            )?;
-
-            app.global_shortcut().register(ctrl_n_shortcut)?;
-
-            let show_i = MenuItem::with_id(app, "show", "Show", true, None::<&str>)?;
-            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&show_i, &quit_i])?;
-
-            TrayIconBuilder::new()
-                .menu(&menu)
-                .icon(app.default_window_icon().unwrap().clone())
-                .on_menu_event(|app: &AppHandle, event| match event.id.as_ref() {
-                    "quit" => {
-                        app.exit(0);
-                    }
-                    "show" => {
-                        let window = app.get_webview_window("main").unwrap();
-                        window.show().unwrap();
-                        window.set_focus().unwrap();
-                    }
-                    _ => {
-                        println!("menu item {:?} not handled", event.id);
-                    }
-                })
-                .icon(app.default_window_icon().unwrap().clone())
-                .build(app)?;
-            Ok(())
+          }
         })
-        .on_window_event(|window, event| {
-            if let tauri::WindowEvent::CloseRequested { api, .. } = event {
-                window.hide().unwrap();
-                api.prevent_close();
-            }
-        })
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(),
+    )
+    .run(tauri::generate_context!())
+    .expect("error while running tauri application");
 }

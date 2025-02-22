@@ -20,7 +20,7 @@ onKeyStroke(['Escape'], (e) => {
 
 
 function hideMindbar() {
-  invoke('hide_mindbar')
+  invoke('hide')
 }
 
 function toggleMindbarLock() {

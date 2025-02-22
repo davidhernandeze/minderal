@@ -1,8 +1,8 @@
 [package]
-name = "app"
+name = "minderal"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = ""
+authors = ["davidhernandeze"]
 license = ""
 repository = ""
 edition = "2021"
@@ -24,6 +24,9 @@ log = "0.4"
 tauri = { version = "2.2.4", features = [ "macos-private-api", "tray-icon"] }
 tauri-plugin-log = "2.0.0-rc"
 tauri-plugin-clipboard-manager = "2"
+tauri-nspanel = { git = "https://github.com/ahkohd/tauri-nspanel", branch = "v2" }
+monitor = { git = "https://github.com/ahkohd/tauri-toolkit", branch = "v2" }
+thiserror = "1.0.63"
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-global-shortcut = "2"

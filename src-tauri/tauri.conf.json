@@ -14,6 +14,7 @@
     "windows": [
       {
         "title": "Minderal - Widget OS",
+        "label": "main",
         "width": 1200,
         "visible": true,
         "height": 800,
@@ -38,7 +39,8 @@
         "devtools": true,
         "alwaysOnTop": true,
         "dragDropEnabled": false,
-        "visibleOnAllWorkspaces": true
+        "visibleOnAllWorkspaces": true,
+        "skipTaskbar": true
       }
     ],
     "security": {

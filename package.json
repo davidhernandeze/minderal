@@ -29,6 +29,7 @@
     "pinia": "^2.3.1",
     "primevue": "^4.2.5",
     "quill": "^2.0.3",
+    "tauri-plugin-spotlight-api": "^0.1.2",
     "vue": "^3.5.13",
     "vue-draggable-plus": "^0.6.0",
     "vue-imask": "^7.6.1"

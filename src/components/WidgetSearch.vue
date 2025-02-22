@@ -71,7 +71,7 @@ async function navigateToSelectedDoc () {
   const toClipboard = getWidgetProps(selectedDoc.value.widget)?.toClipboard
   if (toClipboard) {
     await copySelectedDocToClipboard()
-    await invoke('hide_mindbar')
+    await invoke('hide')
     return
   }
   await navigateToDoc(selectedDoc.value._id)
