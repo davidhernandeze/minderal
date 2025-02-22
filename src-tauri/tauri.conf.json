@@ -37,7 +37,8 @@
         "decorations": false,
         "devtools": true,
         "alwaysOnTop": true,
-        "dragDropEnabled": false
+        "dragDropEnabled": false,
+        "visibleOnAllWorkspaces": true
       }
     ],
     "security": {
@@ -49,7 +50,8 @@
             "mindbar"
           ],
           "permissions": [
-            "core:window:allow-start-dragging"
+            "core:window:allow-start-dragging",
+            "clipboard-manager:allow-write-text"
           ]
         }
       ]

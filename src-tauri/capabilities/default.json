@@ -3,9 +3,11 @@
   "identifier": "default",
   "description": "enables the default permissions",
   "windows": [
-    "main"
+    "main",
+    "mindbar"
   ],
   "permissions": [
-    "core:default"
+    "core:default",
+    "clipboard-manager:allow-write-text"
   ]
 }

@@ -4,12 +4,14 @@ import { storeToRefs } from 'pinia'
 import { ref, watch } from 'vue'
 import Select from 'primevue/select'
 import Card from 'primevue/card'
-import { onKeyStroke, useDocumentVisibility } from '@vueuse/core'
+import { onKeyStroke } from '@vueuse/core'
 import { invoke } from '@tauri-apps/api/core'
 import WidgetSearch from '@/components/WidgetSearch.vue'
 
 const metadataStore = useMetadataStore()
 const { connections } = storeToRefs(metadataStore)
+
+const isMindbarLocked = ref(false)
 
 onKeyStroke(['Escape'], (e) => {
   e.preventDefault()
@@ -19,6 +21,16 @@ onKeyStroke(['Escape'], (e) => {
 
 function hideMindbar() {
   invoke('hide_mindbar')
+}
+
+function toggleMindbarLock() {
+  if (isMindbarLocked.value) {
+    isMindbarLocked.value = false
+    invoke('unlock_mindbar')
+  } else {
+    isMindbarLocked.value = true
+    invoke('lock_mindbar')
+  }
 }
 
 const selectedConnection = ref({})
@@ -35,16 +47,21 @@ watch(connections, (value) => {
     <Card class="h-full">
       <template #content>
         <div
-          class="absolute top-[0.5rem] right-[0.8rem] flex items-center cursor-pointer font-bold"
-          @click="hideMindbar"
+          class="absolute top-[0.5rem] right-[0.8rem] flex items-center cursor-pointer font-bold gap-4"
         >
           <i
             data-tauri-drag-region
-            class="bi bi-record-circle cursor-pointer mr-4"
-            @pointerdown="invoke('lock_mindbar')"
+            class="bi bi-record-circle cursor-pointer"
           />
-          <span class="text-xs mr-1">ESC</span>
-          <i class="text-xl bi bi-x" />
+          <i
+            :class="isMindbarLocked ? 'bi-lock-fill' : 'bi-unlock-fill'"
+            class="bi cursor-pointer"
+            @pointerdown="toggleMindbarLock"
+          />
+          <button class="flex items-center cursor-pointer" @click="hideMindbar">
+            <span class="text-xs">ESC</span>
+            <i class="text-xl bi bi-x" />
+          </button>
         </div>
         <div class="mb-2">
           <i class="bi bi-database mr-2" />
@@ -57,7 +74,7 @@ watch(connections, (value) => {
             class="w-[12rem]"
           />
         </div>
-        <div v-if="selectedConnection.id">
+        <div class="h-full" v-if="selectedConnection.id">
           <WidgetSearch :key="selectedConnection.id" :connection-id="selectedConnection.id" />
         </div>
       </template>

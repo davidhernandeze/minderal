@@ -6,9 +6,11 @@
     "linux"
   ],
   "windows": [
-    "main"
+    "main",
+    "mindbar"
   ],
   "permissions": [
-    "global-shortcut:default"
+    "global-shortcut:default",
+    "clipboard-manager:allow-write-text"
   ]
 }

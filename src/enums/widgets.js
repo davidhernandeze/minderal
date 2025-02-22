@@ -8,6 +8,7 @@ export const widgets = {
     expandable: false,
     showMainInput: false,
     createWithContent: true,
+    toClipboard: (doc) => doc.content,
   },
   folder: {
     label: 'Folder',
@@ -97,6 +98,7 @@ export const widgets = {
     expandedComponent: 'CommandPreview',
     expandable: false,
     createWithContent: true,
+    toClipboard: (doc) => doc.content,
   },
 }
 

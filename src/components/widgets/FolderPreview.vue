@@ -11,7 +11,7 @@ defineProps({
 </script>
 
 <template>
-  <div class="flex p-2 pt-0 items-center box-border gap-2 hover:text-white cursor-pointer text-2xl">
+  <div class="flex p-2 h-full items-center box-border gap-2 hover:text-white cursor-pointer text-2xl">
     <i class="bi bi-folder mx-1" />
     <p class="break-all truncate">
       {{ doc.name }}
