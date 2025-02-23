@@ -42,6 +42,14 @@ export default class Database extends EventEmitter {
     return await this.connection.post(JSON.parse(JSON.stringify(doc)))
   }
 
+  async createFileDoc(doc) {
+    console.log(doc)
+    await this.startListening()
+    doc.created_at = moment().toISOString()
+    doc.updated_at = moment().toISOString()
+    return await this.connection.post({ ...doc })
+  }
+
   async updateDoc(doc) {
     await this.startListening()
     doc.updated_at = moment().toISOString()

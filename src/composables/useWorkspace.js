@@ -173,7 +173,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
     const filesIds = []
 
     for (const file of files) {
-      const fileDoc = await db.createDoc({
+      const fileDoc = await db.createFileDoc({
         name: file.name,
         created_by: username.value,
         _attachments: {
