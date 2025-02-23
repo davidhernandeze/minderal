@@ -19,14 +19,12 @@ const { content, startEdition, exitEdition } = useDoc(workspace, doc)
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
-    <InvisibleTextInput
-      v-model="content"
-      class="w-full h-full break-words pr-2"
-      @focusout="exitEdition"
-      @focusin="startEdition"
-    />
-  </div>
+  <InvisibleTextInput
+    v-model="content"
+    class="w-full h-full break-words pr-2"
+    @focusout="exitEdition"
+    @focusin="startEdition"
+  />
 </template>
 
 <style scoped>

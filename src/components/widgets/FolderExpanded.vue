@@ -42,7 +42,7 @@ function startWidgetDrag(event) {
     :disabled="dragDisabled"
     item-key="_id"
     group="folder"
-    class="pr-6 pb-8 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4"
+    class="pr-6 pb-8 grid auto-rows-[6rem] sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4"
     @start="startFolderDrag"
     @end="changeOrder"
   >
@@ -59,7 +59,7 @@ function startWidgetDrag(event) {
     :disabled="dragDisabled"
     item-key="_id"
     group="widgets"
-    class="pr-6 pb-32 grid grid-cols-1 lg:grid-cols-3 xl:grid-cols-4 gap-4"
+    class="pr-6 pb-32 grid auto-rows-[14rem] sm:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-4"
     @start="startWidgetDrag"
     @end="changeOrder"
   >
