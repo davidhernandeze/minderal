@@ -26,10 +26,10 @@ function hideMindbar() {
 function toggleMindbarLock() {
   if (isMindbarLocked.value) {
     isMindbarLocked.value = false
-    invoke('lock')
+    invoke('unlock')
   } else {
     isMindbarLocked.value = true
-    invoke('unlock')
+    invoke('lock')
   }
 }
 

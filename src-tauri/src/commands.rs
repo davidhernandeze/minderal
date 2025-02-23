@@ -11,14 +11,12 @@ use crate::state::AppState;
 #[tauri::command]
 pub fn lock(window: WebviewWindow, state: State<'_, Mutex<AppState>>) {
   let mut state = state.lock().unwrap();
-  window.set_always_on_top(true).unwrap();
   state.locked = true;
 }
 
 #[tauri::command]
 pub fn unlock(window: WebviewWindow, state: State<'_, Mutex<AppState>>) {
   let mut state = state.lock().unwrap();
-  window.set_always_on_top(false).unwrap();
   state.locked = false
 }
 
