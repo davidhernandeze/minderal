@@ -51,7 +51,8 @@ function toggleDarkMode() {
     >
       <i class="bi bi-x" />
     </div>
-    <div class="p-2 text-xs">minderal 2.0</div>
+    <div class="p-2 pb-0 text-xs">minderal</div>
+    <div class="px-2 text-gray-300 text-xss">v0.34</div>
     <div class="p-2">
       <div class="text-xs uppercase flex items-center mb-2">
         <i class="bi bi-database mr-1" />

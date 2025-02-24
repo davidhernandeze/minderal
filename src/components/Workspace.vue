@@ -134,7 +134,7 @@ onBeforeUnmount(async () => {
         placeholder="Search..."
       />
     </div>
-    <div class="flex-1 min-h-0 overflow-y-auto">
+    <div class="flex-1 min-h-0 overflow-y-auto pb-[10rem]">
       <WidgetExpanded v-if="connectionDone" :doc="currentDoc" />
     </div>
     <button class="hidden" @click="workspace.migrateDatabase()">migrate</button>

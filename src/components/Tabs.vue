@@ -38,7 +38,7 @@ const { isSidebarVisible } = sidebarStore
       class="p-2 rounded-t w-8 flex-center cursor-pointer mr-0.5"
       @click="sidebarStore.showSidebar()"
     >
-      <i class="bi bi-plus" />
+      <i class="text-2xl bi bi-plus" />
     </div>
   </div>
 </template>
