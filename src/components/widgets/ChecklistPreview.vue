@@ -18,11 +18,11 @@ const { visibleItems } = useChecklist(workspace, doc)
 </script>
 
 <template>
-  <ol class="h-full overflow-y-auto">
+  <ol class="h-full overflow-y-auto cursor-pointer">
     <li
       v-for="item in visibleItems"
       :key="item.id"
-      class="flex items-center rounded-sm hover:bg-gray-600"
+      class="flex items-center rounded-sm"
     >
       <div class="flex items-center">
         <input

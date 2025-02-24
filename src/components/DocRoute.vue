@@ -29,7 +29,7 @@ watch(
   >
     <ol role="list" class="flex items-center">
       <li
-        class="flex items-center text-gray-300 hover:text-gray-100 cursor-pointer"
+        class="flex items-center hover:text-(--p-primary-500) cursor-pointer"
         @click="$emit('navigate', '')"
       >
         <i class="bi bi-house text-xl mr-1" />
@@ -37,9 +37,9 @@ watch(
       <li v-for="doc in route" :key="doc.id" @click="$emit('navigate', doc.id)">
         <div class="flex items-center">
           <i class="bi bi-caret-right-fill mx-4" />
-          <div class="ml-2">
+          <div class="ml-2 hover:text-(--p-primary-500) ">
             <i :class="getWidgetProps(doc.widget)?.icon" />
-            <a href="#" class="font-medium hover:text-gray-100 truncate max-w-xs ml-2">{{ doc.name }}</a>
+            <a href="#" class="font-medium truncate max-w-xs ml-2">{{ doc.name }}</a>
           </div>
         </div>
       </li>

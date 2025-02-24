@@ -5,12 +5,13 @@ import { useMagicKeys } from '@vueuse/core'
 import { getWidgetList, getWidgetProps, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
-import GenericButton from '@/components/GenericButton.vue'
 import { useWorkspace } from '@/composables/useWorkspace.js'
 import sidebarStore from '@/stores/sidebar.js'
 import Modal from '@/components/Modal.vue'
 import WidgetForm from '@/components/WidgetForm.vue'
 import ProgressSpinner from 'primevue/progressspinner'
+import Panel from 'primevue/panel'
+import Button from 'primevue/button'
 
 const props = defineProps({
   connectionId: {
@@ -106,7 +107,7 @@ onBeforeUnmount(async () => {
 </script>
 
 <template>
-  <div class="relative h-full flex flex-col bg-gray-700 p-6 pr-0 pb-[5rem] overflow-visible">
+  <Panel pt:content:class="relative h-full flex flex-col p-6 pr-0 pb-[50rem] overflow-visible !rounded-t-none">
     <div class="absolute right-[1rem] top-[1rem] z-99">
       <ProgressSpinner
         v-show="isLoading"
@@ -117,7 +118,7 @@ onBeforeUnmount(async () => {
         aria-label="Custom ProgressSpinner"
       />
     </div>
-    <div class="grow-0 bg-gray-700 z-10 mb-2">
+    <div class="grow-0 z-10 mb-2">
       <div class="flex items-center">
         <DocRoute :route="currentRoute" @navigate="(docId) => $emit('navigate', docId)" />
       </div>
@@ -139,11 +140,11 @@ onBeforeUnmount(async () => {
     >
       <div :class="{ 'sm:pl-48': isSidebarVisible }" class="w-full max-w-3xl">
         <div
-          class="flex-center p-1 py-2 flex-wrap bg-gray-700 shadow-lg rounded-sm border border-gray-600 border-b-0"
+          class="flex-center p-1 py-2 flex-wrap shadow-lg rounded-md bg-[var(--p-surface-50)] dark:bg-[var(--p-surface-800)]"
         >
           <div class="w-full sm:w-auto py-2">
             <button
-              class="px-4 py-2 rounded-sm mr-2 hover:bg-gray-600 cursor-pointer"
+              class="px-4 py-2 rounded-sm mr-2 hover:bg-(--p-primary-500) cursor-pointer"
               @click="isTypesModalOpen = true"
             >
               <span v-if="iconRerender">
@@ -156,18 +157,13 @@ onBeforeUnmount(async () => {
             <input
               ref="mainInput"
               v-model="inputValue"
-              class="w-full text-gray-50 rounded-sm text-md p-2 bg-gray-800"
+              class="w-full rounded-sm text-md p-2 dark:bg-(--p-surface-900)"
               type="text"
               @keyup.enter="createDoc"
             />
           </div>
           <div class="flex-center p-2">
-            <GenericButton
-              class="bg-indigo-600 hover:bg-indigo-500 cursor-pointer"
-              @click="createDoc"
-            >
-              Create
-            </GenericButton>
+            <Button label="Add" @click="createDoc"/>
           </div>
         </div>
       </div>
@@ -182,5 +178,5 @@ onBeforeUnmount(async () => {
         </template>
       </Modal>
     </div>
-  </div>
+  </Panel>
 </template>

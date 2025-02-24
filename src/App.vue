@@ -21,7 +21,7 @@ onBeforeMount(async () => {
 })
 </script>
 <template>
-  <div v-if="path !== '/mindbar'" class="max-h-screen h-screen bg-gray-800 text-gray-100 flex">
+  <div v-if="path !== '/mindbar'" class="max-h-screen h-screen flex">
     <Sidebar class="flex-none" />
     <div :class="[isSidebarVisible ? 'hidden sm:block' : 'block']" class="w-full pl-2 pr-0 pb-0">
       <div v-if="offline" class="p-1 text-xs text-center bg-red-500/50">Offline</div>
@@ -74,7 +74,7 @@ html {
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #1f2937 #2a384c;
+  scrollbar-color: #1f2937 transparent;
 }
 
 /* Chrome, Edge, and Safari */

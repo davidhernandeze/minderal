@@ -11,15 +11,22 @@ import PouchDB from 'pouchdb-browser'
 import * as Sentry from '@sentry/vue'
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
-import FocusTrap from 'primevue/focustrap';
+import FocusTrap from 'primevue/focustrap'
 
 PouchDB.plugin(find)
 
 const app = createApp(App)
 const pinia = createPinia()
 app.use(pinia)
-app.use(PrimeVue, { theme: { preset: Aura } })
-app.directive('focustrap', FocusTrap);
+app.use(PrimeVue, {
+  theme: {
+    preset: Aura,
+    options: {
+      darkModeSelector: 'system',
+    },
+  },
+})
+app.directive('focustrap', FocusTrap)
 
 if (process.env.NODE_ENV !== 'development') {
   Sentry.init({

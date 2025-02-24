@@ -12,12 +12,12 @@ const isConnectionSetupModalOpen = ref(false)
 const { isSidebarVisible } = sidebarStore
 const connectionOnEdit = ref(null)
 
-function openNewTab (connectionId, connectionName) {
+function openNewTab(connectionId, connectionName) {
   metadataStore.openNewTab(connectionId, connectionName)
   sidebarStore.onTabOpen()
 }
 
-function openConnectionSetup (connection) {
+function openConnectionSetup(connection) {
   connectionOnEdit.value = connection
   isConnectionSetupModalOpen.value = true
 }
@@ -26,7 +26,7 @@ function openConnectionSetup (connection) {
 <template>
   <div
     v-show="isSidebarVisible"
-    class="relative w-full sm:w-[15rem] sm:block h-max-screen bg-gray-700 shadow-md"
+    class="relative w-full sm:w-[15rem] sm:block h-max-screen shadow-md"
   >
     <div
       v-show="tabs.length > 0"
@@ -35,9 +35,7 @@ function openConnectionSetup (connection) {
     >
       <i class="bi bi-x text-lg" />
     </div>
-    <div class="p-2 text-xs">
-      minderal 2.0
-    </div>
+    <div class="p-2 text-xs">minderal 2.0</div>
     <div class="p-2">
       <div class="text-xs uppercase flex items-center mb-2">
         <i class="bi bi-database mr-1" />
@@ -47,22 +45,19 @@ function openConnectionSetup (connection) {
         <li
           v-for="connection in connections"
           :key="connection.id"
-          class="p-2 cursor-pointer rounded-sm bg-gray-600 my-2 border border-gray-600 hover:border-gray-500 relative"
+          class="p-2 cursor-pointer rounded-sm hover:bg-[var(--p-surface-100)] dark:hover:bg-[var(--p-surface-800)] relative"
           @click="openNewTab(connection.id, connection.name)"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="bi bi-circle-fill text-xs text-green-400" />
-              <i
-                v-if="connection.host"
-                class="bi bi-cloud-check-fill text-blue-300"
-              />
+              <i class="bi bi-circle-fill text-(--p-primary-500)" />
+              <i v-if="connection.host" class="bi bi-cloud-check-fill text-blue-300" />
               <div class="text-sm">
                 {{ connection.name }}
               </div>
             </div>
             <div
-              class="rounded-full w-6 text-gray-400 hover:text-gray-50 flex-center"
+              class="rounded-full w-6 text-gray-400 hover:text-(--p-primary-500) flex-center"
               @click.stop="openConnectionSetup(connection)"
             >
               <i class="bi bi-gear" />
@@ -70,7 +65,7 @@ function openConnectionSetup (connection) {
           </div>
         </li>
         <li
-          class="border flex-center h-10 rounded-sm border-dashed border-gray-400 cursor-pointer hover:text-green-300 hover:border-green-300"
+          class="border mt-3 flex-center h-10 rounded-sm border-dashed border-(--p-surface-300) cursor-pointer hover:text-(--p-primary-500) hover:border-(--p-primary-500)"
           @click="isConnectionSetupModalOpen = true"
         >
           <i class="bi bi-plus text-xl mr-2" />

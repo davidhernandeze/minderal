@@ -48,7 +48,7 @@ const errorAreaId = getId()
         :placeholder="placeholder"
         :disabled="disabled"
         class="w-full block pr-10 focus:outline-hidden sm:text-sm rounded-md bg-gray-900"
-        :class="[error ? 'text-red-900 border-red-300 placeholder-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500', disabled ? 'text-gray-400' : '']"
+        :class="[error ? 'text-red-900 border-red-300 placeholder-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500']"
         :aria-invalid="!!error"
         :aria-describedby="errorAreaId"
         @input="event => $emit('update:value', event.target.value)"
