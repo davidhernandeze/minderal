@@ -14,7 +14,7 @@ const props = defineProps({
   }
 })
 
-const emits = defineEmits(['save'])
+const emits = defineEmits(['submit'])
 const { urlPreview, fetchLinkPreview } = useUrl()
 
 watchDebounced(() => urlPreview.value.url, fetchLinkPreview, { debounce: 500, maxWait: 1000 })
@@ -32,8 +32,7 @@ function submit () {
   form.value = { ...props.doc, ...form.value }
   form.value.name = props.doc.name || urlPreview.value.title
   form.value.content = urlPreview.value?.title ? urlPreview.value : { url: urlPreview.value.url }
-  console.log(form.value)
-  emits('save', form.value)
+  emits('submit', form.value)
 }
 
 </script>

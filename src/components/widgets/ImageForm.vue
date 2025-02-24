@@ -21,7 +21,6 @@ function submit () {
 
 <template>
   <form
-    class="text-gray-200 text-xl "
     @submit.prevent="submit"
   >
     <TextInput

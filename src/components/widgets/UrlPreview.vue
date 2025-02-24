@@ -17,6 +17,7 @@ defineProps({
     target="_blank"
     class="h-full"
   >
-    <UrlMetadata :url-preview="doc.content" />
+    <UrlMetadata v-if="doc.content?.title" :url-preview="doc.content" />
+    <span v-else>{{ doc.content.url }}</span>
   </a>
 </template>
