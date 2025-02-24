@@ -30,7 +30,7 @@ onBeforeMount(async () => {
         <WorkspaceManager v-show="tabs.length > 0" class="flex-1 overflow-y-auto" />
       </div>
     </div>
-    <div class="text-gray-300 text-xs fixed bottom-0 m-2">v0.31</div>
+    <div class="text-gray-300 text-xs fixed bottom-0 m-2">v0.32</div>
   </div>
   <Mindbar v-else />
 </template>

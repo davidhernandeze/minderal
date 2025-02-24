@@ -22,8 +22,8 @@ async function switchValue() {
 </script>
 
 <template>
-  <div class="flex justify-center h-full items-center scale-150">
-    <ToggleSwitch v-model="content" @change="switchValue" />
+  <div class="flex justify-center h-full items-center">
+    <ToggleSwitch pt:root:class="scale-200" v-model="content" @change="switchValue" />
   </div>
 </template>
 
