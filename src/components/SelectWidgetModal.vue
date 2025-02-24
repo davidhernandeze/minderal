@@ -41,7 +41,7 @@ const filteredWidgets = computed(() => {
     header="Select Widget"
     @close="searchTypeValue = ''"
   >
-    <div class="text-gray-50 my-4">
+    <div class="my-4">
       <div class="flex items-center px-4">
         <input
           ref="searchTypeInput"
@@ -56,7 +56,7 @@ const filteredWidgets = computed(() => {
         <button
           v-for="widget in filteredWidgets"
           :key="widget.index"
-          class="flex items-center rounded-full p-1 px-3 hover:bg-gray-700 cursor-pointer text-md shadow-xs"
+          class="flex items-center rounded-full p-1 px-3 hover:text-(--p-primary-500) border-transparent hover:border-(--p-primary-500) cursor-pointer text-md border"
           @click="isOpen = false; emits('select', widget); searchTypeValue = ''"
         >
           <i

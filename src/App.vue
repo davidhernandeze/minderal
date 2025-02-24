@@ -30,7 +30,7 @@ onBeforeMount(async () => {
         <WorkspaceManager v-show="tabs.length > 0" class="flex-1 overflow-y-auto" />
       </div>
     </div>
-    <div class="text-gray-300 text-xs fixed bottom-0 m-2">v0.32</div>
+    <div class="text-gray-300 text-xs fixed bottom-0 m-2">v0.33</div>
   </div>
   <Mindbar v-else />
 </template>
@@ -43,6 +43,11 @@ html {
   border-radius: 0.375rem;
   overflow: hidden;
   font-size: 14px;
+  background-color: var(--p-surface-50);
+}
+
+html.dark {
+  background-color: var(--p-surface-900);
 }
 
 @font-face {

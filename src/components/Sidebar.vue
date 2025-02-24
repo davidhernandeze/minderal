@@ -42,14 +42,14 @@ function toggleDarkMode() {
 <template>
   <div
     v-show="isSidebarVisible"
-    class="relative w-full sm:w-[15rem] sm:block h-max-screen shadow-md"
+    class="text-3xl sm:text-base relative w-full sm:w-[15rem] sm:block h-max-screen shadow-md"
   >
     <div
       v-show="tabs.length > 0"
       class="absolute right-0 top-0 p-2 cursor-pointer text-gray-400 hover:text-gray-50"
       @click="sidebarStore.hideSidebar()"
     >
-      <i class="bi bi-x text-lg" />
+      <i class="bi bi-x" />
     </div>
     <div class="p-2 text-xs">minderal 2.0</div>
     <div class="p-2">
@@ -66,9 +66,9 @@ function toggleDarkMode() {
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="bi bi-circle-fill text-(--p-primary-500)" />
+              <i class="bi bi-circle-fill text-lg sm:text-base text-(--p-primary-500)" />
               <i v-if="connection.host" class="bi bi-cloud-check-fill text-blue-300" />
-              <div class="text-sm">
+              <div>
                 {{ connection.name }}
               </div>
             </div>
@@ -81,11 +81,11 @@ function toggleDarkMode() {
           </div>
         </li>
         <li
-          class="border mt-3 flex-center h-10 rounded-sm border-dashed border-(--p-surface-300) cursor-pointer hover:text-(--p-primary-500) hover:border-(--p-primary-500)"
+          class="border mt-10 flex-center h-10 rounded-sm border-dashed border-(--p-surface-300) cursor-pointer hover:text-(--p-primary-500) hover:border-(--p-primary-500)"
           @click="isConnectionSetupModalOpen = true"
         >
-          <i class="bi bi-plus text-xl mr-2" />
-          <span class="uppercase text-xss">New Database</span>
+          <i class="bi bi-plus mr-2" />
+          <span class="uppercase">New Database</span>
         </li>
       </ul>
     </div>
