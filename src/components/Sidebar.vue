@@ -30,9 +30,7 @@ if (darkThemeActive) {
 
 function toggleDarkMode() {
   const darkThemeActive = localStorage.getItem('dark') === 'true'
-  console.log(darkThemeActive)
   if (darkThemeActive) {
-    console.log('removing dark')
     localStorage.setItem('dark', 'false')
   } else {
     localStorage.setItem('dark', 'true')

@@ -238,7 +238,7 @@ async function moveDoc(parentDoc) {
       </div>
     </template>
     <template v-if="!widgetProps.standalonePreview" #footer>
-      <div class="flex flex-wrap items-center justify-between gap-4">
+      <div class="relative flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-2">
           <button
             v-if="!widgetProps.hideCopyButton"
@@ -249,6 +249,7 @@ async function moveDoc(parentDoc) {
           </button>
         </div>
         <span class="text-xs text-text-gray-700 dark:text-gray-500">Updated {{ timeAgo }}</span>
+<!--        <span class="absolute bottom-[2rem] text-xs text-text-gray-700 dark:text-gray-500">{{ doc._id }}</span>-->
       </div>
     </template>
 
