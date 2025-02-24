@@ -4,6 +4,7 @@ import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { storeToRefs } from 'pinia'
 import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
 import sidebarStore from '@/stores/sidebar.js'
+import Button from 'primevue/button'
 
 const metadataStore = useMetadataStore()
 const { connections, tabs } = storeToRefs(metadataStore)
@@ -20,6 +21,23 @@ function openNewTab(connectionId, connectionName) {
 function openConnectionSetup(connection) {
   connectionOnEdit.value = connection
   isConnectionSetupModalOpen.value = true
+}
+
+const darkThemeActive = localStorage.getItem('dark') === 'true'
+if (darkThemeActive) {
+  document.documentElement.classList.add('dark')
+}
+
+function toggleDarkMode() {
+  const darkThemeActive = localStorage.getItem('dark') === 'true'
+  console.log(darkThemeActive)
+  if (darkThemeActive) {
+    console.log('removing dark')
+    localStorage.setItem('dark', 'false')
+  } else {
+    localStorage.setItem('dark', 'true')
+  }
+  document.documentElement.classList.toggle('dark')
 }
 </script>
 
@@ -45,7 +63,7 @@ function openConnectionSetup(connection) {
         <li
           v-for="connection in connections"
           :key="connection.id"
-          class="p-2 cursor-pointer rounded-sm hover:bg-[var(--p-surface-100)] dark:hover:bg-[var(--p-surface-800)] relative"
+          class="p-2 cursor-pointer rounded-sm hover:bg-(--p-surface-100) dark:hover:bg-(--p-surface-800) relative"
           @click="openNewTab(connection.id, connection.name)"
         >
           <div class="flex items-center justify-between">
@@ -72,6 +90,9 @@ function openConnectionSetup(connection) {
           <span class="uppercase text-xss">New Database</span>
         </li>
       </ul>
+    </div>
+    <div class="absolute bottom-[4rem] m-2">
+      <Button size="sm" icon="bi bi-brightness-high" @click="toggleDarkMode" />
     </div>
     <ConnectionSetupModal
       :open-modal="isConnectionSetupModalOpen"

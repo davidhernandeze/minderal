@@ -3,6 +3,8 @@
 
 @plugin '@tailwindcss/forms';
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --color-transparent: rgba(255, 255, 255, 0);
 
