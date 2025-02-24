@@ -9,13 +9,13 @@ use crate::state::AppState;
 
 
 #[tauri::command]
-pub fn lock(window: WebviewWindow, state: State<'_, Mutex<AppState>>) {
+pub fn lock(state: State<'_, Mutex<AppState>>) {
   let mut state = state.lock().unwrap();
   state.locked = true;
 }
 
 #[tauri::command]
-pub fn unlock(window: WebviewWindow, state: State<'_, Mutex<AppState>>) {
+pub fn unlock(state: State<'_, Mutex<AppState>>) {
   let mut state = state.lock().unwrap();
   state.locked = false
 }
