@@ -30,7 +30,6 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   border-radius: 0.375rem;
-  overflow: hidden;
   font-size: 14px;
   background-color: var(--p-surface-50);
 }
