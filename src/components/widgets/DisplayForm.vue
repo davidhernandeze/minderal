@@ -34,9 +34,6 @@ function submit () {
     class="text-gray-200 text-xl "
     @submit.prevent="submit"
   >
-    <h1 class="mb-1">
-      Edit Display
-    </h1>
     <div class="text-sm">
       You can customize how the widget is displayed
     </div>

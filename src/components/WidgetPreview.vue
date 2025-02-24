@@ -14,6 +14,7 @@ import WidgetVersionsModal from '@/components/WidgetVersionsModal.vue'
 import DocSelector from '@/components/DocSelector.vue'
 import Panel from 'primevue/panel'
 import { useTimeAgo } from '@vueuse/core'
+import Dialog from 'primevue/dialog'
 
 const props = defineProps({
   doc: {
@@ -162,7 +163,7 @@ async function moveDoc(parentDoc) {
 </script>
 <template>
   <Panel
-    :pt:header:class="['!p-2', doc.widget === 'folder' ? '!pb-0': '']"
+    :pt:header:class="['!p-2', doc.widget === 'folder' ? '!pb-0' : '']"
     pt:root:class=" h-full flex flex-col"
     pt:content-container:class="h-full min-h-0 flex-1 flex flex-col"
     pt:content:class="h-full flex-1 min-h-0 flex flex-col !pb-0"
@@ -254,28 +255,27 @@ async function moveDoc(parentDoc) {
 
     <Widget :doc="doc" @click="clickAction" @add-actions="addActions" />
 
-    <Modal v-model:is-open="renameModalOpen">
-      <template #body>
-        <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
-          <h1 class="mb-1">Rename Widget</h1>
-          <TextInput v-model:value="renameInput" label="New Name" type="text" class="my-3 w-full" />
-          <GenericButton class="bg-indigo-600 hover:bg-indigo-500 mt-6" type="submit">
-            Rename
-          </GenericButton>
-        </form>
-      </template>
-    </Modal>
+    <Dialog header="Rename widget" modal v-model:visible="renameModalOpen">
+      <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
+        <TextInput v-model:value="renameInput" label="New Name" type="text" class="my-3 w-full" />
+        <GenericButton class="bg-indigo-600 hover:bg-indigo-500 mt-6" type="submit">
+          Rename
+        </GenericButton>
+      </form>
+    </Dialog>
     <WidgetVersionsModal :doc="doc" v-model:is-open="versionsModalOpen" />
-    <Modal v-if="widgetProps.formComponent" v-model:is-open="widgetFormOpen">
-      <template #body>
-        <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />
-      </template>
-    </Modal>
-    <Modal v-model:is-open="moveToModalOpen">
-      <template #body>
-        <DocSelector @select="moveDoc" :parents-only="true" :exclude-doc-ids="[props.doc._id]" />
-      </template>
-    </Modal>
+    <Dialog
+      header="Edit widget"
+      modal
+      v-if="widgetProps.formComponent"
+      v-model:visible="widgetFormOpen"
+      style="width: 40rem"
+    >
+      <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />
+    </Dialog>
+    <Dialog header="Move widget" v-model:visible="moveToModalOpen" modal style="width: 35rem">
+      <DocSelector @select="moveDoc" :parents-only="true" :exclude-doc-ids="[props.doc._id]" />
+    </Dialog>
   </Panel>
 </template>
 

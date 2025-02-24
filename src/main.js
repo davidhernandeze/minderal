@@ -4,7 +4,6 @@ import 'quill/dist/quill.bubble.css'
 import 'highlight.js/styles/atom-one-dark.css'
 import './style.css'
 import App from './App.vue'
-import Modal from '@/components/Modal.vue'
 import { createPinia } from 'pinia'
 import find from 'pouchdb-find'
 import PouchDB from 'pouchdb-browser'
@@ -36,7 +35,6 @@ if (process.env.NODE_ENV !== 'development') {
 }
 
 app.mount('#app')
-app.component('Modal', Modal)
 
 window.onkeydown = function (key) {
   if (key.ctrlKey && key.key.toLowerCase() === 'k') {

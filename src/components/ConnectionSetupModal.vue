@@ -1,10 +1,10 @@
 <script setup>
 import { ref, watch } from 'vue'
-import Modal from '@/components/Modal.vue'
 import SwitchInput from '@/components/SwitchInput.vue'
 import TextInput from '@/components/TextInput.vue'
 import GenericButton from '@/components/GenericButton.vue'
 import { useMetadataStore } from '@/stores/MetadataStore.js'
+import Dialog from 'primevue/dialog'
 
 const emits = defineEmits(['close', 'select'])
 const props = defineProps({
@@ -79,84 +79,81 @@ watch(isOpen, (value) => {
 
 </script>
 <template>
-  <Modal
-    v-model:is-open="isOpen"
+  <Dialog
+    v-model:visible="isOpen"
+    header="Connection Setup"
+    modal
   >
-    <template #body>
-      <form
-        class="text-gray-200 text-xl "
-        @submit.prevent="addConnection"
-      >
-        <h1 class="mb-1">
-          Connection Setup
-        </h1>
-        <div class="text-sm">
-          If local database doesn't exists, it will be created automatically.
-        </div>
-        <TextInput
-          v-model:value="form.name"
-          :disabled="isEdition"
-          label="Database Name"
-          type="text"
-          class="my-3 w-full"
-        />
-        <SwitchInput
-          v-show="!isEdition"
-          v-model:model-value="isRemoteConnection"
-          class="my-2"
-          label="Remote connection"
-        />
+    <form
+      class="text-gray-200 text-xl "
+      @submit.prevent="addConnection"
+    >
+      <div class="text-sm">
+        If local database doesn't exists, it will be created automatically.
+      </div>
+      <TextInput
+        v-model:value="form.name"
+        :disabled="isEdition"
+        label="Database Name"
+        type="text"
+        class="my-3 w-full"
+      />
+      <SwitchInput
+        v-show="!isEdition"
+        v-model:model-value="isRemoteConnection"
+        class="my-2"
+        label="Remote connection"
+      />
 
-        <div v-show="isRemoteConnection">
-          <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6">
-            <TextInput
-              v-model:value="form.host"
-              :disabled="isEdition"
-              label="Host"
-              type="text"
-              class="sm:col-span-4"
-            />
-            <TextInput
-              v-model:value="form.username"
-              :disabled="isEdition"
-              label="User"
-              type="text"
-              class="sm:col-span-3"
-            />
-            <TextInput
-              v-show="!isEdition"
-              v-model:value="form.password"
-              label="Password"
-              type="password"
-              class="sm:col-span-3"
-            />
-          </div>
+      <div v-show="isRemoteConnection">
+        <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-6 sm:grid-cols-6">
+          <TextInput
+            v-model:value="form.host"
+            :disabled="isEdition"
+            label="Host"
+            type="text"
+            class="sm:col-span-4"
+          />
+          <TextInput
+            v-model:value="form.username"
+            :disabled="isEdition"
+            label="User"
+            type="text"
+            class="sm:col-span-3"
+          />
+          <TextInput
+            v-show="!isEdition"
+            v-model:value="form.password"
+            label="Password"
+            type="password"
+            class="sm:col-span-3"
+          />
         </div>
-        <div v-if="!isEdition">
-          <GenericButton
-            class="bg-indigo-600 hover:bg-indigo-500 mt-6"
-            type="submit"
-          >
-            Connect
-          </GenericButton>
-        </div>
-        <div v-else>
-          <GenericButton
-            v-if="!isRemoteConnection"
-            class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-hidden mr-2"
-            @click="deleteDatabase"
-          >
-            <i class="bi-exclamation-triangle-fill mr-2" />
-            Delete Database
-          </GenericButton>
-          <GenericButton
-            class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-hidden"
-            @click="removeConnection"
-          >
-            Disconnect
-          </GenericButton>
-        </div>
-      </form>
-    </template>
-  </Modal>
+      </div>
+      <div v-if="!isEdition">
+        <GenericButton
+          class="bg-indigo-600 hover:bg-indigo-500 mt-6"
+          type="submit"
+        >
+          Connect
+        </GenericButton>
+      </div>
+      <div v-else>
+        <GenericButton
+          v-if="!isRemoteConnection"
+          class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-hidden mr-2"
+          @click="deleteDatabase"
+        >
+          <i class="bi-exclamation-triangle-fill mr-2" />
+          Delete Database
+        </GenericButton>
+        <GenericButton
+          class="bg-transparent border-none hover:bg-red-500 mt-6 focus:ring-0 focus:outline-hidden"
+          @click="removeConnection"
+        >
+          Disconnect
+        </GenericButton>
+      </div>
+    </form>
+  </Dialog>
 </template>

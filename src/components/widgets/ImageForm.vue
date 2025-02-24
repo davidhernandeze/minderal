@@ -24,9 +24,6 @@ function submit () {
     class="text-gray-200 text-xl "
     @submit.prevent="submit"
   >
-    <h1 class="mb-1">
-      New Image
-    </h1>
     <TextInput
       v-model:value="form.name"
       label="Name"

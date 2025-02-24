@@ -7,11 +7,11 @@ import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import { useWorkspace } from '@/composables/useWorkspace.js'
 import sidebarStore from '@/stores/sidebar.js'
-import Modal from '@/components/Modal.vue'
 import WidgetForm from '@/components/WidgetForm.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
 
 const props = defineProps({
   connectionId: {
@@ -107,7 +107,11 @@ onBeforeUnmount(async () => {
 </script>
 
 <template>
-  <Panel pt:content:class="relative h-full flex flex-col p-6 pr-0 pb-[50rem] overflow-visible !rounded-t-none">
+  <Panel
+    pt:root:class="h-full !rounded-none !border-none flex flex-col"
+    pt:content-container:class="h-full min-h-0 flex-1 flex flex-col"
+    pt:content:class="relative h-full flex flex-col !pb-0 p-6 pr-0 overflow-visible !rounded-t-none"
+  >
     <div class="absolute right-[1rem] top-[1rem] z-99">
       <ProgressSpinner
         v-show="isLoading"
@@ -130,7 +134,7 @@ onBeforeUnmount(async () => {
         placeholder="Search..."
       />
     </div>
-    <div class="flex-1 overflow-y-auto">
+    <div class="flex-1 min-h-0 overflow-y-auto">
       <WidgetExpanded v-if="connectionDone" :doc="currentDoc" />
     </div>
     <button class="hidden" @click="workspace.migrateDatabase()">migrate</button>
@@ -163,7 +167,7 @@ onBeforeUnmount(async () => {
             />
           </div>
           <div class="flex-center p-2">
-            <Button label="Add" @click="createDoc"/>
+            <Button label="Add" @click="createDoc" />
           </div>
         </div>
       </div>
@@ -172,11 +176,9 @@ onBeforeUnmount(async () => {
         @close="isTypesModalOpen = false"
         @select="selectWidget"
       />
-      <Modal v-model:is-open="widgetFormOpen">
-        <template #body>
-          <WidgetForm :widget="selectedWidget" @save="widgetFormOpen = false" />
-        </template>
-      </Modal>
+      <Dialog header="Create widget" modal v-model:visible="widgetFormOpen" style="width: 40rem">
+        <WidgetForm :widget="selectedWidget" @save="widgetFormOpen = false" />
+      </Dialog>
     </div>
   </Panel>
 </template>

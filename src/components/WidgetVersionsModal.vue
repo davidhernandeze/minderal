@@ -3,6 +3,7 @@ import { ref, inject, watch, computed } from 'vue'
 import { Doc } from '@/classes/Doc.js'
 import GenericButton from '@/components/GenericButton.vue'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
+import Dialog from 'primevue/dialog'
 
 const props = defineProps({
   doc: {
@@ -37,7 +38,6 @@ async function fetchVersions() {
 
 async function getDocOnVersion(version) {
   versionedDoc.value = await workspace.getDocOnRevision(props.doc._id, version)
-  console.log(versionedDoc.value)
 }
 
 async function navigateToNextVersion() {
@@ -63,43 +63,41 @@ async function restoreVersion() {
 </script>
 
 <template>
-  <Modal class="text-white" v-model:is-open="isOpen">
-    <template #body>
-      <div v-if="selectedVersion">
-        <div class="mb-4">
-          <h2 class="text-xl font-bold truncate">Version {{ selectedVersion.split('-')[0] }}</h2>
-          <span v-if="currentVersionIndex === 0">(current)</span>
-        </div>
-        <div class="flex justify-between mb-4">
-          <GenericButton
-            @click="navigateToPreviousVersion"
-            class="bg-gray-900 mt-6"
-            :disabled="!hasPreviousVersion"
-          >
-            Previous Version
-          </GenericButton>
-          <GenericButton
-            @click="navigateToNextVersion"
-            class="bg-gray-900 mt-6"
-            :disabled="!hasNextVersion"
-          >
-            Next Version
-          </GenericButton>
-        </div>
-        <div v-if="versionedDoc._id" class="overflow-y-auto relative">
-          <div class="absolute bg-transparent w-full h-full z-99"></div>
-          <p class="text-lg"><span class="font-bold">Name: </span>{{ versionedDoc.name }}</p>
-          <WidgetExpanded :doc="versionedDoc" />
-        </div>
+  <Dialog header="Version history" v-model:visible="isOpen" modal :style="{ width: '35rem' }">
+    <div v-if="selectedVersion">
+      <div class="mb-4">
+        <h2 class="text-xl font-bold truncate">Version {{ selectedVersion.split('-')[0] }}</h2>
+        <span v-if="currentVersionIndex === 0">(current)</span>
+      </div>
+      <div class="flex justify-between mb-4">
         <GenericButton
-          v-if="currentVersionIndex !== 0"
-          @click="restoreVersion"
-          class="bg-indigo-600 hover:bg-indigo-500 mt-6"
-          type="submit"
+          @click="navigateToPreviousVersion"
+          class="bg-gray-900 mt-6"
+          :disabled="!hasPreviousVersion"
         >
-          Restore
+          Previous Version
+        </GenericButton>
+        <GenericButton
+          @click="navigateToNextVersion"
+          class="bg-gray-900 mt-6"
+          :disabled="!hasNextVersion"
+        >
+          Next Version
         </GenericButton>
       </div>
-    </template>
-  </Modal>
+      <div v-if="versionedDoc._id" class="overflow-y-auto relative">
+        <div class="absolute bg-transparent w-full h-full z-99"></div>
+        <p class="text-lg"><span class="font-bold">Name: </span>{{ versionedDoc.name }}</p>
+        <WidgetExpanded :doc="versionedDoc" />
+      </div>
+      <GenericButton
+        v-if="currentVersionIndex !== 0"
+        @click="restoreVersion"
+        class="bg-indigo-600 hover:bg-indigo-500 mt-6"
+        type="submit"
+      >
+        Restore
+      </GenericButton>
+    </div>
+  </Dialog>
 </template>

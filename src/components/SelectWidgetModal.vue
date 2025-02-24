@@ -1,6 +1,7 @@
 <script setup>
 import { getWidgetList } from '@/enums/widgets.js'
 import { computed, ref, watch } from 'vue'
+import Dialog from 'primevue/dialog'
 
 const widgets = getWidgetList()
 
@@ -34,37 +35,37 @@ const filteredWidgets = computed(() => {
 
 </script>
 <template>
-  <Modal
-    v-model:is-open="isOpen"
+  <Dialog
+    v-model:visible="isOpen"
+    modal
+    header="Select Widget"
     @close="searchTypeValue = ''"
   >
-    <template #body>
-      <div class="text-gray-50 my-4">
-        <div class="flex items-center px-4">
-          <input
-            ref="searchTypeInput"
-            v-model="searchTypeValue"
-            class="text-gray-50 rounded-sm text-md p-2 bg-gray-700 w-full"
-            type="text"
-            placeholder="Search widget..."
-          >
-        </div>
-
-        <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
-          <button
-            v-for="widget in filteredWidgets"
-            :key="widget.index"
-            class="flex items-center rounded-full p-1 px-3 hover:bg-gray-700 cursor-pointer text-md shadow-xs"
-            @click="isOpen = false; emits('select', widget); searchTypeValue = ''"
-          >
-            <i
-              :class="widget.icon"
-              class="mr-2"
-            />
-            {{ widget.label }}
-          </button>
-        </div>
+    <div class="text-gray-50 my-4">
+      <div class="flex items-center px-4">
+        <input
+          ref="searchTypeInput"
+          v-model="searchTypeValue"
+          class="rounded-sm text-md p-2 w-full dark:bg-(--p-surface-900)"
+          type="text"
+          placeholder="Search widget..."
+        >
       </div>
-    </template>
-  </Modal>
+
+      <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
+        <button
+          v-for="widget in filteredWidgets"
+          :key="widget.index"
+          class="flex items-center rounded-full p-1 px-3 hover:bg-gray-700 cursor-pointer text-md shadow-xs"
+          @click="isOpen = false; emits('select', widget); searchTypeValue = ''"
+        >
+          <i
+            :class="widget.icon"
+            class="mr-2"
+          />
+          {{ widget.label }}
+        </button>
+      </div>
+    </div>
+  </Dialog>
 </template>

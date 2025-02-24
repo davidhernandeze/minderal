@@ -31,7 +31,8 @@ if (props.doc) {
 function submit () {
   form.value = { ...props.doc, ...form.value }
   form.value.name = props.doc.name || urlPreview.value.title
-  form.value.content = urlPreview.value
+  form.value.content = urlPreview.value?.title ? urlPreview.value : { url: urlPreview.value.url }
+  console.log(form.value)
   emits('save', form.value)
 }
 
@@ -54,7 +55,6 @@ function submit () {
       class="flex gap-4"
     />
     <GenericButton
-      v-if="urlPreview.title"
       class="bg-indigo-600 hover:bg-indigo-500 mt-6"
       type="submit"
     >

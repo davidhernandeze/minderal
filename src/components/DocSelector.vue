@@ -70,7 +70,6 @@ function onSelect() {
 </script>
 <template>
   <div>
-    <h1 class="text-2xl mb-4">Move to...</h1>
     <Tree
       :value="nodes"
       @node-expand="onNodeExpand"
