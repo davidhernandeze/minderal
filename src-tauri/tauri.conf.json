@@ -40,7 +40,8 @@
         "alwaysOnTop": true,
         "dragDropEnabled": false,
         "visibleOnAllWorkspaces": true,
-        "skipTaskbar": true
+        "skipTaskbar": true,
+        "theme": "Dark"
       }
     ],
     "security": {

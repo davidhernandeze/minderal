@@ -5,6 +5,7 @@ import { storeToRefs } from 'pinia'
 import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
 import sidebarStore from '@/stores/sidebar.js'
 import Button from 'primevue/button'
+import themeStore from '@/stores/theme.js'
 
 const metadataStore = useMetadataStore()
 const { connections, tabs } = storeToRefs(metadataStore)
@@ -21,21 +22,6 @@ function openNewTab(connectionId, connectionName) {
 function openConnectionSetup(connection) {
   connectionOnEdit.value = connection
   isConnectionSetupModalOpen.value = true
-}
-
-const darkThemeActive = localStorage.getItem('dark') === 'true'
-if (darkThemeActive) {
-  document.documentElement.classList.add('dark')
-}
-
-function toggleDarkMode() {
-  const darkThemeActive = localStorage.getItem('dark') === 'true'
-  if (darkThemeActive) {
-    localStorage.setItem('dark', 'false')
-  } else {
-    localStorage.setItem('dark', 'true')
-  }
-  document.documentElement.classList.toggle('dark')
 }
 </script>
 
@@ -91,7 +77,7 @@ function toggleDarkMode() {
       </ul>
     </div>
     <div class="absolute bottom-[4rem] m-2">
-      <Button size="sm" icon="bi bi-brightness-high" @click="toggleDarkMode" />
+      <Button size="sm" icon="bi bi-brightness-high" @click="themeStore.toggleDarkMode()" />
     </div>
     <ConnectionSetupModal
       :open-modal="isConnectionSetupModalOpen"

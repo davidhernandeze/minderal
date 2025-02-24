@@ -1,14 +1,13 @@
 <script setup>
-import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { storeToRefs } from 'pinia'
-import { ref, watch } from 'vue'
+import { inject, ref, watch } from 'vue'
 import Select from 'primevue/select'
 import Card from 'primevue/card'
 import { onKeyStroke } from '@vueuse/core'
 import { invoke } from '@tauri-apps/api/core'
 import WidgetSearch from '@/components/WidgetSearch.vue'
 
-const metadataStore = useMetadataStore()
+const metadataStore = inject('metadataStore')
 const { connections } = storeToRefs(metadataStore)
 
 const isMindbarLocked = ref(false)
