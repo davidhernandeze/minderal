@@ -100,6 +100,15 @@ export const widgets = {
     createWithContent: true,
     toClipboard: (doc) => doc.content,
   },
+  coordinates: {
+    label: 'Coordinates',
+    icon: 'bi bi-geo-alt',
+    indexContent: (doc) => doc.content,
+    previewComponent: 'CoordinatesPreview',
+    formComponent: 'CoordinatesForm',
+    expandable: false,
+    toClipboard: (doc) => `${doc.content.latitude},${doc.content.longitude}`,
+  },
 }
 
 export const getWidgetList = () => {
