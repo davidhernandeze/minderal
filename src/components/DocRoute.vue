@@ -37,7 +37,7 @@ watch(
       <li v-for="doc in route" :key="doc.id" @click="$emit('navigate', doc.id)">
         <div class="flex items-center">
           <i class="bi bi-caret-right-fill mx-4" />
-          <div class="ml-2 hover:text-(--p-primary-500) ">
+          <div class="ml-2 flex hover:text-(--p-primary-500)">
             <i :class="getWidgetProps(doc.widget)?.icon" />
             <a href="#" class="font-medium truncate max-w-xs ml-2">{{ doc.name }}</a>
           </div>
