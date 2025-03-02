@@ -110,7 +110,7 @@ onBeforeUnmount(async () => {
   <Panel
     pt:root:class="h-full !rounded-none !border-none flex flex-col"
     pt:content-container:class="h-full min-h-0 flex-1 flex flex-col"
-    pt:content:class="relative h-full flex flex-col !pb-0 p-6 pr-0 overflow-visible !rounded-t-none"
+    pt:content:class="relative h-full flex flex-col !pb-0 p-6 !pr-0 overflow-visible !rounded-t-none"
   >
     <div class="absolute right-[1rem] top-[1rem] z-99">
       <ProgressSpinner

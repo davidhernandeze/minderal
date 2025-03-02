@@ -38,7 +38,7 @@ function openConnectionSetup(connection) {
       <i class="bi bi-x" />
     </div>
     <div class="p-2 pb-0 text-xs">minderal</div>
-    <div class="px-2 text-gray-300 text-xss">v0.35</div>
+    <div class="px-2 text-gray-300 text-xss">v0.36</div>
     <div class="p-2">
       <div class="text-xs uppercase flex items-center mb-2">
         <i class="bi bi-database mr-1" />
@@ -48,8 +48,7 @@ function openConnectionSetup(connection) {
         <li
           v-for="connection in connections"
           :key="connection.id"
-          class="p-2 cursor-pointer rounded-sm hover:bg-(--p-surface-100) dark:hover:bg-(--p-surface-800) relative"
-          @click="openNewTab(connection.id, connection.name)"
+          class="py-6 sm:py-2 p-2 cursor-pointer rounded-sm hover:bg-(--p-surface-100) dark:hover:bg-(--p-surface-800) relative"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
@@ -59,16 +58,24 @@ function openConnectionSetup(connection) {
                 {{ connection.name }}
               </div>
             </div>
-            <div
-              class="rounded-full w-6 text-gray-400 hover:text-(--p-primary-500) flex-center"
-              @click.stop="openConnectionSetup(connection)"
-            >
-              <i class="bi bi-gear" />
+            <div class="flex gap-6">
+              <button
+                class="rounded-full w-6 text-gray-400 hover:text-(--p-primary-500) flex-center"
+                @click.stop="openConnectionSetup(connection)"
+              >
+                <i class="bi bi-gear" />
+              </button>
+              <button
+                class="rounded-full w-6 text-gray-400 hover:text-(--p-primary-500) flex-center"
+                @click="openNewTab(connection.id, connection.name)"
+              >
+                <i class="bi bi-box-arrow-up-right" />
+              </button>
             </div>
           </div>
         </li>
         <li
-          class="border mt-10 flex-center h-10 rounded-sm border-dashed border-(--p-surface-300) cursor-pointer hover:text-(--p-primary-500) hover:border-(--p-primary-500)"
+          class="border mt-10 flex-center py-4 rounded-sm border-dashed border-(--p-surface-300) cursor-pointer hover:text-(--p-primary-500) hover:border-(--p-primary-500)"
           @click="isConnectionSetupModalOpen = true"
         >
           <i class="bi bi-plus mr-2" />

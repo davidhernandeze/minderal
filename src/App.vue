@@ -32,6 +32,7 @@ html {
   border-radius: 0.375rem;
   font-size: 14px;
   background-color: var(--p-surface-50);
+  user-select: none;
 }
 
 html.dark {
