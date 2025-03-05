@@ -1,7 +1,6 @@
 <script setup>
 import { ref } from 'vue'
 import TextInput from '@/components/TextInput.vue'
-import GenericButton from '@/components/GenericButton.vue'
 import Button from 'primevue/button'
 import { Geolocation } from '@capacitor/geolocation'
 
@@ -18,7 +17,11 @@ const form = ref({
   _id: props.doc?._id || null,
   name: props.doc?.name || '',
   widget: 'coordinates',
-  content: props.doc?.content || {},
+  content: props.doc?.content || {
+    latitude: '0',
+    longitude: '0',
+    altitude: '0',
+  },
 })
 
 function submit() {
@@ -61,8 +64,8 @@ async function setFromCurrentLocation() {
       />
       <p class="text-red-500 text-sm">{{ error }}</p>
     </div>
-    <GenericButton class="bg-indigo-600 hover:bg-indigo-500 mt-10" type="submit">
-      Update
-    </GenericButton>
+    <div class="flex justify-end">
+      <Button @click="submit">Save</Button>
+    </div>
   </form>
 </template>
