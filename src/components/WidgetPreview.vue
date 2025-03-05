@@ -170,7 +170,7 @@ async function moveDoc(parentDoc) {
   >
     <template #header>
       <div v-if="widgetProps.standalonePreview || props.single" />
-      <div v-else class="flex-1 flex justify-start items-center text-gray-400 truncate">
+      <div v-else class="flex-1 flex justify-start items-center text-gray-400 truncate pr-2">
         <i class="text-xl" :class="icon" />
         <InvisibleInput
           v-model:el="renameInputEl"

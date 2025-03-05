@@ -90,6 +90,14 @@ export const widgets = {
     previewComponent: 'ImagePreview',
     expandedComponent: 'ImageExpanded',
   },
+  file: {
+    label: 'File',
+    icon: 'bi bi-file-earmark',
+    expandable: true,
+    formComponent: 'FileForm',
+    previewComponent: 'FilePreview',
+    expandedComponent: 'FileExpanded',
+  },
   command: {
     label: 'Command',
     icon: 'bi bi-terminal',

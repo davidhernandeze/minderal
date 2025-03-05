@@ -143,7 +143,7 @@ async function copySelectedDocToClipboard () {
       <div class="h-[12rem] flex flex-col" v-if="selectedDoc._id">
         <div class="h-[1.5rem] w-full my-1">
           <div v-if="getWidgetProps(selectedDoc.widget).toClipboard">
-            <i @click="copyToClipboard" class="bi bi-copy cursor-pointer" />
+            <i @click="copySelectedDocToClipboard" class="bi bi-copy cursor-pointer" />
             <span class="ml-2 text-xss">Press enter to copy widget content and hide mindbar.</span>
           </div>
         </div>

@@ -62,7 +62,7 @@ async function openCamera () {
     <img v-if="attachmentUrl" :src="attachmentUrl" alt="New image" class="my-3 h-[12rem]" />
 
     <div v-if="attachmentUrl" class="flex justify-end">
-      <Button class="bg-indigo-600 hover:bg-indigo-500 mt-6" type="submit">Save</Button>
+      <Button type="submit">Save</Button>
     </div>
   </form>
 </template>

@@ -25,7 +25,12 @@ const workspace = inject('workspace')
 
 async function saveDoc(form) {
   if (form._id) {
-    await workspace.updateDoc(props.doc, { ...form })
+    await workspace.updateDoc(props.doc, {
+      name: form.name,
+      content: form.content,
+      widget: form.widget,
+      settings: form.settings,
+    }, form.files)
     emit('save')
     return
   }
@@ -43,6 +48,6 @@ async function saveDoc(form) {
 <template>
   <div>
     <h1 class="mb-4 text-gray-200 text-xl">{{ action }} {{ widget.label }}</h1>
-    <Form :doc="doc" @submit="saveDoc" />
+    <Form :key="doc._rev" :doc="doc" @submit="saveDoc" />
   </div>
 </template>

@@ -154,18 +154,22 @@ export function useWorkspace({ connectionId, docId = '' }) {
       route.push({
         id: parentId,
         name: parentDoc.name,
-        widget: parentDoc.widget
+        widget: parentDoc.widget,
       })
       parentId = parentDoc.parent_id
     }
     currentRoute.value = route.reverse()
   }
 
-  async function updateFileAttachments(id, files) {
+  async function updateDocAttachments(id, files) {
     const doc = await db.getDoc(id)
-    for (const olderFileId of doc.files || []) {
-      const doc = await db.getDoc(olderFileId)
-      await db.hardDeleteDoc(doc)
+    for (const olderFileId of doc.files) {
+      try {
+        const doc = await db.getDoc(olderFileId)
+        await db.hardDeleteDoc(doc)
+      } catch (e) {
+        console.log(e)
+      }
     }
     const filesIds = []
     for (const file of files) {
@@ -205,7 +209,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
       files: [],
     })
     const createdDoc = await db.createDoc(newDoc)
-    await updateFileAttachments(createdDoc.id, files)
+    await updateDocAttachments(createdDoc.id, files)
     isLoading.value = false
   }
 
@@ -213,7 +217,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
     isLoading.value = true
     const updatedDoc = new Doc({ ...doc, ...updatedFields })
     const response = await db.updateDoc({ ...updatedDoc })
-    await updateFileAttachments(response.id, files)
+    await updateDocAttachments(response.id, files)
     isLoading.value = false
     return response
   }
@@ -271,7 +275,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
     await db.migrate()
   }
 
-  async function fetchDocsByParentId (parentId, widget = null) {
+  async function fetchDocsByParentId(parentId, widget = null) {
     return await db.getDocsByParentId(parentId, widget)
   }
 
@@ -303,6 +307,6 @@ export function useWorkspace({ connectionId, docId = '' }) {
     migrateDatabase,
     isLoading,
     fetchDocsByParentId,
-    moveDoc
+    moveDoc,
   }
 }
