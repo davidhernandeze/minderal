@@ -26,14 +26,12 @@ function submit() {
 }
 
 const error = ref('')
+
 async function setFromCurrentLocation() {
   try {
-  const coordinates = await Geolocation.getCurrentPosition({ enableHighAccuracy: false })
-    form.value.content = {
-      latitude: coordinates.latitude,
-      longitude: coordinates.longitude,
-      altitude: coordinates.altitude,
-    }
+    const coordinates = await Geolocation.getCurrentPosition({ enableHighAccuracy: true })
+    const { latitude, longitude, altitude } = coordinates.coords
+    form.value.content = { latitude, longitude, altitude }
   } catch (e) {
     console.error(e)
     error.value = 'Could not get current location'
