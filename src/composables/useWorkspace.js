@@ -161,21 +161,17 @@ export function useWorkspace({ connectionId, docId = '' }) {
     currentRoute.value = route.reverse()
   }
 
-  async function createDoc({
-    name = '',
-    content = null,
-    widget = 'text',
-    settings = {},
-    files = [],
-  }) {
-    isLoading.value = true
-    const widgetInfo = widgets[widget]
+  async function updateFileAttachments(id, files) {
+    const doc = await db.getDoc(id)
+    for (const olderFileId of doc.files || []) {
+      const doc = await db.getDoc(olderFileId)
+      await db.hardDeleteDoc(doc)
+    }
     const filesIds = []
-
     for (const file of files) {
       const fileDoc = await db.createFileDoc({
-        name: file.name,
         created_by: username.value,
+        parent_id: doc._id,
         _attachments: {
           [getId()]: {
             content_type: file.format,
@@ -185,6 +181,19 @@ export function useWorkspace({ connectionId, docId = '' }) {
       })
       filesIds.push(fileDoc.id)
     }
+    doc.files = filesIds
+    await db.updateDoc({ ...doc })
+  }
+
+  async function createDoc({
+    name = '',
+    content = null,
+    widget = 'text',
+    settings = {},
+    files = [],
+  }) {
+    isLoading.value = true
+    const widgetInfo = widgets[widget]
 
     const newDoc = new Doc({
       created_by: username.value,
@@ -193,16 +202,18 @@ export function useWorkspace({ connectionId, docId = '' }) {
       widget,
       settings,
       parent_id: currentDocId.value ?? '',
-      files: filesIds,
+      files: [],
     })
-    await db.createDoc(newDoc)
+    const createdDoc = await db.createDoc(newDoc)
+    await updateFileAttachments(createdDoc.id, files)
     isLoading.value = false
   }
 
-  async function updateDoc(doc, updatedFields) {
+  async function updateDoc(doc, updatedFields, files = []) {
     isLoading.value = true
     const updatedDoc = new Doc({ ...doc, ...updatedFields })
     const response = await db.updateDoc({ ...updatedDoc })
+    await updateFileAttachments(response.id, files)
     isLoading.value = false
     return response
   }

@@ -43,7 +43,6 @@ export default class Database extends EventEmitter {
   }
 
   async createFileDoc(doc) {
-    console.log(doc)
     await this.startListening()
     doc.created_at = moment().toISOString()
     doc.updated_at = moment().toISOString()
@@ -60,6 +59,11 @@ export default class Database extends EventEmitter {
     await this.startListening()
     doc.deleted_at = moment().toISOString()
     await this.connection.put(doc)
+  }
+
+  async hardDeleteDoc(doc) {
+    await this.startListening()
+    await this.connection.remove(doc)
   }
 
   async startListening() {
