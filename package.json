@@ -12,6 +12,10 @@
     "tauri": "tauri"
   },
   "dependencies": {
+    "@capacitor/android": "^7.0.1",
+    "@capacitor/core": "^7.0.1",
+    "@capacitor/geolocation": "^7.1.1",
+    "@capacitor/ios": "^7.0.1",
     "@headlessui/vue": "^1.7.23",
     "@primevue/themes": "^4.2.5",
     "@sentry/vite-plugin": "^3.1.2",
@@ -35,6 +39,7 @@
     "vue-imask": "^7.6.1"
   },
   "devDependencies": {
+    "@capacitor/cli": "^7.0.1",
     "@eslint/js": "^9.18.0",
     "@tailwindcss/vite": "^4.0.6",
     "@tauri-apps/cli": "^2.2.7",

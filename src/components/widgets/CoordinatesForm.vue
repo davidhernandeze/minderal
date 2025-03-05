@@ -3,9 +3,7 @@ import { ref } from 'vue'
 import TextInput from '@/components/TextInput.vue'
 import GenericButton from '@/components/GenericButton.vue'
 import Button from 'primevue/button'
-import { useGeolocation } from '@vueuse/core'
-
-const { coords, error } = useGeolocation()
+import { Geolocation } from '@capacitor/geolocation'
 
 const props = defineProps({
   doc: {
@@ -27,13 +25,18 @@ function submit() {
   emits('submit', form.value)
 }
 
-function setFromCurrentLocation() {
-  console.log(error.value)
-  console.log(coords.value)
-  form.value.content = {
-    latitude: coords.value.latitude,
-    longitude: coords.value.longitude,
-    altitude: coords.value.altitude,
+const error = ref('')
+async function setFromCurrentLocation() {
+  try {
+  const coordinates = await Geolocation.getCurrentPosition({ enableHighAccuracy: false })
+    form.value.content = {
+      latitude: coordinates.latitude,
+      longitude: coordinates.longitude,
+      altitude: coordinates.altitude,
+    }
+  } catch (e) {
+    console.error(e)
+    error.value = 'Could not get current location'
   }
 }
 </script>
@@ -58,7 +61,7 @@ function setFromCurrentLocation() {
         size="small"
         variant="text"
       />
-      <p class="text-red-500 text-sm">{{ error?.message }}</p>
+      <p class="text-red-500 text-sm">{{ error }}</p>
     </div>
     <GenericButton class="bg-indigo-600 hover:bg-indigo-500 mt-10" type="submit">
       Update
