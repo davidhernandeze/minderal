@@ -149,7 +149,7 @@ async function copySelectedDocToClipboard () {
         </div>
         <WidgetPreview
           class="flex-1"
-          :key="selectedDoc._id"
+          :key="selectedDoc._rev"
           :single="true"
           :hide-menu="true"
           :doc="selectedDoc"
