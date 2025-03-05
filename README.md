@@ -94,10 +94,10 @@ The root widget is the parent of all widgets. Widgets with `parent_id=''` are co
 ## About grouping same widget versions (expandable, preview) in a folder
 - It isn't possible due to limitations on dynamic imports. https://vitejs.dev/guide/features#dynamic-import
 
-## Thanks
-The desktop functionality of the floating searching bar was inspired by the [tauri-macos-spotlight-example](https://github.com/ahkohd/tauri-macos-spotlight-example)
-project by [ahkohd](https://github.com/ahkohd), and borrows heavily from its codebase. Thanks to [ahkohd](https://github.com/ahkohd) and the contributors
-to [tauri-macos-spotlight-example](https://github.com/ahkohd/tauri-macos-spotlight-example).
+## Special Thanks
+To the contributors of the following projects:
+- https://github.com/ahkohd/tauri-macos-spotlight-example
+- https://github.com/capawesome-team/capacitor-plugins/tree/main/packages/file-picker
 
 
 
