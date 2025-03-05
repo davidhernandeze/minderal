@@ -48,7 +48,7 @@ function startWidgetDrag(event) {
   >
     <WidgetPreview
       v-for="document in folderDocuments"
-      :key="document._id"
+      :key="document._rev"
       :doc="document"
       @enable-drag="dragDisabled = false"
       @disable-drag="dragDisabled = true"
@@ -65,7 +65,7 @@ function startWidgetDrag(event) {
   >
     <WidgetPreview
       v-for="document in widgetDocuments"
-      :key="document._id"
+      :key="document._rev"
       :doc="document"
       @enable-drag="dragDisabled = false"
       @disable-drag="dragDisabled = true"
