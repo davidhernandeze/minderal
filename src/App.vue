@@ -84,4 +84,8 @@ html.dark {
 *::-webkit-scrollbar-thumb {
   background-color: #1f2937;
 }
+
+pwa-camera-modal-instance {
+  z-index: 9999;
+}
 </style>

@@ -13,10 +13,12 @@
   },
   "dependencies": {
     "@capacitor/android": "^7.0.1",
+    "@capacitor/camera": "^7.0.0",
     "@capacitor/core": "^7.0.1",
     "@capacitor/geolocation": "^7.1.1",
     "@capacitor/ios": "^7.0.1",
     "@headlessui/vue": "^1.7.23",
+    "@ionic/pwa-elements": "^3.3.0",
     "@primevue/themes": "^4.2.5",
     "@sentry/vite-plugin": "^3.1.2",
     "@sentry/vue": "^8.54.0",

@@ -178,7 +178,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
         created_by: username.value,
         _attachments: {
           [getId()]: {
-            content_type: file.type,
+            content_type: file.format,
             data: file.data,
           },
         },

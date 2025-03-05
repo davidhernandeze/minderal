@@ -11,6 +11,9 @@ import * as Sentry from '@sentry/vue'
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import FocusTrap from 'primevue/focustrap'
+import { defineCustomElements } from '@ionic/pwa-elements/loader'
+
+defineCustomElements(window)
 
 PouchDB.plugin(find)
 
