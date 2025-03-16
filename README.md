@@ -98,6 +98,6 @@ The root widget is the parent of all widgets. Widgets with `parent_id=''` are co
 To the contributors of the following projects:
 - https://github.com/ahkohd/tauri-macos-spotlight-example
 - https://github.com/capawesome-team/capacitor-plugins/tree/main/packages/file-picker
-
+- https://github.com/neighbourhoodie/couchdb-minihosting
 
 
