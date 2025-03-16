@@ -1,6 +1,12 @@
 # Minderal - Local-first database for widgets.
 Widgets are chunks of data that can be used to build a user interface. Minderal is a local-first database for storing widgets. It allows users to create, read, update, and delete widgets. The database is stored locally on the user's machine and can be synced with a remote database.
 
+# Use the app
+https://app.minderal.com/
+
+![image](https://github.com/user-attachments/assets/8b3450d0-388f-476f-b629-3994c4f1acb7)
+
+
 ## Table of contents
 - [Philosophy](#philosophy)
 - [Run dev server](#run-web-server)
