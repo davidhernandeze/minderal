@@ -117,6 +117,15 @@ export const widgets = {
     expandable: false,
     toClipboard: (doc) => `${doc.content.latitude},${doc.content.longitude}`,
   },
+  date: {
+    label: 'Date',
+    icon: 'bi bi-clock',
+    indexContent: (doc) => doc.content,
+    previewComponent: 'DatePreview',
+    formComponent: 'DateForm',
+    expandable: false,
+    toClipboard: (doc) => `${doc.content.latitude},${doc.content.longitude}`,
+  },
 }
 
 export const getWidgetList = () => {
