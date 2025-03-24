@@ -53,7 +53,8 @@ export default defineConfig({
     }
   }), sentryVitePlugin({
     org: 'coworg',
-    project: 'minderal'
+    project: 'minderal',
+    authToken: process.env.SENTRY_AUTH_TOKEN,
   })],
 
   define: {
@@ -75,6 +76,6 @@ export default defineConfig({
     // don't minify for debug builds
     minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
     // produce sourcemaps for debug builds
-    sourcemap: !!process.env.TAURI_ENV_DEBUG,
+    sourcemap: true
   },
 })
