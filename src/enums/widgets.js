@@ -39,11 +39,11 @@ export const widgets = {
     previewComponent: 'Switch',
     expandedComponent: 'Switch'
   },
-  audio: {
-    label: 'Audio',
-    icon: 'bi bi-mic',
-    previewComponent: 'Text'
-  },
+  // audio: {
+  //   label: 'Audio',
+  //   icon: 'bi bi-mic',
+  //   previewComponent: 'Text'
+  // },
   counter: {
     label: 'Counter',
     icon: 'bi bi-plus-slash-minus',
@@ -52,11 +52,11 @@ export const widgets = {
     expandable: false,
     defaultContent: 0
   },
-  countdown: {
-    label: 'Countdown',
-    icon: 'bi bi-hourglass',
-    previewComponent: 'Text'
-  },
+  // countdown: {
+  //   label: 'Countdown',
+  //   icon: 'bi bi-hourglass',
+  //   previewComponent: 'Text'
+  // },
   checklist: {
     label: 'Checklist',
     icon: 'bi bi-list-check',
