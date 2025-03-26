@@ -8,8 +8,8 @@ import { toRef } from '@vueuse/core'
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true,
-  },
+    required: true
+  }
 })
 
 const { attachmentUrl, fetchImage } = useImage(toRef(props, 'doc'))
@@ -24,11 +24,11 @@ onMounted(() => {
     <ProgressSpinner
       v-if="!attachmentUrl"
       style="width: 30px; height: 30px"
-      strokeWidth="8"
+      stroke-width="8"
       fill="transparent"
-      animationDuration="0.6s"
+      animation-duration="0.6s"
       aria-label="Custom ProgressSpinner"
     />
-    <img v-else class="h-full w-auto" :src="attachmentUrl"  :alt="doc.name"/>
+    <img v-else class="h-full w-auto" :src="attachmentUrl" :alt="doc.name" />
   </div>
 </template>

@@ -8,14 +8,13 @@ import InvisibleTextInput from '@/components/generic/InvisibleTextInput.vue'
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true,
-  },
+    required: true
+  }
 })
 
-const workspace = inject('workspace');
-const doc = toRef(props, 'doc');
+const workspace = inject('workspace')
+const doc = toRef(props, 'doc')
 const { content, startEdition, exitEdition } = useDoc(workspace, doc)
-
 </script>
 
 <template>

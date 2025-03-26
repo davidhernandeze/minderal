@@ -17,9 +17,19 @@ const props = defineProps({
     type: Boolean
   }
 })
-watch(() => props.openModal, (value) => {
-  if (value) isOpen.value = true
-})
+
+function select(widget) {
+  isOpen.value = false
+  emits('select', widget)
+  searchTypeValue.value = ''
+}
+
+watch(
+  () => props.openModal,
+  (value) => {
+    if (value) isOpen.value = true
+  }
+)
 
 watch(isOpen, () => {
   emits('close')
@@ -32,15 +42,9 @@ const filteredWidgets = computed(() => {
     return searchableContent.toLowerCase().indexOf(searchTypeValue.value.toLowerCase()) > -1
   })
 })
-
 </script>
 <template>
-  <Dialog
-    v-model:visible="isOpen"
-    modal
-    header="Select Widget"
-    @close="searchTypeValue = ''"
-  >
+  <Dialog v-model:visible="isOpen" modal header="Select Widget" @close="searchTypeValue = ''">
     <div class="my-4">
       <div class="flex items-center px-4">
         <input
@@ -49,7 +53,7 @@ const filteredWidgets = computed(() => {
           class="rounded-sm text-md p-2 w-full dark:bg-(--p-surface-900)"
           type="text"
           placeholder="Search widget..."
-        >
+        />
       </div>
 
       <div class="p-4 grid grid-cols-2 sm:grid-cols-3 gap-2 mt-1">
@@ -57,12 +61,9 @@ const filteredWidgets = computed(() => {
           v-for="widget in filteredWidgets"
           :key="widget.index"
           class="flex items-center rounded-full p-1 px-3 hover:text-(--p-primary-500) border-transparent hover:border-(--p-primary-500) cursor-pointer text-md border"
-          @click="isOpen = false; emits('select', widget); searchTypeValue = ''"
+          @click="select(widget)"
         >
-          <i
-            :class="widget.icon"
-            class="mr-2"
-          />
+          <i :class="widget.icon" class="mr-2" />
           {{ widget.label }}
         </button>
       </div>

@@ -7,7 +7,7 @@ export default (workspace, docRef, emits) => {
   const doc = useDoc(workspace, docRef)
   const visibleItems = computed(() => doc.getContent())
 
-  async function addItem () {
+  async function addItem() {
     const updatedList = doc.getContent()
     updatedList.push({
       id: getId(),
@@ -18,16 +18,16 @@ export default (workspace, docRef, emits) => {
     newItemInput.value = ''
   }
 
-  async function check (index) {
+  async function check(index) {
     const updatedList = doc.getContent()
     updatedList[index].checked = !updatedList[index].checked
-    emits('update-value', { content: updatedList})
+    emits('update-value', { content: updatedList })
   }
 
-  async function remove (index) {
+  async function remove(index) {
     const updatedList = doc.getContent()
     updatedList.splice(index, 1)
-    emits('update-value', { content: updatedList})
+    emits('update-value', { content: updatedList })
   }
 
   return {

@@ -4,10 +4,9 @@ import { Doc } from '@/classes/Doc.js'
 defineProps({
   doc: {
     type: Doc,
-    required: true,
-  },
+    required: true
+  }
 })
-
 </script>
 
 <template>

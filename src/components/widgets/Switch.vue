@@ -9,8 +9,8 @@ defineEmits(['update'])
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true,
-  },
+    required: true
+  }
 })
 
 const workspace = inject('workspace')
@@ -23,7 +23,7 @@ async function switchValue() {
 
 <template>
   <div class="flex justify-center h-full items-center">
-    <ToggleSwitch pt:root:class="scale-200" v-model="content" @change="switchValue" />
+    <ToggleSwitch v-model="content" pt:root:class="scale-200" @change="switchValue" />
   </div>
 </template>
 

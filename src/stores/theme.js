@@ -23,5 +23,5 @@ function toggleDarkMode() {
 export default {
   isDarkTheme: computed(() => isDarkTheme.value),
   toggleDarkMode,
-  setDarkTheme,
+  setDarkTheme
 }

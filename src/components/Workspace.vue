@@ -16,12 +16,12 @@ import Dialog from 'primevue/dialog'
 const props = defineProps({
   connectionId: {
     type: String,
-    required: true,
+    required: true
   },
   docId: {
     type: String,
-    default: '',
-  },
+    default: ''
+  }
 })
 
 const emits = defineEmits(['navigate', 'change-tab-label'])
@@ -39,7 +39,7 @@ watch(
     await setCurrentDoc(value)
     const icon = getWidgetProps(currentDoc.value?.widget || 'folder')?.icon
     emits('change-tab-label', { label: currentDoc.value?.name, icon })
-  },
+  }
 )
 
 const mainInput = ref(null)
@@ -84,7 +84,7 @@ async function createDoc() {
   await workspace.createDoc({
     name,
     content,
-    widget: selectedWidget.value.index,
+    widget: selectedWidget.value.index
   })
   inputValue.value = ''
 }
@@ -116,9 +116,9 @@ onBeforeUnmount(async () => {
       <ProgressSpinner
         v-show="isLoading"
         style="width: 30px; height: 30px"
-        strokeWidth="8"
+        stroke-width="8"
         fill="transparent"
-        animationDuration="0.6s"
+        animation-duration="0.6s"
         aria-label="Custom ProgressSpinner"
       />
     </div>
@@ -176,7 +176,7 @@ onBeforeUnmount(async () => {
         @close="isTypesModalOpen = false"
         @select="selectWidget"
       />
-      <Dialog header="Create widget" modal v-model:visible="widgetFormOpen" style="width: 40rem">
+      <Dialog v-model:visible="widgetFormOpen" header="Create widget" modal style="width: 40rem">
         <WidgetForm :widget="selectedWidget" @save="widgetFormOpen = false" />
       </Dialog>
     </div>

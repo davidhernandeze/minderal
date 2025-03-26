@@ -19,35 +19,35 @@ const dateString = computed(() => {
 })
 
 function formatDateTime(obj) {
-  const { year, month, day, time } = obj;
+  const { year, month, day, time } = obj
 
   // Build a date with what's available
-  const components = [];
+  const components = []
 
   if (day != null) {
-    components.push(String(day).padStart(2, '0'));
+    components.push(String(day).padStart(2, '0'))
   }
 
   if (month != null) {
-    const monthName = moment().month(month).format("MMM"); // short month name
-    components.push("of " + monthName);
+    const monthName = moment().month(month).format('MMM') // short month name
+    components.push('of ' + monthName)
   }
 
   if (year != null) {
-    components.push(String(year));
+    components.push(String(year))
   }
 
-  let dateStr = components.join(" ");
+  let dateStr = components.join(' ')
 
   if (time != null) {
     if (dateStr) {
-      dateStr += " at " + time;
+      dateStr += ' at ' + time
     } else {
-      dateStr = time;
+      dateStr = time
     }
   }
 
-  return dateStr.trim();
+  return dateStr.trim()
 }
 </script>
 

@@ -1,7 +1,6 @@
 <script setup>
-const value = defineModel('value')
-const el = defineModel('el')
-
+const value = defineModel('value', { type: String })
+const el = defineModel('el', { type: String })
 </script>
 
 <template>
@@ -10,5 +9,5 @@ const el = defineModel('el')
     v-bind="$attrs"
     v-model="value"
     class="bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-hidden p-0 outline-hidden focus:border-transparent focus:ring-0"
-  >
+  />
 </template>

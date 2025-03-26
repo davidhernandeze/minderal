@@ -1,6 +1,5 @@
-
 export class Doc {
-  constructor (data) {
+  constructor(data) {
     this._id = data._id
     if (data._rev) this._rev = data._rev
     this.parent_id = data.parent_id

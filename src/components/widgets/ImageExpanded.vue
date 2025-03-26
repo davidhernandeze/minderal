@@ -16,11 +16,10 @@ const { attachmentUrl, fetchImage } = useImage(toRef(props, 'doc'))
 onMounted(() => {
   fetchImage()
 })
-
 </script>
 
 <template>
   <div class="w-full">
-    <img class="h-full" :src="attachmentUrl">
+    <img class="h-full" :src="attachmentUrl" />
   </div>
 </template>

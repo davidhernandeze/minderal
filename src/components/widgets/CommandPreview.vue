@@ -8,12 +8,12 @@ import { toRef } from '@vueuse/core'
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true,
-  },
+    required: true
+  }
 })
 
-const workspace = inject('workspace');
-const doc = toRef(props, 'doc');
+const workspace = inject('workspace')
+const doc = toRef(props, 'doc')
 const { content, startEdition, exitEdition } = useDoc(workspace, doc)
 </script>
 
@@ -30,23 +30,20 @@ const { content, startEdition, exitEdition } = useDoc(workspace, doc)
 </template>
 
 <style scoped>
-*::-webkit-scrollbar-track
-{
-  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.3);
+*::-webkit-scrollbar-track {
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
   border-radius: 10px;
-  background-color: #F5F5F5;
+  background-color: #f5f5f5;
 }
 
-*::-webkit-scrollbar
-{
+*::-webkit-scrollbar {
   width: 12px;
-  background-color: #F5F5F5;
+  background-color: #f5f5f5;
 }
 
-*::-webkit-scrollbar-thumb
-{
+*::-webkit-scrollbar-thumb {
   border-radius: 10px;
-  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,.3);
-  background-color: #D62929;
+  -webkit-box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.3);
+  background-color: #d62929;
 }
 </style>

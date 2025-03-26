@@ -13,7 +13,7 @@ export default defineConfig({
     VitePWA({
       registerType: 'autoUpdate',
       workbox: {
-        maximumFileSizeToCacheInBytes: 4000000,
+        maximumFileSizeToCacheInBytes: 4000000
       },
       manifest: {
         name: 'Minderal',
@@ -25,24 +25,24 @@ export default defineConfig({
           {
             src: 'pwa-64x64.png',
             sizes: '64x64',
-            type: 'image/png',
+            type: 'image/png'
           },
           {
             src: 'pwa-192x192.png',
             sizes: '192x192',
-            type: 'image/png',
+            type: 'image/png'
           },
           {
             src: 'pwa-512x512.png',
             sizes: '512x512',
-            type: 'image/png',
+            type: 'image/png'
           },
           {
             src: 'maskable-icon-512x512.png',
             sizes: '512x512',
             type: 'image/png',
-            purpose: 'maskable',
-          },
+            purpose: 'maskable'
+          }
         ],
         share_target: {
           action: '/shared-content-receiver/',
@@ -50,26 +50,26 @@ export default defineConfig({
           params: {
             title: 'name',
             text: 'description',
-            url: 'link',
-          },
-        },
-      },
+            url: 'link'
+          }
+        }
+      }
     }),
     sentryVitePlugin({
       org: 'coworg',
       project: 'minderal',
-      authToken: process.env.SENTRY_AUTH_TOKEN,
-    }),
+      authToken: process.env.SENTRY_AUTH_TOKEN
+    })
   ],
 
   define: {
-    global: 'window',
+    global: 'window'
   },
 
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'),
-    },
+      '@': path.resolve(__dirname, './src')
+    }
   },
   envPrefix: ['VITE_', 'TAURI_ENV_*'],
   build: {
@@ -78,6 +78,6 @@ export default defineConfig({
     // don't minify for debug builds
     minify: !process.env.TAURI_ENV_DEBUG ? 'esbuild' : false,
     // produce sourcemaps for debug builds
-    sourcemap: true,
-  },
+    sourcemap: true
+  }
 })

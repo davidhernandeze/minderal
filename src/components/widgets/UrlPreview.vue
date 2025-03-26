@@ -12,11 +12,7 @@ defineProps({
 </script>
 
 <template>
-  <a
-    :href="doc.content.url"
-    target="_blank"
-    class="h-full break-words"
-  >
+  <a :href="doc.content.url" target="_blank" class="h-full break-words">
     <UrlMetadata v-if="doc.content?.title" :url-preview="doc.content" />
     <span v-else>{{ doc.content.url }}</span>
   </a>

@@ -27,16 +27,17 @@ app.use(PrimeVue, {
   theme: {
     preset: Aura,
     options: {
-      darkModeSelector: '.dark',
-    },
-  },
+      darkModeSelector: '.dark'
+    }
+  }
 })
 app.directive('focustrap', FocusTrap)
 
+// eslint-disable-next-line no-undef
 if (process.env.NODE_ENV !== 'development') {
   Sentry.init({
     app,
-    dsn: 'https://08d470a3d023b85f1945caa859f33907@o4506906515406848.ingest.us.sentry.io/4506906544242688',
+    dsn: 'https://08d470a3d023b85f1945caa859f33907@o4506906515406848.ingest.us.sentry.io/4506906544242688'
   })
 }
 

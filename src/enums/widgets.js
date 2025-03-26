@@ -8,7 +8,7 @@ export const widgets = {
     expandable: false,
     showMainInput: false,
     createWithContent: true,
-    toClipboard: (doc) => doc.content,
+    toClipboard: (doc) => doc.content
   },
   folder: {
     label: 'Folder',
@@ -19,7 +19,7 @@ export const widgets = {
     previewComponent: 'FolderPreview',
     showMainInput: true,
     standalonePreview: true,
-    hideCopyButton: true,
+    hideCopyButton: true
   },
   url: {
     label: 'Url',
@@ -30,19 +30,19 @@ export const widgets = {
     previewComponent: 'UrlPreview',
     expandedComponent: 'UrlPreview',
     formComponent: 'UrlForm',
-    toClipboard: (doc) => doc.content.url,
+    toClipboard: (doc) => doc.content.url
   },
   switch: {
     label: 'Switch',
     icon: 'bi bi-toggle-on',
     defaultContent: false,
     previewComponent: 'Switch',
-    expandedComponent: 'Switch',
+    expandedComponent: 'Switch'
   },
   audio: {
     label: 'Audio',
     icon: 'bi bi-mic',
-    previewComponent: 'Text',
+    previewComponent: 'Text'
   },
   counter: {
     label: 'Counter',
@@ -50,12 +50,12 @@ export const widgets = {
     previewComponent: 'Counter',
     expandedComponent: 'Counter',
     expandable: false,
-    defaultContent: 0,
+    defaultContent: 0
   },
   countdown: {
     label: 'Countdown',
     icon: 'bi bi-hourglass',
-    previewComponent: 'Text',
+    previewComponent: 'Text'
   },
   checklist: {
     label: 'Checklist',
@@ -63,7 +63,7 @@ export const widgets = {
     expandable: true,
     defaultContent: [],
     previewComponent: 'ChecklistPreview',
-    expandedComponent: 'ChecklistExpanded',
+    expandedComponent: 'ChecklistExpanded'
   },
   chat: {
     label: 'Chat',
@@ -72,7 +72,7 @@ export const widgets = {
     expandable: true,
     defaultContent: [],
     previewComponent: 'ChatPreview',
-    expandedComponent: 'ChatExpanded',
+    expandedComponent: 'ChatExpanded'
   },
   display: {
     label: 'Display',
@@ -80,7 +80,7 @@ export const widgets = {
     expandable: true,
     formComponent: 'DisplayForm',
     previewComponent: 'DisplayPreview',
-    expandedComponent: 'DisplayExpanded',
+    expandedComponent: 'DisplayExpanded'
   },
   image: {
     label: 'Image',
@@ -88,7 +88,7 @@ export const widgets = {
     expandable: true,
     formComponent: 'ImageForm',
     previewComponent: 'ImagePreview',
-    expandedComponent: 'ImageExpanded',
+    expandedComponent: 'ImageExpanded'
   },
   file: {
     label: 'File',
@@ -96,7 +96,7 @@ export const widgets = {
     expandable: true,
     formComponent: 'FileForm',
     previewComponent: 'FilePreview',
-    expandedComponent: 'FileExpanded',
+    expandedComponent: 'FileExpanded'
   },
   command: {
     label: 'Command',
@@ -106,7 +106,7 @@ export const widgets = {
     expandedComponent: 'CommandPreview',
     expandable: false,
     createWithContent: true,
-    toClipboard: (doc) => doc.content,
+    toClipboard: (doc) => doc.content
   },
   coordinates: {
     label: 'Coordinates',
@@ -115,7 +115,7 @@ export const widgets = {
     previewComponent: 'CoordinatesPreview',
     formComponent: 'CoordinatesForm',
     expandable: false,
-    toClipboard: (doc) => `${doc.content.latitude},${doc.content.longitude}`,
+    toClipboard: (doc) => `${doc.content.latitude},${doc.content.longitude}`
   },
   date: {
     label: 'Date',
@@ -124,8 +124,8 @@ export const widgets = {
     previewComponent: 'DatePreview',
     formComponent: 'DateForm',
     expandable: false,
-    toClipboard: (doc) => `${doc.content.latitude},${doc.content.longitude}`,
-  },
+    toClipboard: (doc) => `${doc.content.latitude},${doc.content.longitude}`
+  }
 }
 
 export const getWidgetList = () => {

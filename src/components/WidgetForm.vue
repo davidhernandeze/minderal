@@ -4,13 +4,13 @@ import { defineAsyncComponent, inject } from 'vue'
 const props = defineProps({
   widget: {
     type: Object,
-    required: true,
+    required: true
   },
   doc: {
     type: Object,
     required: false,
-    default: () => ({}),
-  },
+    default: () => ({})
+  }
 })
 
 const emit = defineEmits(['save'])
@@ -25,22 +25,26 @@ const workspace = inject('workspace')
 
 async function saveDoc(form) {
   if (form._id) {
-    await workspace.updateDoc(props.doc, {
-      name: form.name,
-      content: form.content,
-      widget: form.widget,
-      settings: form.settings,
-    }, form.files)
+    await workspace.updateDoc(
+      props.doc,
+      {
+        name: form.name,
+        content: form.content,
+        widget: form.widget,
+        settings: form.settings
+      },
+      form.files
+    )
     emit('save')
     return
   }
 
   await workspace.createDoc({
-    name : form.name,
+    name: form.name,
     content: form.content,
     widget: form.widget,
     files: form.files,
-    settings: form.settings,
+    settings: form.settings
   })
   emit('save')
 }

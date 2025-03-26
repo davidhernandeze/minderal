@@ -1,6 +1,5 @@
 <script setup>
-const value = defineModel()
-
+const value = defineModel({ type: String })
 </script>
 <template>
   <textarea

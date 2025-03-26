@@ -154,7 +154,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
       route.push({
         id: parentId,
         name: parentDoc.name,
-        widget: parentDoc.widget,
+        widget: parentDoc.widget
       })
       parentId = parentDoc.parent_id
     }
@@ -179,9 +179,9 @@ export function useWorkspace({ connectionId, docId = '' }) {
         _attachments: {
           [getId()]: {
             content_type: file.format,
-            data: file.data,
-          },
-        },
+            data: file.data
+          }
+        }
       })
       filesIds.push(fileDoc.id)
     }
@@ -194,7 +194,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
     content = null,
     widget = 'text',
     settings = {},
-    files = [],
+    files = []
   }) {
     isLoading.value = true
     const widgetInfo = widgets[widget]
@@ -206,7 +206,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
       widget,
       settings,
       parent_id: currentDocId.value ?? '',
-      files: [],
+      files: []
     })
     const createdDoc = await db.createDoc(newDoc)
     await updateDocAttachments(createdDoc.id, files)
@@ -307,6 +307,6 @@ export function useWorkspace({ connectionId, docId = '' }) {
     migrateDatabase,
     isLoading,
     fetchDocsByParentId,
-    moveDoc,
+    moveDoc
   }
 }

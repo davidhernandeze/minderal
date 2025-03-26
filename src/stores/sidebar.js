@@ -4,15 +4,15 @@ import { useWindowSize } from '@vueuse/core'
 const { width } = useWindowSize()
 const isVisible = ref(width.value >= 640)
 
-function showSidebar () {
+function showSidebar() {
   isVisible.value = true
 }
 
-function hideSidebar () {
+function hideSidebar() {
   isVisible.value = false
 }
 
-function onTabOpen () {
+function onTabOpen() {
   if (width.value < 640) {
     hideSidebar()
   }

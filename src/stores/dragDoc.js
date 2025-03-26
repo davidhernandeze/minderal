@@ -2,7 +2,7 @@ import { computed, ref } from 'vue'
 
 const draggedDoc = ref(null)
 
-function startDragging (doc) {
+function startDragging(doc) {
   draggedDoc.value = doc
 }
 

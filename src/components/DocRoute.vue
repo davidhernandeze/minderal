@@ -7,17 +7,17 @@ defineEmits(['navigate'])
 const props = defineProps({
   route: {
     type: Array,
-    default: () => [],
-  },
+    default: () => []
+  }
 })
 const container = ref()
 
 watch(
   () => props.route,
-  async (value) => {
+  async () => {
     await nextTick()
     container.value.scrollLeft = container.value.scrollWidth
-  },
+  }
 )
 </script>
 <template>

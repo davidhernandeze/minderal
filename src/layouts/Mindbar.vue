@@ -17,7 +17,6 @@ onKeyStroke(['Escape'], (e) => {
   hideMindbar()
 })
 
-
 function hideMindbar() {
   invoke('hide')
 }
@@ -38,7 +37,6 @@ watch(connections, (value) => {
     selectedConnection.value = value[0]
   }
 })
-
 </script>
 
 <template>
@@ -48,10 +46,7 @@ watch(connections, (value) => {
         <div
           class="absolute top-[0.5rem] right-[0.8rem] flex items-center cursor-pointer font-bold gap-4"
         >
-          <i
-            data-tauri-drag-region
-            class="bi bi-record-circle cursor-pointer"
-          />
+          <i data-tauri-drag-region class="bi bi-record-circle cursor-pointer" />
           <i
             :class="isMindbarLocked ? 'bi-lock-fill' : 'bi-unlock-fill'"
             class="bi cursor-pointer"
@@ -68,12 +63,12 @@ watch(connections, (value) => {
             v-model="selectedConnection"
             :options="connections"
             size="small"
-            optionLabel="name"
+            option-label="name"
             placeholder="Select a database"
             class="w-[12rem]"
           />
         </div>
-        <div class="h-full" v-if="selectedConnection.id">
+        <div v-if="selectedConnection.id" class="h-full">
           <WidgetSearch :key="selectedConnection.id" :connection-id="selectedConnection.id" />
         </div>
       </template>

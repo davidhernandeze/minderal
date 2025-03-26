@@ -13,8 +13,9 @@ defineEmits(['update-value'])
 defineProps({
   doc: {
     type: Doc,
-    required: false,
-  },
+    default: null,
+    required: false
+  }
 })
 
 const { folderDocuments, widgetDocuments } = useFolder(workspace.childDocs, searchQuery)
@@ -37,8 +38,8 @@ function startWidgetDrag(event) {
 
 <template>
   <VueDraggable
-    v-model="folderDocuments"
     v-show="folderDocuments.length > 0"
+    v-model="folderDocuments"
     :disabled="dragDisabled"
     item-key="_id"
     group="folder"

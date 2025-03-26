@@ -7,7 +7,7 @@ export default (listRef) => {
     currentIndex.value = 0
   })
 
-  function restart () {
+  function restart() {
     currentIndex.value = 0
   }
 

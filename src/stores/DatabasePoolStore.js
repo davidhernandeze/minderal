@@ -5,7 +5,7 @@ import Database from '@/classes/Database.js'
 export const useDatabasePoolStore = defineStore('databasePoolStore', () => {
   const dbs = reactive(new Map())
 
-  async function getOrCreateDB (connectionOptions) {
+  async function getOrCreateDB(connectionOptions) {
     const dbName = connectionOptions.name
     if (!dbs.has(dbName)) {
       const db = new Database(connectionOptions)
@@ -17,7 +17,7 @@ export const useDatabasePoolStore = defineStore('databasePoolStore', () => {
     return db
   }
 
-  async function closeConnection (dbName) {
+  async function closeConnection(dbName) {
     if (!dbs.has(dbName)) return
     const db = dbs.get(dbName)
     db.clients--

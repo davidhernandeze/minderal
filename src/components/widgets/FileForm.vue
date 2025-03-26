@@ -7,8 +7,9 @@ import { FilePicker } from '@capawesome/capacitor-file-picker'
 const props = defineProps({
   doc: {
     type: Object,
-    required: false,
-  },
+    default: null,
+    required: false
+  }
 })
 
 const emits = defineEmits(['submit'])
@@ -18,7 +19,7 @@ const form = ref({
   name: props.doc?.name || '',
   widget: 'file',
   content: '',
-  files: [],
+  files: []
 })
 
 function submit() {
@@ -37,7 +38,7 @@ async function pickFile() {
     form.value.files.push({
       name: file.name,
       format: file.mimeType,
-      data: file.blob,
+      data: file.blob
     })
   } catch (e) {
     console.log('Error picking file', e)

@@ -9,12 +9,12 @@ const emit = defineEmits(['select'])
 const props = defineProps({
   parentsOnly: {
     type: Boolean,
-    default: false,
+    default: false
   },
   excludeDocIds: {
     type: Array,
-    default: () => [],
-  },
+    default: () => []
+  }
 })
 
 const workspace = inject('workspace')
@@ -44,7 +44,7 @@ async function getChildDocs(parentId, node = null) {
       label: doc.name,
       icon: getWidgetProps(doc.widget)?.icon,
       leaf: false,
-      children: [],
+      children: []
     }
     if (node) {
       node.children.push(newNode)
@@ -71,15 +71,15 @@ function onSelect() {
 <template>
   <div>
     <Tree
+      v-model:selection-keys="selectedKey"
       :value="nodes"
-      @node-expand="onNodeExpand"
-      v-model:selectionKeys="selectedKey"
-      selectionMode="single"
+      selection-mode="single"
       :loading="loading"
       class="w-full"
+      @node-expand="onNodeExpand"
     ></Tree>
     <div class="mt-6 flex justify-end">
-      <Button @click="onSelect" severity="info" :disabled="!selectedKey" label="Select" />
+      <Button severity="info" :disabled="!selectedKey" label="Select" @click="onSelect" />
     </div>
   </div>
 </template>

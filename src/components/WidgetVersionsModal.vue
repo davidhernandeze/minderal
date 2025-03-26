@@ -8,8 +8,8 @@ import Dialog from 'primevue/dialog'
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true,
-  },
+    required: true
+  }
 })
 const isOpen = defineModel('isOpen', { type: Boolean })
 
@@ -56,14 +56,14 @@ async function restoreVersion() {
   await workspace.updateDoc(props.doc, {
     name: versionedDoc.value.name,
     content: versionedDoc.value.content,
-    widget: versionedDoc.value.widget,
+    widget: versionedDoc.value.widget
   })
   isOpen.value = false
 }
 </script>
 
 <template>
-  <Dialog header="Version history" v-model:visible="isOpen" modal :style="{ width: '35rem' }">
+  <Dialog v-model:visible="isOpen" header="Version history" modal :style="{ width: '35rem' }">
     <div v-if="selectedVersion">
       <div class="mb-4">
         <h2 class="text-xl font-bold truncate">Version {{ selectedVersion.split('-')[0] }}</h2>
@@ -71,16 +71,16 @@ async function restoreVersion() {
       </div>
       <div class="flex justify-between mb-4">
         <GenericButton
-          @click="navigateToPreviousVersion"
           class="bg-gray-900 mt-6"
           :disabled="!hasPreviousVersion"
+          @click="navigateToPreviousVersion"
         >
           Previous Version
         </GenericButton>
         <GenericButton
-          @click="navigateToNextVersion"
           class="bg-gray-900 mt-6"
           :disabled="!hasNextVersion"
+          @click="navigateToNextVersion"
         >
           Next Version
         </GenericButton>
@@ -92,9 +92,9 @@ async function restoreVersion() {
       </div>
       <GenericButton
         v-if="currentVersionIndex !== 0"
-        @click="restoreVersion"
         class="bg-indigo-600 hover:bg-indigo-500 mt-6"
         type="submit"
+        @click="restoreVersion"
       >
         Restore
       </GenericButton>

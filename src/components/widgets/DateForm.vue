@@ -7,8 +7,9 @@ import moment from 'moment'
 const props = defineProps({
   doc: {
     type: Object,
-    required: false,
-  },
+    default: null,
+    required: false
+  }
 })
 
 const emits = defineEmits(['submit'])
@@ -21,7 +22,7 @@ const form = ref({
   _id: props.doc?._id || null,
   name: props.doc?.name || '',
   widget: 'date',
-  content: props.doc?.content || {},
+  content: props.doc?.content || {}
 })
 
 watch(month, (value) => {
@@ -36,7 +37,7 @@ function submit() {
     month: moment(month.value).month(),
     day: moment(day.value).date(),
     time: time.value ? moment(time.value).format('HH:mm') : null,
-    offset: moment().utcOffset(),
+    offset: moment().utcOffset()
   }
   emits('submit', form.value)
 }
@@ -55,16 +56,16 @@ async function setFromCurrent() {
     <div class="flex flex-col sm:flex-row gap-3">
       <div class="flex flex-col gap-2 w-full sm:w-[13rem]">
         <label for="year">Year</label>
-        <DatePicker id="year" v-model="year" showButtonBar view="year" dateFormat="yy" />
+        <DatePicker id="year" v-model="year" show-button-bar view="year" date-format="yy" />
       </div>
       <div class="flex flex-col gap-2">
         <label for="month">Month</label>
         <DatePicker
           id="month"
           v-model="month"
-          showButtonBar
+          show-button-bar
           view="month"
-          dateFormat="MM"
+          date-format="MM"
           pt:header:class="!hidden"
         />
       </div>
@@ -73,19 +74,19 @@ async function setFromCurrent() {
         <DatePicker
           id="day"
           v-model="day"
-          showButtonBar
+          show-button-bar
           view="date"
-          dateFormat="dd"
+          date-format="dd"
           pt:header:class="!hidden"
         />
       </div>
       <div class="flex flex-col gap-2 w-full sm:w-36">
         <label for="day">Time</label>
-        <DatePicker id="day" v-model="time" showButtonBar showTime hourFormat="12" timeOnly />
+        <DatePicker id="day" v-model="time" show-button-bar show-time hour-format="12" time-only />
       </div>
     </div>
     <div>
-      <Button @click="setFromCurrent" label="Set from current time" size="small" variant="text" />
+      <Button label="Set from current time" size="small" variant="text" @click="setFromCurrent" />
     </div>
     <div class="flex justify-end">
       <Button @click="submit">Save</Button>

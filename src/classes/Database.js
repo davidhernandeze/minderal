@@ -74,14 +74,14 @@ export default class Database extends EventEmitter {
         since: 'now',
         live: true,
         include_docs: true,
-        timeout: false,
+        timeout: false
       })
       .on('change', (change) => {
         this.emit('change', change)
       })
     try {
       await this.getInfo()
-    } catch (e) {
+    } catch {
       this.emit('offline')
       this.offline = true
       console.log('Offline by requesting db info')
@@ -102,14 +102,14 @@ export default class Database extends EventEmitter {
   async indexBy(field) {
     await this.connection.createIndex({
       index: { fields: [field] },
-      ddoc: `by_${field}`,
+      ddoc: `by_${field}`
     })
   }
 
   async getDocsByParentId(parentId, widget = null) {
     const selector = {
       parent_id: parentId,
-      deleted_at: null,
+      deleted_at: null
     }
     if (widget) {
       selector.widget = widget
@@ -125,7 +125,7 @@ export default class Database extends EventEmitter {
     const { rows } = await this.connection.allDocs({
       keys: ids,
       include_docs: true,
-      attachments: includeAttachments,
+      attachments: includeAttachments
     })
     return rows.map((row) => row.doc)
   }
@@ -137,7 +137,7 @@ export default class Database extends EventEmitter {
 
   async getDocRevisions(docId) {
     const response = await this.connection.get(docId, {
-      revs: true,
+      revs: true
     })
     let initialPrefix = response._revisions.start
     return response._revisions?.ids.map((id) => {
@@ -147,7 +147,7 @@ export default class Database extends EventEmitter {
 
   async getDocOnRevision(docId, revision) {
     return await this.connection.get(docId, {
-      rev: revision,
+      rev: revision
     })
   }
 
@@ -157,7 +157,7 @@ export default class Database extends EventEmitter {
     console.log('Offline by external source')
   }
 
-  async migrate () {
+  async migrate() {
     // this.connection.allDocs({ include_docs: true }).then((result) => {
     //   const migratedDocs = result.rows
     //     .filter((row) => {

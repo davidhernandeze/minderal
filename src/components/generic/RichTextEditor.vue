@@ -1,7 +1,7 @@
 <script setup>
 import Quill from 'quill'
 import { defineModel, onMounted, useTemplateRef, watch } from 'vue'
-const value = defineModel()
+const value = defineModel({ type: Object })
 const editor = useTemplateRef('editor')
 
 const emit = defineEmits(['input'])
@@ -27,9 +27,7 @@ onMounted(() => {
   if (value.value?.ops) {
     quill.setContents(value.value)
   } else {
-    quill.setContents([
-      { insert: value.value }
-    ])
+    quill.setContents([{ insert: value.value }])
     emit('input', quill.getContents())
   }
 
@@ -44,12 +42,10 @@ onMounted(() => {
 })
 </script>
 <template>
-  <div
-    ref="editor"
-  />
+  <div ref="editor" />
 </template>
 <style>
-.ql-editor.ql-blank::before{
+.ql-editor.ql-blank::before {
   color: #9da19f;
 }
 </style>

@@ -8,8 +8,8 @@ import useFile from '@/composables/useFile.js'
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true,
-  },
+    required: true
+  }
 })
 
 const { attachmentUrl, fetchFile, format } = useFile(toRef(props, 'doc'))
@@ -24,12 +24,12 @@ onMounted(() => {
     <ProgressSpinner
       v-if="!attachmentUrl"
       style="width: 30px; height: 30px"
-      strokeWidth="8"
+      stroke-width="8"
       fill="transparent"
-      animationDuration="0.6s"
+      animation-duration="0.6s"
       aria-label="Custom ProgressSpinner"
     />
-<!--    <a v-else target="_blank" class="h-full w-auto" :href="attachmentUrl">Open</a>-->
+    <!--    <a v-else target="_blank" class="h-full w-auto" :href="attachmentUrl">Open</a>-->
     <iframe v-else-if="format === 'application/pdf'" class="w-full h-full" :src="attachmentUrl" />
     <i v-else class="bi bi-file-earmark text-[3rem]" />
   </div>

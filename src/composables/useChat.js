@@ -4,10 +4,7 @@ import { useWebNotification } from '@vueuse/core'
 import icon from '@/assets/logo310x310.png'
 
 export default (workspace) => {
-  const {
-    isSupported,
-    show
-  } = useWebNotification({
+  const { isSupported, show } = useWebNotification({
     dir: 'auto',
     lang: 'en',
     icon
@@ -15,7 +12,7 @@ export default (workspace) => {
 
   const inputValue = ref('')
   const messages = computed(() => {
-    return workspace.childDocs.value.map(doc => ({
+    return workspace.childDocs.value.map((doc) => ({
       id: doc._id,
       message: doc.content.message,
       sent_by: doc.created_by,
@@ -24,12 +21,12 @@ export default (workspace) => {
     }))
   })
 
-  watch(messages, value => {
+  watch(messages, (value) => {
     if (!isSupported.value || value[value.length - 1]?.is_own) return
     show({ title: 'New Message received in /' + workspace.currentDoc.value.name })
   })
 
-  async function send () {
+  async function send() {
     if (inputValue.value.length === 0) return
     const newMessage = {
       message: inputValue.value

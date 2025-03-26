@@ -1,9 +1,9 @@
 import { ref } from 'vue'
 
-export default (docRef) => {
+export default () => {
   const urlPreview = ref({ url: null })
 
-  async function fetchLinkPreview () {
+  async function fetchLinkPreview() {
     if (!urlPreview.value.url || urlPreview.value.url === '') return
     const apiUrl = `https://link-preview-api.nivaldo.workers.dev/preview?url=${encodeURIComponent(urlPreview.value.url)}`
     const headers = {

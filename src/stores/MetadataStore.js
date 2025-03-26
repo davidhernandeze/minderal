@@ -11,7 +11,7 @@ export const useMetadataStore = defineStore('metadata', () => {
   const connections = ref([])
   const tabs = ref([])
 
-  async function fetchMetadata () {
+  async function fetchMetadata() {
     const initialized = !!localStorage.getItem('initialized')
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     localStorage.setItem('initialized', 'true')
@@ -26,7 +26,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     }
   }
 
-  async function addConnection (name, host = null, username = null, password = null) {
+  async function addConnection(name, host = null, username = null, password = null) {
     const options = { name }
     if (host) {
       options.name = `${host}/${options.name}`
@@ -40,7 +40,13 @@ export const useMetadataStore = defineStore('metadata', () => {
     await newDatabase.indexBy('deleted_at')
     await newDatabase.indexBy('widget')
 
-    const connection = { id: getId(), name, host, connectionOptions: optionsToStore, username: username || 'local' }
+    const connection = {
+      id: getId(),
+      name,
+      host,
+      connectionOptions: optionsToStore,
+      username: username || 'local'
+    }
     connections.value.push(connection)
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.connections = connections.value
@@ -48,62 +54,75 @@ export const useMetadataStore = defineStore('metadata', () => {
     await openNewTab(connection.id, connection.name)
   }
 
-  async function removeConnection (connectionId) {
+  async function removeConnection(connectionId) {
     await closeAllConnectionTabs(connectionId)
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
-    connections.value = connections.value.filter(connection => connection.id !== connectionId)
+    connections.value = connections.value.filter((connection) => connection.id !== connectionId)
     metaDocument.connections = connections.value
     await metaDatabase.updateDoc(metaDocument)
   }
 
-  async function getConnectionInfo (connectionId) {
+  async function getConnectionInfo(connectionId) {
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     return metaDocument.connections.find((connection) => connection.id === connectionId)
   }
 
-  async function deleteDatabase (connectionId) {
+  async function deleteDatabase(connectionId) {
     await closeAllConnectionTabs(connectionId)
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
-    metaDocument.connections = metaDocument.connections.filter((connection) => connection.id !== connectionId)
+    metaDocument.connections = metaDocument.connections.filter(
+      (connection) => connection.id !== connectionId
+    )
     connections.value = metaDocument.connections
     const connection = await getConnectionInfo(connectionId)
     await new PouchDB(connection.name).destroy()
     await metaDatabase.updateDoc(metaDocument)
   }
 
-  async function openNewTab (connectionId, databaseName) {
+  async function openNewTab(connectionId, databaseName) {
     const id = getId()
-    tabs.value.forEach(tab => { tab.isOpen = false })
-    tabs.value.push({ id, name: databaseName, connectionId, documentId: '', isOpen: true, label: '' })
+    tabs.value.forEach((tab) => {
+      tab.isOpen = false
+    })
+    tabs.value.push({
+      id,
+      name: databaseName,
+      connectionId,
+      documentId: '',
+      isOpen: true,
+      label: ''
+    })
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.tabs = tabs.value
     await metaDatabase.updateDoc(metaDocument)
   }
 
-  async function openTab (tabIndex) {
-    tabs.value.forEach(tab => { tab.isOpen = false })
+  async function openTab(tabIndex) {
+    tabs.value.forEach((tab) => {
+      tab.isOpen = false
+    })
     tabs.value[tabIndex].isOpen = true
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.tabs = tabs.value
     await metaDatabase.updateDoc(metaDocument)
   }
 
-  async function updateTabDoc (tabIndex, docId) {
+  async function updateTabDoc(tabIndex, docId) {
     tabs.value[tabIndex].docId = docId
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     metaDocument.tabs = tabs.value
     await metaDatabase.updateDoc(metaDocument)
   }
 
-  async function closeAllConnectionTabs (connectionId) {
+  async function closeAllConnectionTabs(connectionId) {
     let tabIndexToClose
     do {
-      tabIndexToClose = tabs.value.findIndex(tab => tab.connectionId === connectionId)
+      tabIndexToClose = tabs.value.findIndex((tab) => tab.connectionId === connectionId)
       if (tabIndexToClose !== -1) await closeTab(tabIndexToClose)
     } while (tabIndexToClose !== -1)
   }
 
-  async function closeTab (tabIndex) {
+  async function closeTab(tabIndex) {
     const tabIndexToOpen = tabIndex === 0 ? tabIndex + 1 : tabIndex - 1
     if (tabs.value[tabIndex].isOpen && tabIndexToOpen >= 0 && tabs.value.length > 1) {
       tabs.value[tabIndexToOpen].isOpen = true

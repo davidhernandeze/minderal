@@ -28,11 +28,12 @@ const { isSidebarVisible } = sidebarStore
           class="h-[1.2rem] w-[1.2rem] rounded-full flex-center hover:bg-[var(--p-surface-600)]"
           @click.stop="metadataStore.closeTab(index)"
         >
-          <i
-            class="bi bi-x"
-          />
+          <i class="bi bi-x" />
         </div>
-        <div v-if="tab.isOpen" class="w-full bg-(--p-primary-500) h-[0.2rem] absolute bottom-[-0.14rem] left-0" />
+        <div
+          v-if="tab.isOpen"
+          class="w-full bg-(--p-primary-500) h-[0.2rem] absolute bottom-[-0.14rem] left-0"
+        />
       </div>
     </div>
     <div

@@ -23,6 +23,11 @@ function openConnectionSetup(connection) {
   connectionOnEdit.value = connection
   isConnectionSetupModalOpen.value = true
 }
+
+function close() {
+  isConnectionSetupModalOpen.value = false
+  connectionOnEdit.value = null
+}
 </script>
 
 <template>
@@ -89,7 +94,7 @@ function openConnectionSetup(connection) {
     <ConnectionSetupModal
       :open-modal="isConnectionSetupModalOpen"
       :connection="connectionOnEdit"
-      @close="isConnectionSetupModalOpen = false; connectionOnEdit = null"
+      @close="close"
     />
   </div>
 </template>

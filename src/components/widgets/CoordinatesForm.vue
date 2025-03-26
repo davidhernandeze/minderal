@@ -7,6 +7,7 @@ import { Geolocation } from '@capacitor/geolocation'
 const props = defineProps({
   doc: {
     type: Object,
+    default: null,
     required: false
   }
 })

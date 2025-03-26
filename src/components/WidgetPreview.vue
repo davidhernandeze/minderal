@@ -18,16 +18,16 @@ import Dialog from 'primevue/dialog'
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true,
+    required: true
   },
   single: {
     type: Boolean,
-    default: false,
+    default: false
   },
   hideMenu: {
     type: Boolean,
-    default: false,
-  },
+    default: false
+  }
 })
 
 defineEmits(['enable-drag', 'disable-drag'])
@@ -52,7 +52,7 @@ watch(
   () => props.doc.name,
   () => {
     renameInput.value = props.doc.name
-  },
+  }
 )
 
 const widgetFormOpen = ref(false)
@@ -103,13 +103,13 @@ const rowActions = ref([
     display: !!widgetProps.formComponent,
     onClick() {
       widgetFormOpen.value = true
-    },
+    }
   },
   {
     action: 'copy_to_clipboard',
     label: 'Copy to clipboard',
     display: true,
-    onClick: copyToClipboard,
+    onClick: copyToClipboard
   },
   {
     action: 'rename',
@@ -123,7 +123,7 @@ const rowActions = ref([
 
       renameModalOpen.value = true
       isEditingName.value = true
-    },
+    }
   },
   {
     action: 'move_to',
@@ -131,7 +131,7 @@ const rowActions = ref([
     display: true,
     onClick() {
       moveToModalOpen.value = true
-    },
+    }
   },
   {
     action: 'version_history',
@@ -139,7 +139,7 @@ const rowActions = ref([
     display: true,
     onClick() {
       versionsModalOpen.value = true
-    },
+    }
   },
   {
     action: 'delete',
@@ -147,8 +147,8 @@ const rowActions = ref([
     display: true,
     onClick() {
       workspace.deleteDocRecursively({ ...props.doc })
-    },
-  },
+    }
+  }
 ])
 
 function addActions(actions) {
@@ -224,7 +224,7 @@ async function moveDoc(parentDoc) {
                     class="w-full text-left"
                     :class="[
                       active ? 'bg-gray-900 text-gray-100' : 'text-gray-200',
-                      'block px-4 py-2 text-sm',
+                      'block px-4 py-2 text-sm'
                     ]"
                     @click.stop="rowAction.onClick"
                   >
@@ -255,7 +255,7 @@ async function moveDoc(parentDoc) {
 
     <Widget :doc="doc" @click="clickAction" @add-actions="addActions" />
 
-    <Dialog header="Rename widget" modal v-model:visible="renameModalOpen">
+    <Dialog v-model:visible="renameModalOpen" header="Rename widget" modal>
       <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
         <TextInput v-model="renameInput" label="New Name" type="text" class="my-3 w-full" />
         <GenericButton class="bg-indigo-600 hover:bg-indigo-500 mt-6" type="submit">
@@ -263,18 +263,18 @@ async function moveDoc(parentDoc) {
         </GenericButton>
       </form>
     </Dialog>
-    <WidgetVersionsModal :doc="doc" v-model:is-open="versionsModalOpen" />
+    <WidgetVersionsModal v-model:is-open="versionsModalOpen" :doc="doc" />
     <Dialog
-      header="Edit widget"
-      modal
       v-if="widgetProps.formComponent"
       v-model:visible="widgetFormOpen"
+      header="Edit widget"
+      modal
       style="width: 40rem"
     >
       <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />
     </Dialog>
-    <Dialog header="Move widget" v-model:visible="moveToModalOpen" modal style="width: 35rem">
-      <DocSelector @select="moveDoc" :parents-only="true" :exclude-doc-ids="[props.doc._id]" />
+    <Dialog v-model:visible="moveToModalOpen" header="Move widget" modal style="width: 35rem">
+      <DocSelector :parents-only="true" :exclude-doc-ids="[props.doc._id]" @select="moveDoc" />
     </Dialog>
   </Panel>
 </template>

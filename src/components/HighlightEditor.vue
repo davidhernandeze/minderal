@@ -3,20 +3,16 @@ import Quill from 'quill'
 import hljs from 'highlight.js'
 import { onMounted, useTemplateRef, watch } from 'vue'
 
-const value = defineModel()
+const value = defineModel({ type: String })
 const editor = useTemplateRef('editor')
 
 const emit = defineEmits(['input'])
 
 let quill
 
-watch(value, (newValue) => {
+watch(value, () => {
   const Delta = Quill.import('delta')
-  quill.setContents(
-    new Delta()
-      .insert(value.value)
-      .insert('\n', { 'code-block': 'bash' })
-  )
+  quill.setContents(new Delta().insert(value.value).insert('\n', { 'code-block': 'bash' }))
 })
 
 onMounted(() => {
@@ -28,10 +24,7 @@ onMounted(() => {
   })
 
   const Delta = Quill.import('delta')
-  quill.setContents(
-    new Delta()
-      .insert(`${value.value}`, { 'code-block': 'bash' })
-  )
+  quill.setContents(new Delta().insert(`${value.value}`, { 'code-block': 'bash' }))
 
   quill.on('text-change', (delta, oldDelta, source) => {
     if (source === 'api') {
@@ -44,13 +37,10 @@ onMounted(() => {
 })
 </script>
 <template>
-  <div
-    ref="editor"
-    spellcheck="false"
-  />
+  <div ref="editor" spellcheck="false" />
 </template>
 <style>
-.ql-editor.ql-blank::before{
+.ql-editor.ql-blank::before {
   color: #9da19f;
 }
 .ql-ui {

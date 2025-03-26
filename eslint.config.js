@@ -5,7 +5,7 @@ import prettierConfig from '@vue/eslint-config-prettier'
 export default [
   {
     name: 'app/files-to-lint',
-    files: ['**/*.{js,mjs,jsx,vue}']
+    files: ['**/*.{js,vue}']
   },
 
   {
@@ -14,6 +14,18 @@ export default [
   },
 
   js.configs.recommended,
+
   ...pluginVue.configs['flat/recommended'],
-  prettierConfig
+
+  prettierConfig,
+
+  {
+    name: 'app/rules',
+    rules: {
+      skipBlankLines: 'off',
+      'no-new': 'off',
+      'vue/multi-word-component-names': 'off',
+      // camelcase: 'off'
+    }
+  }
 ]

@@ -10,8 +10,9 @@ import { toRef } from '@vueuse/core'
 const props = defineProps({
   doc: {
     type: Object,
-    required: false,
-  },
+    default: null,
+    required: false
+  }
 })
 
 const emits = defineEmits(['submit'])
@@ -30,22 +31,22 @@ const form = ref({
   files: []
 })
 
-function submit () {
+function submit() {
   emits('submit', form.value)
 }
 
-async function openCamera () {
+async function openCamera() {
   try {
     const photo = await Camera.getPhoto({
       quality: 100,
       allowEditing: true,
-      resultType: CameraResultType.Base64,
+      resultType: CameraResultType.Base64
     })
     attachmentUrl.value = `data:${photo.format};base64,${photo.base64String}`
     form.value.files.push({
       name: photo.path,
       format: `image/${photo.format}`,
-      data: base64ImageToBlob(photo.base64String, `image/${photo.format}`),
+      data: base64ImageToBlob(photo.base64String, `image/${photo.format}`)
     })
   } catch (e) {
     console.error(e)

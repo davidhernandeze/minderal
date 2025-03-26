@@ -51,23 +51,23 @@ onKeyStroke(['Backspace'], (e) => {
   navigateBack()
 })
 
-function tabClickAction () {
+function tabClickAction() {
   increment()
   document.getElementById('mainInput').focus()
 }
 
-function tabShiftClickAction () {
+function tabShiftClickAction() {
   decrement()
   document.getElementById('mainInput').focus()
 }
 
-async function navigateToDoc (docId) {
+async function navigateToDoc(docId) {
   query.value = ''
   await setCurrentDoc(docId)
   document.getElementById('mainInput').focus()
 }
 
-async function navigateToSelectedDoc () {
+async function navigateToSelectedDoc() {
   const toClipboard = getWidgetProps(selectedDoc.value.widget)?.toClipboard
   if (toClipboard) {
     await copySelectedDocToClipboard()
@@ -77,12 +77,12 @@ async function navigateToSelectedDoc () {
   await navigateToDoc(selectedDoc.value._id)
 }
 
-async function navigateBack () {
+async function navigateBack() {
   if (currentRoute.value.length === 0) return
   await navigateToDoc(currentDoc.value.parent_id)
 }
 
-async function copySelectedDocToClipboard () {
+async function copySelectedDocToClipboard() {
   const widgetProps = getWidgetProps(selectedDoc.value.widget)
   await writeText(widgetProps.toClipboard(selectedDoc.value))
 }
@@ -102,16 +102,16 @@ async function copySelectedDocToClipboard () {
         <ProgressSpinner
           v-if="searching"
           style="width: 1.5rem; height: 1.5rem"
-          strokeWidth="8"
+          stroke-width="8"
           fill="transparent"
-          animationDuration="0.6s"
+          animation-duration="0.6s"
           aria-label="Custom ProgressSpinner"
         />
         <img v-else :src="icon" alt="logo" class="w-[1.5rem] h-[1.5rem]" />
         <InputText
-          v-focustrap
           id="mainInput"
           v-model="query"
+          v-focustrap
           class="w-full ml-2"
           type="text"
           autocorrect="off"
@@ -127,29 +127,29 @@ async function copySelectedDocToClipboard () {
             pt:root:class="max-w-[10rem]"
             pt:label:class="truncate"
             type="button"
-            @focus="currentIndex = index"
-            @pointerenter="currentIndex = index"
-            @click="navigateToSelectedDoc"
             size="small"
             raised
             :outlined="index !== currentIndex"
             :label="doc.name"
             :icon="getWidgetProps(doc.widget).icon"
+            @focus="currentIndex = index"
+            @pointerenter="currentIndex = index"
+            @click="navigateToSelectedDoc"
           />
         </div>
       </div>
     </div>
     <div class="w-[18rem] p-4">
-      <div class="h-[12rem] flex flex-col" v-if="selectedDoc._id">
+      <div v-if="selectedDoc._id" class="h-[12rem] flex flex-col">
         <div class="h-[1.5rem] w-full my-1">
           <div v-if="getWidgetProps(selectedDoc.widget).toClipboard">
-            <i @click="copySelectedDocToClipboard" class="bi bi-copy cursor-pointer" />
+            <i class="bi bi-copy cursor-pointer" @click="copySelectedDocToClipboard" />
             <span class="ml-2 text-xss">Press enter to copy widget content and hide mindbar.</span>
           </div>
         </div>
         <WidgetPreview
-          class="flex-1"
           :key="selectedDoc._rev"
+          class="flex-1"
           :single="true"
           :hide-menu="true"
           :doc="selectedDoc"

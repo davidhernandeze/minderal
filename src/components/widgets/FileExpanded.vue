@@ -16,7 +16,6 @@ const { attachmentUrl, fetchImage } = useImage(toRef(props, 'doc'))
 onMounted(() => {
   fetchImage()
 })
-
 </script>
 
 <template>

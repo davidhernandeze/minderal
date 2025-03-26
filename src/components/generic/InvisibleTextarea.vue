@@ -1,8 +1,7 @@
 <script setup>
 import RichTextEditor from '@/components/generic/RichTextEditor.vue'
 
-const value = defineModel()
-
+const value = defineModel({ type: String })
 </script>
 <template>
   <RichTextEditor

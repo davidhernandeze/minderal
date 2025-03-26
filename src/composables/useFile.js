@@ -5,7 +5,7 @@ export default (docRef) => {
   const format = ref(null)
   const workspace = inject('workspace')
 
-  async function fetchFile () {
+  async function fetchFile() {
     if (!docRef.value._id) return
     const fileDocs = await workspace.fetchFileDocs(docRef.value)
     if (fileDocs.length === 0) return

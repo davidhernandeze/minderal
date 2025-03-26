@@ -8,8 +8,8 @@ import { inject } from 'vue'
 const props = defineProps({
   doc: {
     type: Doc,
-    required: true,
-  },
+    required: true
+  }
 })
 const emits = defineEmits(['update-value'])
 const doc = toRef(props, 'doc')

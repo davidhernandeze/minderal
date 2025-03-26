@@ -6,6 +6,7 @@ import { Doc } from '@/classes/Doc.js'
 const props = defineProps({
   doc: {
     type: Doc,
+    default: null,
     required: false
   }
 })
@@ -16,11 +17,7 @@ const widgetProps = getWidgetProps(props.doc?.widget || 'folder')
 const Widget = defineAsyncComponent(() => {
   return import(`./widgets/${widgetProps.expandedComponent}.vue`)
 })
-
 </script>
 <template>
-  <Widget
-    :doc="doc"
-    @update-value="newValue => workspace.updateDoc(doc, newValue)"
-  />
+  <Widget :doc="doc" @update-value="(newValue) => workspace.updateDoc(doc, newValue)" />
 </template>
