@@ -1,7 +1,7 @@
 import { computed, watch } from 'vue'
 import { useStorage } from '@vueuse/core'
 
-const isDarkTheme = useStorage('dark', false)
+const isDarkTheme = useStorage('dark-mode', true)
 
 watch(isDarkTheme, () => {
   setDarkTheme()
