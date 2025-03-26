@@ -7,8 +7,8 @@ import { Geolocation } from '@capacitor/geolocation'
 const props = defineProps({
   doc: {
     type: Object,
-    required: false,
-  },
+    required: false
+  }
 })
 
 const emits = defineEmits(['submit'])
@@ -20,8 +20,8 @@ const form = ref({
   content: props.doc?.content || {
     latitude: '0',
     longitude: '0',
-    altitude: '0',
-  },
+    altitude: '0'
+  }
 })
 
 function submit() {
@@ -44,23 +44,18 @@ async function setFromCurrentLocation() {
 
 <template>
   <form class="text-gray-200 text-xl" @submit.prevent="submit">
-    <TextInput v-model:value="form.name" label="Name" type="text" class="my-3 w-full" />
+    <TextInput v-model="form.name" label="Name" type="text" class="my-3 w-full" />
     <div class="flex gap-4">
-      <TextInput v-model:value="form.content.latitude" label="Latitude" type="text" class="my-3" />
-      <TextInput
-        v-model:value="form.content.longitude"
-        label="Longitude"
-        type="text"
-        class="my-3"
-      />
-      <TextInput v-model:value="form.content.altitude" label="Altitude" type="text" class="my-3" />
+      <TextInput v-model="form.content.latitude" label="Latitude" type="text" class="my-3" />
+      <TextInput v-model="form.content.longitude" label="Longitude" type="text" class="my-3" />
+      <TextInput v-model="form.content.altitude" label="Altitude" type="text" class="my-3" />
     </div>
     <div>
       <Button
-        @click="setFromCurrentLocation"
         label="Set from current location"
         size="small"
         variant="text"
+        @click="setFromCurrentLocation"
       />
       <p class="text-red-500 text-sm">{{ error }}</p>
     </div>

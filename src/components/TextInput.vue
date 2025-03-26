@@ -1,18 +1,9 @@
 <script setup>
 import { v4 as getId } from 'uuid'
-
-defineEmits(['update:value'])
+import InputText from 'primevue/inputtext'
 
 defineProps({
-  type: {
-    type: String,
-    default: 'text'
-  },
   label: {
-    type: String,
-    default: ''
-  },
-  value: {
     type: String,
     default: ''
   },
@@ -27,44 +18,22 @@ defineProps({
   error: {
     type: String,
     default: ''
+  },
+  type: {
+    type: String,
+    default: 'text'
   }
 })
 
+const value = defineModel({ type: String })
 const inputId = getId()
-const errorAreaId = getId()
 </script>
 
 <template>
-  <div>
-    <label
-      :for="inputId"
-      class="block text-sm font-medium"
-    >{{ label }}</label>
-    <div class="mt-1 relative rounded-md shadow-xs">
-      <input
-        :id="inputId"
-        :type="type"
-        :value="value"
-        :placeholder="placeholder"
-        :disabled="disabled"
-        class="w-full block pr-10 focus:outline-hidden sm:text-sm rounded-md bg-gray-900"
-        :class="[error ? 'text-red-900 border-red-300 placeholder-red-300 focus:ring-red-500 focus:border-red-500' : 'border-gray-300 focus:ring-indigo-500 focus:border-indigo-500']"
-        :aria-invalid="!!error"
-        :aria-describedby="errorAreaId"
-        @input="event => $emit('update:value', event.target.value)"
-      >
-      <div
-        v-if="error"
-        class="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none"
-      >
-        <i class="bi bi-exclamation" />
-      </div>
-    </div>
-    <p
-      v-if="error"
-      :id="errorAreaId"
-      class="mt-1 text-sm text-red-600"
-    >
+  <div class="flex flex-col gap-2">
+    <label :for="inputId" class="block text-sm"> {{ label }} </label>
+    <InputText v-model="value" :disabled="disabled" :placeholder="placeholder" :type="type" />
+    <p v-show="error" class="mt-1 text-sm text-red-600">
       {{ error }}
     </p>
   </div>

@@ -249,7 +249,7 @@ async function moveDoc(parentDoc) {
           </button>
         </div>
         <span class="text-xs text-text-gray-700 dark:text-gray-500">Updated {{ timeAgo }}</span>
-<!--        <span class="absolute bottom-[2rem] text-xs text-text-gray-700 dark:text-gray-500">{{ doc._id }}</span>-->
+        <!--        <span class="absolute bottom-[2rem] text-xs text-text-gray-700 dark:text-gray-500">{{ doc._id }}</span>-->
       </div>
     </template>
 
@@ -257,7 +257,7 @@ async function moveDoc(parentDoc) {
 
     <Dialog header="Rename widget" modal v-model:visible="renameModalOpen">
       <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
-        <TextInput v-model:value="renameInput" label="New Name" type="text" class="my-3 w-full" />
+        <TextInput v-model="renameInput" label="New Name" type="text" class="my-3 w-full" />
         <GenericButton class="bg-indigo-600 hover:bg-indigo-500 mt-6" type="submit">
           Rename
         </GenericButton>

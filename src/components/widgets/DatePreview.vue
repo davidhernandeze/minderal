@@ -10,7 +10,6 @@ const props = defineProps({
     required: true
   }
 })
-console.log(props.doc)
 
 const dateString = computed(() => {
   if (props.doc.content) {

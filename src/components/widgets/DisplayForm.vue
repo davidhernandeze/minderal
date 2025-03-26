@@ -38,7 +38,7 @@ function submit () {
       You can customize how the widget is displayed
     </div>
     <TextInput
-      v-model:value="form.content"
+      v-model="form.content"
       label="Display Text"
       type="text"
       class="my-3 w-full"

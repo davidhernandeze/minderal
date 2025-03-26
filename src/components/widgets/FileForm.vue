@@ -48,7 +48,7 @@ async function pickFile() {
 
 <template>
   <form @submit.prevent="submit">
-    <TextInput v-model:value="form.name" label="Name" type="text" class="my-3 w-full" />
+    <TextInput v-model="form.name" label="Name" type="text" class="my-3 w-full" />
 
     <Button icon="bi bi-file-earmark" @click="pickFile" />
 

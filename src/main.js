@@ -12,8 +12,11 @@ import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import FocusTrap from 'primevue/focustrap'
 import { defineCustomElements } from '@ionic/pwa-elements/loader'
+import { registerSW } from 'virtual:pwa-register'
 
 defineCustomElements(window)
+
+registerSW({ immediate: true })
 
 PouchDB.plugin(find)
 

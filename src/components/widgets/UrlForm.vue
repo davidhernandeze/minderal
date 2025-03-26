@@ -43,7 +43,7 @@ function submit () {
     @submit.prevent="submit"
   >
     <TextInput
-      v-model:value="urlPreview.url"
+      v-model="urlPreview.url"
       label="URL"
       type="text"
       class="my-3 w-full"
