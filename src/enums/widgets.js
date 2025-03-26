@@ -52,11 +52,12 @@ export const widgets = {
     expandable: false,
     defaultContent: 0
   },
-  // countdown: {
-  //   label: 'Countdown',
-  //   icon: 'bi bi-hourglass',
-  //   previewComponent: 'Text'
-  // },
+  countdown: {
+    label: 'Countdown',
+    icon: 'bi bi-hourglass',
+    previewComponent: 'Countdown',
+    formComponent: 'CountdownForm'
+  },
   checklist: {
     label: 'Checklist',
     icon: 'bi bi-list-check',
@@ -126,6 +127,21 @@ export const widgets = {
     expandable: false,
     toClipboard: (doc) => `${doc.content.latitude},${doc.content.longitude}`
   }
+  // chronometer: {
+  //   label: 'Chronometer',
+  //   icon: 'bi bi-stopwatch',
+  //   previewComponent: 'Chronometer',
+  //   expandedComponent: 'Chronometer',
+  //   expandable: false,
+  //   defaultContent: 0
+  // },
+  // dashboard: {
+  //   label: 'Dashboard',
+  //   icon: 'bi bi-speedometer2',
+  //   expandable: true,
+  //   previewComponent: 'DashboardPreview',
+  //   expandedComponent: 'DashboardExpanded'
+  // },
 }
 
 export const getWidgetList = () => {
