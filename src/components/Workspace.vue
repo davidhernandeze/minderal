@@ -27,7 +27,7 @@ const props = defineProps({
 const emits = defineEmits(['navigate', 'change-tab-label'])
 
 const workspace = useWorkspace({ connectionId: props.connectionId, docId: props.docId })
-const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading } = workspace
+const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = workspace
 
 onBeforeMount(async () => {
   await connectDB()
@@ -112,6 +112,7 @@ onBeforeUnmount(async () => {
     pt:content-container:class="h-full min-h-0 flex-1 flex flex-col"
     pt:content:class="relative h-full flex flex-col !pb-0 p-6 !pr-0 overflow-visible !rounded-t-none"
   >
+    <div v-if="offline" class="mb-2 p-1 text-xs text-center bg-red-500/50">Offline</div>
     <div class="absolute right-[1rem] top-[1rem] z-99">
       <ProgressSpinner
         v-show="isLoading"

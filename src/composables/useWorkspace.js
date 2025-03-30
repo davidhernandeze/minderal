@@ -10,7 +10,7 @@ import { useNetwork } from '@vueuse/core'
 export function useWorkspace({ connectionId, docId = '' }) {
   const databasePoolStore = useDatabasePoolStore()
   const metadataStore = useMetadataStore()
-  const { lastReconnect, reconnects, offline } = DebugStore
+  const { lastReconnect, reconnects } = DebugStore
   const { isOnline } = useNetwork()
 
   watch(isOnline, async (value) => {
@@ -30,6 +30,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
   const currentRoute = ref([])
   const connectionDone = ref(false)
   const isLoading = ref(false)
+  const offline = ref(false)
 
   async function connectDB() {
     const info = await metadataStore.getConnectionInfo(connectionId)
@@ -307,6 +308,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
     migrateDatabase,
     isLoading,
     fetchDocsByParentId,
-    moveDoc
+    moveDoc,
+    offline
   }
 }
