@@ -1,5 +1,6 @@
 <script setup>
 import { defineAsyncComponent, inject, ref, useTemplateRef, watch } from 'vue'
+import safeImport from '@/utils/safe-import.js'
 import { getWidgetProps } from '@/enums/widgets.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
@@ -59,9 +60,9 @@ const widgetFormOpen = ref(false)
 
 const widgetProps = getWidgetProps(props.doc.widget) ?? getWidgetProps('text')
 const icon = widgetProps.icon
-const Widget = defineAsyncComponent(() => {
-  return import(`./widgets/${widgetProps.previewComponent}.vue`)
-})
+const Widget = defineAsyncComponent(() =>
+  safeImport(() => import(`./widgets/${widgetProps.previewComponent}.vue`))
+)
 
 async function clickAction() {
   if (widgetProps.expandable) {

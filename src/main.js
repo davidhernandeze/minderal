@@ -11,6 +11,7 @@ import * as Sentry from '@sentry/vue'
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import FocusTrap from 'primevue/focustrap'
+import ConfirmationService from 'primevue/confirmationservice';
 import { defineCustomElements } from '@ionic/pwa-elements/loader'
 import { registerSW } from 'virtual:pwa-register'
 
@@ -32,6 +33,7 @@ app.use(PrimeVue, {
   }
 })
 app.directive('focustrap', FocusTrap)
+app.use(ConfirmationService)
 
 // eslint-disable-next-line no-undef
 if (process.env.NODE_ENV !== 'development') {
