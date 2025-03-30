@@ -122,3 +122,4 @@ To the contributors of the following projects:
 - Implement trash bin (widgets already have soft delete)
 - IoT integration
 - Third-party integrations
+- S3 integration and disk management

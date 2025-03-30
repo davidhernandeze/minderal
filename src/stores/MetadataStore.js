@@ -44,7 +44,8 @@ export const useMetadataStore = defineStore('metadata', () => {
       name,
       host,
       connectionOptions: optionsToStore,
-      username: username || 'local'
+      username: username || 'local',
+      online: false
     }
     connections.value.push(connection)
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
@@ -65,6 +66,16 @@ export const useMetadataStore = defineStore('metadata', () => {
   async function getConnectionInfo(connectionId) {
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     return metaDocument.connections.find((connection) => connection.id === connectionId)
+  }
+
+  async function setConnectionOnline(connectionId, online) {
+    const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
+    const connectionIndex = metaDocument.connections.findIndex((connection) => connection.id === connectionId)
+    if (connectionIndex === -1) return
+    const connection = metaDocument.connections[connectionIndex]
+    connection.online = online
+    connections.value[connectionIndex] = connection
+    await metaDatabase.updateDoc(metaDocument)
   }
 
   async function deleteDatabase(connectionId) {
@@ -145,6 +156,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     openNewTab,
     openTab,
     updateTabDoc,
-    closeTab
+    closeTab,
+    setConnectionOnline
   }
 })

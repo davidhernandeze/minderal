@@ -43,7 +43,7 @@ function close() {
       <i class="bi bi-x" />
     </div>
     <div class="p-2 pb-0 text-xs">minderal</div>
-    <div class="px-2 text-gray-300 text-xss">v0.41</div>
+    <div class="px-2 text-gray-300 text-xss">v0.42</div>
     <div class="p-2">
       <div class="text-xs uppercase flex items-center mb-2">
         <i class="bi bi-database mr-1" />
@@ -57,7 +57,11 @@ function close() {
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
-              <i class="bi bi-circle-fill text-lg sm:text-base text-(--p-primary-500)" />
+              <i
+                v-if="connection.online"
+                class="bi bi-circle-fill text-lg sm:text-base text-(--p-primary-500)"
+              />
+              <i v-else class="bi bi-circle-fill text-lg sm:text-base text-(--p-gray-500)" />
               <i v-if="connection.host" class="bi bi-cloud-check-fill text-blue-300" />
               <div>
                 {{ connection.name }}

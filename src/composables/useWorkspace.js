@@ -34,15 +34,19 @@ export function useWorkspace({ connectionId, docId = '' }) {
 
   async function connectDB() {
     const info = await metadataStore.getConnectionInfo(connectionId)
+    console.log('Connecting to DB', info)
     db = await databasePoolStore.getOrCreateDB({ ...info.connectionOptions, listen: true })
+    await metadataStore.setConnectionOnline(connectionId, true)
     username.value = info.username
     db.on('change', onDatabaseChange)
-    db.on('offline', () => {
+    db.on('offline', async () => {
       offline.value = true
+      await metadataStore.setConnectionOnline(connectionId, false)
     })
-    db.on('reconnect', () => {
+    db.on('reconnect', async () => {
       reconnects.value += 1
       offline.value = false
+      await metadataStore.setConnectionOnline(connectionId, true)
       lastReconnect.value = new Date().toISOString()
       fetch()
     })
