@@ -25,7 +25,7 @@ defineProps({
   }
 })
 
-const value = defineModel({ type: String })
+const value = defineModel({ type: [String, Number] })
 const inputId = getId()
 </script>
 
