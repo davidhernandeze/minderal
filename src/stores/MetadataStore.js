@@ -58,6 +58,7 @@ export const useMetadataStore = defineStore('metadata', () => {
     await closeAllConnectionTabs(connectionId)
     const metaDocument = await metaDatabase.getOrCreateDoc(META_DOC_ID)
     connections.value = connections.value.filter((connection) => connection.id !== connectionId)
+    tabs.value = tabs.value.filter((tab) => tab.connectionId !== connectionId)
     metaDocument.connections = connections.value
     await metaDatabase.updateDoc(metaDocument)
   }
