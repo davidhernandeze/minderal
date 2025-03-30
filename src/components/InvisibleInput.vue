@@ -8,6 +8,6 @@ const el = defineModel('el', { type: String })
     :ref="el"
     v-bind="$attrs"
     v-model="value"
-    class="bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-hidden p-0 outline-hidden focus:border-transparent focus:ring-0"
+    class="bg-transparent border-none focus:outline-hidden p-0 outline-hidden focus:border-transparent focus:ring-0"
   />
 </template>

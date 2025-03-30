@@ -18,12 +18,15 @@ https://app.minderal.com/
 - [Root widget](#root-widget)
 - [About grouping same widget versions (expandable, preview) in a folder](#about-grouping-same-widget-versions-expandable-preview-in-a-folder)
 - [Thanks](#thanks)
+- [Features](#features)
 
 ## Philosophy
+- Open source and free to use.
 - Standalone frontend: The frontend should be able to run without a backend server.
 - Expandable: The app should be able to add new widgets easily.
 - Portable: The app should be able to run on different platforms.
 - Backend agnostic: The app should be able to sync with databases using CouchDB's protocol.
+- Self-hosted: The app architecture should allow users to host their own databases.
 
 ## Run development environment
 
@@ -90,7 +93,7 @@ Each widget can be defined to has the following features:
     expandable: true,
     defaultContent: [],
     previewComponent: 'ChecklistPreview',
-    expandedComponent: 'ChecklistExpanded',
+    expandedComponent: 'ChecklistExpanded'
 }
 ```
 
@@ -106,4 +109,13 @@ To the contributors of the following projects:
 - https://github.com/capawesome-team/capacitor-plugins/tree/main/packages/file-picker
 - https://github.com/neighbourhoodie/couchdb-minihosting
 
+## Features
+- Create, read, update, and delete widgets.
 
+## Roadmap
+- Add more widgets
+- Improve remote connection management
+- P2P sync
+- Set widget content to another widget content
+- Mobile apps (iOS, Android) with extra features
+- Improve desktop implementation

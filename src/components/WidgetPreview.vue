@@ -176,7 +176,7 @@ async function moveDoc(parentDoc) {
           v-model:el="renameInputEl"
           v-model:value="renameInput"
           v-on-click-outside="endNameEdition"
-          class="flex-1 ml-2 bg-transparent border-none hover:text-gray-50 focus:text-gray-50 focus:outline-hidden p-0"
+          class="flex-1 ml-2 bg-transparent border-none focus:outline-hidden p-0"
           @click.stop
           @focus="(e) => startNameEdition(e)"
           @keyup.enter="endNameEdition"
