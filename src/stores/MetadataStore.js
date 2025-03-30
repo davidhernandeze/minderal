@@ -22,7 +22,6 @@ export const useMetadataStore = defineStore('metadata', () => {
 
     if (!initialized) {
       await addConnection('local')
-      await openNewTab(connections.value[0].id, 'local')
     }
   }
 
