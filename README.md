@@ -119,3 +119,6 @@ To the contributors of the following projects:
 - Set widget content to another widget content
 - Mobile apps (iOS, Android) with extra features
 - Improve desktop implementation
+- Implement trash bin (widgets already have soft delete)
+- IoT integration
+- Third-party integrations

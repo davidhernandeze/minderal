@@ -18,15 +18,25 @@ const props = defineProps({
 })
 
 const workspace = inject('workspace')
-const nodes = ref([])
+const nodes = ref([
+  {
+    key: '',
+    label: '',
+    icon: 'bi bi-house',
+    leaf: false,
+    children: [],
+    loaded: false
+  }
+])
 const selectedKey = ref(null)
 const loading = ref(false)
 
-onMounted(() => {
-  getChildDocs('')
+onMounted(async () => {
+  await getChildDocs('', nodes.value[0])
 })
 
 async function getChildDocs(parentId, node = null) {
+  if (node?.loaded) return
   loading.value = true
   let docs = []
   if (props.parentsOnly) {
@@ -57,6 +67,7 @@ async function getChildDocs(parentId, node = null) {
     node.leaf = true
   }
 
+  node.loaded = true
   loading.value = false
 }
 
