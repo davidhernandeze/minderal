@@ -34,7 +34,6 @@ export function useWorkspace({ connectionId, docId = '' }) {
 
   async function connectDB() {
     const info = await metadataStore.getConnectionInfo(connectionId)
-    console.log('Connecting to DB', info)
     db = await databasePoolStore.getOrCreateDB({ ...info.connectionOptions, listen: true })
     await metadataStore.setConnectionOnline(connectionId, true)
     username.value = info.username

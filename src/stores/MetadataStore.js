@@ -75,7 +75,6 @@ export const useMetadataStore = defineStore('metadata', () => {
     const connection = metaDocument.connections[connectionIndex]
     connection.online = online
     connections.value[connectionIndex] = connection
-    await metaDatabase.updateDoc(metaDocument)
   }
 
   async function deleteDatabase(connectionId) {
