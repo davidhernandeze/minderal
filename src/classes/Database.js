@@ -116,7 +116,8 @@ export default class Database extends EventEmitter {
     }
 
     const { docs } = await this.connection.find({
-      selector
+      selector,
+      limit: 9999
     })
     return docs.map((doc) => new Doc(doc))
   }
