@@ -1,22 +1,31 @@
-<script setup>
+<script setup lang="ts">
 import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { defineAsyncComponent, onBeforeMount, provide } from 'vue'
+import themeStore from '@/stores/theme.js'
+import Application from '@/domain/Application'
 
 const metadataStore = useMetadataStore()
+const applicationStore = useApplicationStore()
 const path = location.pathname
-import themeStore from '@/stores/theme.js'
 
 const MainComponent = defineAsyncComponent(() => {
   if (path === '/mindbar') {
-    return import('@/layouts/Mindbar.vue')
+    return import('@/layouts/Mindbar.vue')  }
+  if (path === '/v3') {
+    return import('@/layouts/AppTS.vue')
   }
+
   return import('@/layouts/Default.vue')
 })
 
 provide('metadataStore', metadataStore)
 
+const app: Application = new Application()
+provide('app', app)
+
 onBeforeMount(async () => {
   await metadataStore.fetchMetadata()
+  await app.initialize()
   themeStore.setDarkTheme()
 })
 </script>
