@@ -1,6 +1,6 @@
 <script setup>
 import { storeToRefs } from 'pinia'
-import { inject, ref, watch } from 'vue'
+import { inject, onMounted, ref, watch } from 'vue'
 import Select from 'primevue/select'
 import Card from 'primevue/card'
 import { onKeyStroke } from '@vueuse/core'
@@ -11,6 +11,12 @@ const metadataStore = inject('metadataStore')
 const { connections } = storeToRefs(metadataStore)
 
 const isMindbarLocked = ref(false)
+
+onMounted(() => {
+  if (connections.value.length > 0) {
+    selectedConnection.value = connections.value[0]
+  }
+})
 
 onKeyStroke(['Escape'], (e) => {
   e.preventDefault()
