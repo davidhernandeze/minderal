@@ -2,18 +2,20 @@
 import useFolder from '@/composables/useFolder.js'
 import { useWorkspace } from '@/composables/useWorkspace.js'
 import searchStatus from '@/stores/searchStatus.js'
-import { computed, nextTick, onMounted, provide, watch } from 'vue'
+import { computed, nextTick, onMounted, provide, ref, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
 import Button from 'primevue/button'
 import { onKeyStroke, useDocumentVisibility } from '@vueuse/core'
 import icon from '@/assets/logo.svg'
 import ProgressSpinner from 'primevue/progressspinner'
 import InputText from 'primevue/inputtext'
+import Panel from 'primevue/panel'
 import useIndexLoop from '@/composables/useIndexLoop.js'
 import DocRoute from '@/components/DocRoute.vue'
 import WidgetPreview from '@/components/WidgetPreview.vue'
 import { invoke } from '@tauri-apps/api/core'
 import { writeText } from '@tauri-apps/plugin-clipboard-manager'
+import InvisibleTextInput from '@/components/generic/InvisibleTextInput.vue'
 
 const props = defineProps({
   connectionId: {
@@ -39,6 +41,7 @@ onMounted(async () => {
 })
 
 const { searching, query } = searchStatus
+const newDocumentContent = ref('')
 const { filteredDocuments } = useFolder(workspace.childDocs, query)
 const { currentIndex, increment, decrement } = useIndexLoop(filteredDocuments)
 const selectedDoc = computed(() => filteredDocuments.value?.[currentIndex.value] || {})
@@ -52,6 +55,10 @@ onKeyStroke(['Backspace'], (e) => {
 })
 
 function tabClickAction() {
+  if (!selectedDoc.value._id) {
+    document.getElementById('newDocumentContent')?.focus()
+    return
+  }
   increment()
   document.getElementById('mainInput').focus()
 }
@@ -68,6 +75,7 @@ async function navigateToDoc(docId) {
 }
 
 async function navigateToSelectedDoc() {
+  if (!selectedDoc.value._id) return
   const toClipboard = getWidgetProps(selectedDoc.value.widget)?.toClipboard
   if (toClipboard) {
     await copySelectedDocToClipboard()
@@ -86,6 +94,17 @@ async function copySelectedDocToClipboard() {
   const widgetProps = getWidgetProps(selectedDoc.value.widget)
   await writeText(widgetProps.toClipboard(selectedDoc.value))
 }
+
+async function createDocument() {
+  await workspace.createDoc({
+    name: query.value,
+    widget: 'text',
+    content: newDocumentContent.value.trim(),
+    parent_id: currentDoc.value?._id || ''
+  })
+  newDocumentContent.value = ''
+  document.getElementById('mainInput')?.focus()
+}
 </script>
 <template>
   <div
@@ -94,7 +113,8 @@ async function copySelectedDocToClipboard() {
     @keydown.prevent.shift.tab="tabShiftClickAction"
     @keydown.prevent.right="tabClickAction"
     @keydown.prevent.left="tabShiftClickAction"
-    @keyup.prevent.enter="navigateToSelectedDoc"
+    @keyup.prevent.enter.exact="navigateToSelectedDoc"
+    @keyup.prevent.shift.enter="createDocument"
   >
     <div class="flex-1">
       <DocRoute class="text-2xl" :route="currentRoute" @navigate="(id) => setCurrentDoc(id)" />
@@ -111,7 +131,8 @@ async function copySelectedDocToClipboard() {
         <InputText
           id="mainInput"
           v-model="query"
-          v-focustrap
+          v-focustrap="selectedDoc._id"
+          :disabled="!connectionId"
           class="w-full ml-2"
           type="text"
           autocorrect="off"
@@ -154,6 +175,22 @@ async function copySelectedDocToClipboard() {
           :hide-menu="true"
           :doc="selectedDoc"
         />
+      </div>
+      <div v-else-if="query.length > 0 && connectionId" class="h-[12rem] flex flex-col">
+        <div class="h-[1.5rem] w-full my-1">
+          <span class="text-xss">Press <span class="text-green-500">Shift+Enter</span> to create a new text widget</span>
+        </div>
+        <Panel class="flex-1 h-full" pt:header:class="!p-3">
+          <template #header>
+            <div>{{ query }}</div>
+          </template>
+          <InvisibleTextInput
+            id="newDocumentContent"
+            v-model="newDocumentContent"
+            placeholder="Enter widget content..."
+            class="w-full h-full break-words"
+          />
+        </Panel>
       </div>
     </div>
   </div>

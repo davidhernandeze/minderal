@@ -9,8 +9,9 @@
     "preview": "vite preview",
     "generate-pwa-assets": "pwa-assets-generator",
     "lint": "eslint ./src --fix",
-    "tauri": "tauri",
-    "build-tauri": "tauri build"
+    "tauri": "tauri dev",
+    "build-tauri": "tauri build",
+    "build-macos-darwing": "tauri build --target x86_64-apple-darwin"
   },
   "dependencies": {
     "@capacitor/android": "^7.0.1",
