@@ -1,10 +1,8 @@
-<script setup>
-import { useMetadataStore } from '@/stores/MetadataStore.js'
-import { storeToRefs } from 'pinia'
+<script setup lang="ts">
 import sidebarStore from '@/stores/sidebar.js'
+import useApplication from '@/composables/useApplication'
 
-const metadataStore = useMetadataStore()
-const { tabs } = storeToRefs(metadataStore)
+const { tabs } = useApplication()
 
 const { isSidebarVisible } = sidebarStore
 </script>

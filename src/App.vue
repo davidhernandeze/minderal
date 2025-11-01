@@ -2,15 +2,15 @@
 import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { defineAsyncComponent, onBeforeMount, provide } from 'vue'
 import themeStore from '@/stores/theme.js'
-import Application from '@/domain/Application'
+import { Application } from '@/domain/Application'
 
 const metadataStore = useMetadataStore()
-const applicationStore = useApplicationStore()
 const path = location.pathname
 
 const MainComponent = defineAsyncComponent(() => {
   if (path === '/mindbar') {
-    return import('@/layouts/Mindbar.vue')  }
+    return import('@/layouts/Mindbar.vue')
+  }
   if (path === '/v3') {
     return import('@/layouts/AppTS.vue')
   }

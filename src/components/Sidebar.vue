@@ -1,32 +1,37 @@
-<script setup>
-import { ref } from 'vue'
+<script setup lang="ts">
+import { inject, ref } from 'vue'
 import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { storeToRefs } from 'pinia'
 import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
 import sidebarStore from '@/stores/sidebar.js'
 import Button from 'primevue/button'
 import themeStore from '@/stores/theme.js'
+import { Application } from "/Users/david/code/minderal/src/domain/Application"
+import useApplication from '@/composables/useApplication'
+
+const { dbs } = useApplication()
 
 const metadataStore = useMetadataStore()
-const { connections, tabs } = storeToRefs(metadataStore)
+const { tabs } = storeToRefs(metadataStore)
+
 const isConnectionSetupModalOpen = ref(false)
-
 const { isSidebarVisible } = sidebarStore
-const connectionOnEdit = ref(null)
 
+const connectionOnEdit = ref(null)
 function openNewTab(connectionId, connectionName) {
   metadataStore.openNewTab(connectionId, connectionName)
   sidebarStore.onTabOpen()
-}
 
+}
 function openConnectionSetup(connection) {
   connectionOnEdit.value = connection
   isConnectionSetupModalOpen.value = true
-}
 
+}
 function close() {
   isConnectionSetupModalOpen.value = false
   connectionOnEdit.value = null
+
 }
 </script>
 
@@ -43,7 +48,7 @@ function close() {
       <i class="bi bi-x" />
     </div>
     <div class="p-2 pb-0 text-xs">minderal</div>
-    <div class="px-2 text-gray-300 text-xss">v0.44</div>
+    <div class="px-2 text-gray-300 text-xss">v0.45</div>
     <div class="p-2">
       <div class="text-xs uppercase flex items-center mb-2">
         <i class="bi bi-database mr-1" />
@@ -51,32 +56,32 @@ function close() {
       </div>
       <ul class="my-1">
         <li
-          v-for="connection in connections"
-          :key="connection.id"
+          v-for="db in dbs"
+          :key="db.id"
           class="py-6 sm:py-2 px-4 cursor-pointer rounded-sm hover:bg-(--p-surface-100) dark:hover:bg-(--p-surface-800) relative"
         >
           <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">
               <i
-                v-if="connection.online"
+                v-if="db.online"
                 class="bi bi-circle-fill text-lg sm:text-base text-(--p-primary-500)"
               />
               <i v-else class="bi bi-circle-fill text-lg sm:text-base text-(--p-gray-500)" />
-              <i v-if="connection.host" class="bi bi-cloud-check-fill text-blue-300" />
+              <i v-if="db.host" class="bi bi-cloud-check-fill text-blue-300" />
               <div>
-                {{ connection.name }}
+                {{ db.name }}
               </div>
             </div>
             <div class="flex gap-6 sm:gap-2">
               <button
                 class="rounded-full w-6 text-gray-400 hover:text-(--p-primary-500) flex-center cursor-pointer"
-                @click.stop="openConnectionSetup(connection)"
+                @click.stop="openConnectionSetup(db)"
               >
                 <i class="bi bi-gear" />
               </button>
               <button
                 class="rounded-full w-6 text-gray-400 hover:text-(--p-primary-500) flex-center cursor-pointer"
-                @click="openNewTab(connection.id, connection.name)"
+                @click="openNewTab(db.id, db.name)"
               >
                 <i class="bi bi-box-arrow-up-right" />
               </button>
