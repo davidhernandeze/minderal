@@ -10,7 +10,12 @@ export default class LocalConnection extends Connection {
 
   static getInstance() {
     if (!LocalConnection.instance) {
-      this.instance = new LocalConnection({ id: 'local', name: 'local', is_remote: false })
+      this.instance = new LocalConnection({
+        id: 'local',
+        name: 'local',
+        is_remote: false,
+        dbs: []
+      })
     }
     return this.instance
   }

@@ -4,8 +4,7 @@ import moment from 'moment'
 import { EventEmitter } from 'events'
 import { Doc } from '@/classes/Doc.js'
 import { Connection } from '@/domain/Connection'
-import { DatabaseConfig } from '@/domain/types/config'
-import { ConfigDoc } from '@/domain/ConfigDoc'
+import { ConfigDoc, DatabaseConfig } from '@/domain/types/config'
 
 interface ChangeListener {
   cancel: () => void
@@ -24,14 +23,12 @@ export class Database extends EventEmitter {
   ) {
     super()
     this.id = generateId()
-    this.client = new PouchDB(name, connection.options)
+    this.client = new PouchDB(name, connection.config)
   }
 
   getConfig(): DatabaseConfig {
     return {
-      id: this.id,
-      name: this.name,
-      connection_id: this.connection.id
+      name: this.name
     }
   }
 
@@ -61,12 +58,7 @@ export class Database extends EventEmitter {
       return await this.client.get('config')
     } catch (e) {
       if (e.status !== 404) return null
-      const configDoc = {
-        tabs: [],
-        connections: [],
-        dbs: []
-      }
-      await this.client.put({ _id: 'config', ...configDoc })
+      await this.client.put({ _id: 'config', connections: [], tabs: [] })
       return await this.client.get('config')
     }
   }

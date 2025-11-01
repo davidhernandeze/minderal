@@ -26,6 +26,7 @@ provide('app', app)
 onBeforeMount(async () => {
   await metadataStore.fetchMetadata()
   await app.initialize()
+  console.log('app initialized',  app)
   themeStore.setDarkTheme()
 })
 </script>

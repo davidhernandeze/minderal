@@ -2,8 +2,8 @@ import { Connection } from './Connection'
 import { Tab } from './Tab'
 import { Database } from '@/domain/Database'
 import LocalConnection from '@/domain/LocalConnection'
-import { ConfigDoc } from '@/domain/ConfigDoc'
 import { EventEmitter } from 'events'
+import { ConfigDoc } from '@/domain/types/config'
 
 export class Application extends EventEmitter {
   private configDatabase: Database
@@ -11,53 +11,53 @@ export class Application extends EventEmitter {
 
   constructor(
     public connections: Map<string, Connection> = new Map(),
-    public tabs: Map<string, Tab> = new Map(),
-    public dbs: Map<string, Database> = new Map()
+    public tabs: Map<string, Tab> = new Map()
   ) {
     super()
     this.connections.set('local', LocalConnection.getInstance())
   }
 
   async initialize() {
-    await this.setStateFromConfig()
+    await this.setInitialStateFromConfig()
   }
 
-  async setStateFromConfig() {
+  async setInitialStateFromConfig() {
     this.configDatabase = new Database('_config', LocalConnection.getInstance())
     this.configDocument = await this.configDatabase.getOrCreateConfigDoc()
-    console.log(this.configDocument)
-    this.setDatabasesFromConfig()
 
-    const firstTimeUsage = localStorage.getItem('initialized') !== 'true'
-
+    const firstTimeUsage = localStorage.getItem('first_setup') !== 'true'
+    console.log(firstTimeUsage)
     if (firstTimeUsage) {
-      await this.addDatabase('local', LocalConnection.getInstance())
-      localStorage.setItem('initialized', 'true')
+      await this.addLocalConnection()
+      localStorage.setItem('first_setup', 'true')
     }
+    console.log(this.configDocument)
+    this.setConnectionsFromConfig()
   }
 
-  setDatabasesFromConfig() {
-    for (const db of this.configDocument.dbs) {
-      const connection = this.connections.get(db.connection_id)
-      if (!connection) continue
-      this.dbs.set(db.id, new Database(db.name, connection))
-    }
-
-    this.emit('dbs:changed', this.dbs.values)
-  }
-
-  async addDatabase(name: string, connection: Connection): Promise<void> {
-    const newDatabase = new Database(name, connection)
-    await newDatabase.indexBy('parent_id')
-    await newDatabase.indexBy('deleted_at')
-    await newDatabase.indexBy('widget')
-
-    this.dbs.set(newDatabase.id, newDatabase)
-    this.configDocument.dbs.push(newDatabase.getConfig())
-
+  async addLocalConnection() {
+    const localConnection = LocalConnection.getInstance()
+    localConnection.addDatabase('local')
+    this.connections.set('local', localConnection)
+    this.configDocument.connections.push(localConnection.getConfig())
     this.configDocument._rev = await this.configDatabase.updateDoc(this.configDocument)
-    await this.openNewTab(LocalConnection.getInstance())
-    this.emit('dbs:changed', this.dbs)
+  }
+
+  setConnectionsFromConfig() {
+    for (const connectionConfid of this.configDocument.connections) {
+      const connection = this.connections.has(connectionConfid.id)
+        ? this.connections.get(connectionConfid.id)
+        : new Connection(connectionConfid)
+
+      if (!this.connections.has(connection.id)) {
+        this.connections.set(connection.id, connection)
+      }
+
+      for (const databaseConfig of connectionConfid.dbs || []) {
+        connection.addDatabase(databaseConfig.name)
+      }
+    }
+    this.emit('connections:changed', Array.from(this.connections.values()))
   }
 
   async openNewTab(connection: Connection): Promise<void> {

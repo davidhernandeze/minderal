@@ -1,10 +1,11 @@
-<script setup>
+<script setup lang="ts">
 import Workspace from '@/components/Workspace.vue'
 import { useMetadataStore } from '@/stores/MetadataStore.js'
-import { storeToRefs } from 'pinia'
+import useApplication from '@/composables/useApplication.js'
+import { Tab } from '@/domain/Tab.js'
 
 const metadataStore = useMetadataStore()
-const { tabs } = storeToRefs(metadataStore)
+const { tabs }: Tab[] = useApplication()
 
 function updateLabel(tab, newLabel) {
   tab.label = newLabel.label
