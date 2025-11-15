@@ -1,46 +1,25 @@
-<script setup>
+<script setup lang="ts">
 import { computed, nextTick, onBeforeMount, onBeforeUnmount, provide, ref, watch } from 'vue'
 import DocRoute from '@/components/DocRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import { getWidgetList, getWidgetProps, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
-import { useWorkspace } from '@/composables/useWorkspace.js'
 import sidebarStore from '@/stores/sidebar.js'
 import WidgetForm from '@/components/WidgetForm.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
+import { Workspace } from '@/domain/Workspace'
+import useWorkspace from '@/composables/useWorkspace'
 
-const props = defineProps({
-  connectionId: {
-    type: String,
-    required: true
-  },
-  docId: {
-    type: String,
-    default: ''
-  }
-})
+const props = defineProps<{
+  workspace: Workspace
+}>()
 
-const emits = defineEmits(['navigate', 'change-tab-label'])
-
-const workspace = useWorkspace({ connectionId: props.connectionId, docId: props.docId })
-const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = workspace
-
-onBeforeMount(async () => {
-  await connectDB()
-})
-
-watch(
-  () => props.docId,
-  async (value) => {
-    await setCurrentDoc(value)
-    const icon = getWidgetProps(currentDoc.value?.widget || 'folder')?.icon
-    emits('change-tab-label', { label: currentDoc.value?.name, icon })
-  }
-)
+// const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = useWorkspace(props.workspace)
+const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = useWorkspace(props.workspace)
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -59,9 +38,8 @@ const widgetFormOpen = ref(false)
 
 const { isSidebarVisible } = sidebarStore
 
-provide('workspace', workspace)
+// provide('workspace', workspace)
 provide('searchQuery', searchQuery)
-provide('navigate', (docId) => emits('navigate', docId))
 
 watch(shiftCtrlA, (v) => {
   if (!v) return
@@ -69,6 +47,7 @@ watch(shiftCtrlA, (v) => {
 })
 
 const showMainInput = computed(() => {
+  return
   let type = 'folder'
   if (workspace.currentDoc.value) {
     type = workspace.currentDoc.value.widget
@@ -101,9 +80,6 @@ async function selectWidget(widget) {
   }
 }
 
-onBeforeUnmount(async () => {
-  await workspace.close()
-})
 </script>
 
 <template>

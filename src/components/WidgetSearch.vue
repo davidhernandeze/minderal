@@ -1,6 +1,6 @@
 <script setup>
 import useFolder from '@/composables/useFolder.js'
-import { useWorkspace } from '@/composables/useWorkspace.js'
+import { old_useWorkspace } from '@/composables/old_useWorkspace.js'
 import searchStatus from '@/stores/searchStatus.js'
 import { computed, nextTick, onMounted, provide, ref, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
@@ -31,7 +31,7 @@ watch(visibility, (current, previous) => {
   }
 })
 
-const workspace = useWorkspace({ connectionId: props.connectionId })
+const workspace = old_useWorkspace({ connectionId: props.connectionId })
 const { connectDB, currentRoute, setCurrentDoc, currentDoc } = workspace
 
 onMounted(async () => {

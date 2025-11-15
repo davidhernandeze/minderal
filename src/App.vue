@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { useMetadataStore } from '@/stores/MetadataStore.js'
 import { defineAsyncComponent, onBeforeMount, provide } from 'vue'
 import themeStore from '@/stores/theme.js'
 import { Application } from '@/domain/Application'
 
-const metadataStore = useMetadataStore()
 const path = location.pathname
 
 const MainComponent = defineAsyncComponent(() => {
@@ -18,15 +16,11 @@ const MainComponent = defineAsyncComponent(() => {
   return import('@/layouts/Default.vue')
 })
 
-provide('metadataStore', metadataStore)
-
 const app: Application = new Application()
 provide('app', app)
 
 onBeforeMount(async () => {
-  await metadataStore.fetchMetadata()
   await app.initialize()
-  console.log('app initialized',  app)
   themeStore.setDarkTheme()
 })
 </script>

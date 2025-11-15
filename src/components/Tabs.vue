@@ -20,7 +20,7 @@ const { isSidebarVisible } = sidebarStore
             <i class="mr-2" :class="tab.icon" />
             <p class="truncate">{{ tab.label || 'home' }}</p>
           </div>
-          <p class="truncate text-xs font-light tracking-wider">@{{ tab.name }}</p>
+          <p class="truncate text-xs font-light tracking-wider">@{{ tab.connectionName }}</p>
         </div>
         <div
           class="h-[1.2rem] w-[1.2rem] rounded-full flex-center hover:bg-[var(--p-surface-600)]"

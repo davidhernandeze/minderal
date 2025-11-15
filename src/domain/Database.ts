@@ -4,32 +4,45 @@ import moment from 'moment'
 import { EventEmitter } from 'events'
 import { Doc } from '@/classes/Doc.js'
 import { Connection } from '@/domain/Connection'
-import { ConfigDoc, DatabaseConfig } from '@/domain/types/config'
+import { ConfigDocStructure, DatabaseConfig } from '@/domain/types/config'
+import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 
 interface ChangeListener {
   cancel: () => void
 }
 
 export class Database extends EventEmitter {
-  public id: string
+  id: string
+  name: string
+  online: boolean = false
+  username: string
+
+  private connection: Connection
   private client: PouchDB.Database
   private clientCheckInterval: NodeJS.Timeout | null = null
-  private offline: boolean = false
   private changesListener: null | ChangeListener = null
 
-  constructor(
-    public name: string,
-    public connection: Connection
-  ) {
+  constructor(name: string, connection: Connection) {
+    console.log(name)
     super()
     this.id = generateId()
     this.client = new PouchDB(name, connection.config)
+    this.username = connection.config?.auth?.username || 'local'
+    this.connection = connection
   }
 
   getConfig(): DatabaseConfig {
     return {
       name: this.name
     }
+  }
+
+  getConnectionId(): string {
+    return this.connection.id
+  }
+
+  getConnectionName(): string {
+    return this.connection.name
   }
 
   async startListeningWithMonitoring() {
@@ -41,19 +54,17 @@ export class Database extends EventEmitter {
     return await this.client.info()
   }
 
-  async getOrCreateDoc(id: string, doc = {}): Promise<Doc> {
+  async getOrCreateWidgetDoc(id: string, doc?: WidgetDocStructure): Promise<WidgetDocStructure> {
     try {
-      const existingDoc = await this.client.get(id)
-      return new Doc(existingDoc)
+      return await this.client.get(id)
     } catch (e) {
       if (e.status !== 404) return null
       await this.client.put({ _id: id, ...doc })
-      const newDoc = await this.client.get(id)
-      return new Doc(newDoc)
+      return await this.client.get(id)
     }
   }
 
-  async getOrCreateConfigDoc(): Promise<ConfigDoc> {
+  async getOrCreateConfigDoc(): Promise<ConfigDocStructure> {
     try {
       return await this.client.get('config')
     } catch (e) {
@@ -63,14 +74,16 @@ export class Database extends EventEmitter {
     }
   }
 
-  async getDoc(id, includeAttachments = false) {
+  async getDoc(id: string, includeAttachments = false): Promise<WidgetDocStructure> {
     return await this.client.get(id, { attachments: includeAttachments })
   }
 
-  async createDoc(doc) {
+  async createDoc(doc: WidgetDocStructure): Promise<WidgetDocStructure> {
     await this.startListening()
     doc.created_at = moment().toISOString()
-    return await this.client.post(JSON.parse(JSON.stringify(doc)))
+    const { rev } = await this.client.post(doc)
+    doc._rev = rev
+    return doc
   }
 
   async createFileDoc(doc) {
@@ -83,7 +96,7 @@ export class Database extends EventEmitter {
   async updateDoc(doc: Doc | ConfigDoc): Promise<string> {
     await this.startListening()
     doc.updated_at = moment().toISOString()
-    const response = await this.client.put(JSON.parse(JSON.stringify(doc)), { attachments: false })
+    const response = await this.client.put(doc, { attachments: false })
     return response.rev
   }
 
@@ -99,7 +112,7 @@ export class Database extends EventEmitter {
   }
 
   async startListening() {
-    const wasOffline = this.offline
+    const wasOffline = !this.online
     this.changesListener?.cancel()
     this.changesListener = this.client
       .changes({
@@ -115,11 +128,13 @@ export class Database extends EventEmitter {
       await this.getInfo()
     } catch {
       this.emit('offline')
-      this.offline = true
+      this.online = false
+      this.emit('change')
       console.log('Offline by requesting db info')
       return
     }
-    this.offline = false
+    this.online = true
+    this.emit('change')
     clearInterval(this.clientCheckInterval)
     await this.monitorClient()
     if (wasOffline) this.emit('reconnect')
@@ -185,7 +200,7 @@ export class Database extends EventEmitter {
 
   setOffline() {
     this.emit('offline')
-    this.offline = true
+    this.online = true
     console.log('Offline by external source')
   }
 

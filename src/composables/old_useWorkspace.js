@@ -7,7 +7,7 @@ import { widgets } from '@/enums/widgets.js'
 import DebugStore from '@/stores/DebugStore.js'
 import { useNetwork } from '@vueuse/core'
 
-export function useWorkspace({ connectionId, docId = '' }) {
+export function old_useWorkspace({ connectionId, docId = '' }) {
   const databasePoolStore = useDatabasePoolStore()
   const metadataStore = useMetadataStore()
   const { lastReconnect, reconnects } = DebugStore
@@ -33,6 +33,7 @@ export function useWorkspace({ connectionId, docId = '' }) {
   const offline = ref(false)
 
   async function connectDB() {
+    return
     const info = await metadataStore.getConnectionInfo(connectionId)
     db = await databasePoolStore.getOrCreateDB({ ...info.connectionOptions, listen: true })
     await metadataStore.setConnectionOnline(connectionId, true)

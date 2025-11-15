@@ -1,12 +1,10 @@
-import { inject, ref } from 'vue'
-import { Application } from '@/domain/Application'
+import { ref } from 'vue'
 import { Tab } from '@/domain/Tab'
 import { Connection } from '@/domain/Connection'
+import { Workspace } from '@/domain/Workspace'
 
-export default () => {
-  const app: Application = inject('app')
-  // console.log('aap from useApplication', app)
-  const tabs = ref<Tab[]>(Array.from(app.tabs.values()))
+export default (workspace: Workspace) => {
+  const tabs = ref<Tab[]>(Array.from(workspace.tabs))
   const connections = ref<Connection[]>(Array.from(app.connections.values()))
 
   app.on('tabs:changed', (newTabs) => {
