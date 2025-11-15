@@ -23,9 +23,9 @@ export class Database extends EventEmitter {
   private changesListener: null | ChangeListener = null
 
   constructor(name: string, connection: Connection) {
-    console.log(name)
     super()
     this.id = generateId()
+    this.name = name
     this.client = new PouchDB(name, connection.config)
     this.username = connection.config?.auth?.username || 'local'
     this.connection = connection

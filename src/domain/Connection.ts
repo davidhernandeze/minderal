@@ -13,14 +13,17 @@ export class Connection extends EventEmitter {
     super()
     this.id = config.id || generateId()
     this.name = config.name
+
+    for (const databaseConfig of config.dbs || []) {
+      this.addDatabase(databaseConfig.name)
+    }
   }
 
   public addDatabase(name: string) {
-    console.log('adding db', name)
     if (this.dbs.has(name)) return
+
     const database = new Database(name, this)
     this.dbs.set(name, database)
-    console.log('db added', this.dbs)
 
     database.on('change', () => {
       this.emit('change', this)
@@ -28,7 +31,6 @@ export class Connection extends EventEmitter {
   }
 
   getConfig(): ConnectionConfig {
-    console.log('dbs in conn', this.dbs)
     return { ...this.config, dbs: Array.from(this.dbs.values()).map((db) => db.getConfig()) }
   }
 

@@ -14,11 +14,11 @@ export class Application extends EventEmitter {
 
   constructor() {
     super()
-    this.connections.set('local', LocalConnection.getInstance())
   }
 
   async initialize() {
     await this.setInitialStateFromConfig()
+    console.log(this)
   }
 
   async setInitialStateFromConfig() {
@@ -27,14 +27,15 @@ export class Application extends EventEmitter {
 
     this.setConnectionsFromConfig()
     this.setTabsFromConfig()
-    await this.updateConfigDocument()
-
     const firstTimeUsage = localStorage.getItem('first_setup') !== 'true'
+
     if (firstTimeUsage) {
       await this.addLocalConnection()
       await this.openNewTab(LocalConnection.getInstance().getDatabaseList()[0])
       localStorage.setItem('first_setup', 'true')
     }
+
+    await this.updateConfigDocument()
   }
 
   async addLocalConnection() {
@@ -44,14 +45,8 @@ export class Application extends EventEmitter {
   }
 
   setConnectionsFromConfig() {
-    console.log('connections from config', this.configDocument)
     for (const connectionConfid of this.configDocument.connections) {
       const connection = new Connection(connectionConfid)
-
-      for (const databaseConfig of connectionConfid.dbs || []) {
-        console.log(databaseConfig)
-        connection.addDatabase(databaseConfig.name)
-      }
 
       this.connections.set(connection.id, connection)
 

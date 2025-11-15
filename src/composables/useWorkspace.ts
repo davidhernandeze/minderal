@@ -4,20 +4,18 @@ import { Connection } from '@/domain/Connection'
 import { Workspace } from '@/domain/Workspace'
 
 export default (workspace: Workspace) => {
-  const tabs = ref<Tab[]>(Array.from(workspace.tabs))
-  const connections = ref<Connection[]>(Array.from(app.connections.values()))
 
-  app.on('tabs:changed', (newTabs) => {
-    tabs.value = newTabs
-  })
-  app.on('connections:changed', (newConnections) => {
-    console.log('connection change', newConnections)
-    connections.value = newConnections
-  })
+  // app.on('tabs:changed', (newTabs) => {
+  //   tabs.value = newTabs
+  // })
+  // app.on('connections:changed', (newConnections) => {
+  //   console.log('connection change', newConnections)
+  //   connections.value = newConnections
+  // })
 
-  return {
-    app,
-    connections,
-    tabs
-  }
+  // return {
+  //   app,
+  //   connections,
+  //   tabs
+  // }
 }
