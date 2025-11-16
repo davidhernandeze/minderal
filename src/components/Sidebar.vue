@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
-import { useMetadataStore } from '@/stores/MetadataStore.js'
-import { storeToRefs } from 'pinia'
+import { computed, inject, onMounted, ref } from 'vue'
 import ConnectionSetupModal from '@/components/ConnectionSetupModal.vue'
 import sidebarStore from '@/stores/sidebar.js'
 import Button from 'primevue/button'
 import Tree from 'primevue/tree'
 import themeStore from '@/stores/theme.js'
-import useApplication from '@/composables/useApplication'
-import { Connection } from '@/domain/Connection'
-import { Database } from '@/domain/Database'
+import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
+import { Connection, Application, Tab, Database } from '@/domain'
 
-const { app, connections } = useApplication()
+const app = inject<Application>('app')
+const tabs = useReactiveObjectProp<Application, Tab[]>(app, (a) => a.getTabs(), 'tabs:changed')
+const connections = useReactiveObjectProp<Application, Connection[]>(
+  app,
+  (a) => a.getConnections(),
+  'connections:changed'
+)
 
 const nodes = computed(() => {
   return connections.value.map((connection: Connection) => ({
@@ -52,9 +55,6 @@ const expandNode = (node) => {
 }
 
 expandAll()
-
-const metadataStore = useMetadataStore()
-const { tabs } = storeToRefs(metadataStore)
 
 const isConnectionSetupModalOpen = ref(false)
 const { isSidebarVisible } = sidebarStore

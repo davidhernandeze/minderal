@@ -5,20 +5,26 @@ import { Workspace } from '@/domain/Workspace'
 
 export class Tab {
   id: string
-  docId: string = ''
+  docId: string
   db: Database
   connectionName: string
   icon: string = 'folder'
-  isOpen: boolean
   workspace: Workspace
+  label: string = ''
 
-  constructor(db: Database, config: TabConfig) {
-    this.id = generateId()
+  constructor(
+    db: Database,
+    config: TabConfig | { id?: string; doc_id?: string; is_open?: boolean }
+  ) {
+    this.id = config.id ?? generateId()
     this.db = db
     this.connectionName = db.getConnectionName()
-    this.docId = config?.doc_id ?? ''
-    this.isOpen = config?.is_open ?? false
+    this.docId = config?.doc_id ?? 'root'
     this.workspace = new Workspace(db, this.docId)
+
+    this.workspace.on('expandedWidget:changed', (widget) => {
+      this.label = widget.name
+    })
   }
 
   getConfig(): TabConfig {
@@ -26,8 +32,7 @@ export class Tab {
       id: this.id,
       connection_id: this.db.getConnectionId(),
       doc_id: this.docId,
-      database_name: this.db.name,
-      is_open: this.isOpen
+      database_name: this.db.name
     }
   }
 }

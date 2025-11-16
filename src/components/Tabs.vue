@@ -1,8 +1,20 @@
 <script setup lang="ts">
 import sidebarStore from '@/stores/sidebar.js'
-import useApplication from '@/composables/useApplication'
+import { Application, Tab } from '@/domain'
+import { inject } from 'vue'
+import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 
-const { tabs, app } = useApplication()
+const app = inject<Application>('app')
+const tabs = useReactiveObjectProp<Application, Tab[]>(
+  app,
+  (a) => a.getTabs(),
+  'tabs:changed'
+)
+const activeTabId = useReactiveObjectProp<Application, string | null>(
+  app,
+  (a) => a.activeTabId,
+  'tabs:changed'
+)
 
 const { isSidebarVisible } = sidebarStore
 </script>
@@ -24,12 +36,12 @@ const { isSidebarVisible } = sidebarStore
         </div>
         <div
           class="h-[1.2rem] w-[1.2rem] rounded-full flex-center hover:bg-[var(--p-surface-600)]"
-          @click.stop="app.closeTab(tab.id)"
+          @click.stop="app.closeTab(tab)"
         >
           <i class="bi bi-x" />
         </div>
         <div
-          v-if="tab.isOpen"
+          v-if="tab.id === activeTabId"
           class="w-full bg-(--p-primary-500) h-[0.2rem] absolute bottom-[-0.14rem] left-0"
         />
       </div>

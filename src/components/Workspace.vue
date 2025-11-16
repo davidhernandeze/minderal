@@ -11,7 +11,8 @@ import ProgressSpinner from 'primevue/progressspinner'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import { Workspace } from '@/domain/Workspace'
+import { Workspace, Widget } from '@/domain'
+import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 
 const props = defineProps<{
   workspace: Workspace
@@ -19,7 +20,6 @@ const props = defineProps<{
 
 const {
   connectionDone,
-  expandedWidget,
   currentDoc,
   connectDB,
   setCurrentDoc,
@@ -27,6 +27,8 @@ const {
   isLoading,
   offline
 } = props.workspace
+
+const expandedWidget = useReactiveObjectProp<Workspace, Widget>
 
 const mainInput = ref(null)
 const inputValue = ref('')

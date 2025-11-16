@@ -8,6 +8,7 @@ import { ConfigDocStructure } from '@/domain/types/config'
 export class Application extends EventEmitter {
   private connections: Map<string, Connection> = new Map()
   private tabs: Map<string, Tab> = new Map()
+  activeTabId: string | null = null
 
   private configDatabase: Database
   private configDocument: ConfigDocStructure
@@ -53,10 +54,10 @@ export class Application extends EventEmitter {
 
       connection.on('change', (connection) => {
         this.connections.set(connection.id, connection)
-        this.emit('connections:changed', Array.from(this.connections.values()))
+        this.emit('connections:changed')
       })
     }
-    this.emit('connections:changed', Array.from(this.connections.values()))
+    this.emit('connections:changed')
   }
 
   setTabsFromConfig() {
@@ -70,7 +71,9 @@ export class Application extends EventEmitter {
       const tab = new Tab(database, tabConfig)
       this.tabs.set(tab.id, tab)
     }
-    this.emit('tabs:changed', Array.from(this.tabs.values()))
+    const activeTab = this.tabs.get(this.configDocument.active_tab_id)
+    this.activeTabId = activeTab?.id ?? null
+    this.emit('tabs:changed')
   }
 
   async openNewTab(database: Database): Promise<void> {
@@ -80,27 +83,26 @@ export class Application extends EventEmitter {
   }
 
   async openTab(tabToOpen: Tab) {
-    for (const tab of this.tabs.values()) {
-      tab.isOpen = tabToOpen.id === tab.id
-    }
+    this.activeTabId = tabToOpen.id
     await this.updateConfigDocument()
-    this.emit('tabs:changed', this.getTabs())
+    this.emit('tabs:changed')
   }
 
-  async closeTab(tabId: string) {
-    this.tabs.delete(tabId)
+  async closeTab(tabToClose: Tab) {
+    this.tabs.delete(tabToClose.id)
     if (this.tabs.size > 0) {
       const lastTab = this.getTabs().pop()
       await this.openTab(lastTab)
     }
     await this.updateConfigDocument()
-    this.emit('tabs:changed', this.getTabs())
+    this.emit('tabs:changed')
   }
 
   async updateConfigDocument() {
     const newConfig = { ...this.configDocument }
     newConfig.connections = this.getConnections().map((conn) => conn.getConfig())
     newConfig.tabs = this.getTabs().map((tab) => tab.getConfig())
+    newConfig.active_tab_id = this.activeTabId
     this.configDocument = newConfig
     this.configDocument._rev = await this.configDatabase.updateDoc(this.configDocument)
   }

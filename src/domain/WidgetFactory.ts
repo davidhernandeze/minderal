@@ -12,10 +12,14 @@ export class WidgetFactory {
     this.db = db
   }
 
-  async createFromDoc(doc: WidgetDocStructure) {
+  fromDoc(doc: WidgetDocStructure) {
     const WidgetClass = widgets[doc.widget]
+    return new WidgetClass(this.db, doc)
+  }
+
+  async createFromDoc(doc: WidgetDocStructure) {
     const storedDoc: WidgetDocStructure = await this.db.createDoc(doc)
-    return new WidgetClass(storedDoc)
+    return this.fromDoc(storedDoc)
   }
 
   async createFromRequest(request: WidgetRequest) {
@@ -36,7 +40,7 @@ export class WidgetFactory {
 
   async getFromId(id: string): Promise<Widget> {
     const doc: WidgetDocStructure = await this.db.getDoc(id)
-    return this.createFromDoc(doc)
+    return this.fromDoc(doc)
   }
 
   async getOrCreateFromDoc(doc: WidgetRequest): Promise<Widget> {
