@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeMount, onBeforeUnmount, provide, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, provide, ref, watch } from 'vue'
 import DocRoute from '@/components/DocRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
-import { getWidgetList, getWidgetProps, widgets } from '@/enums/widgets.js'
+import { getWidgetList, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import sidebarStore from '@/stores/sidebar.js'
@@ -17,8 +17,16 @@ const props = defineProps<{
   workspace: Workspace
 }>()
 
-// const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = useWorkspace(props.workspace)
-const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = props.workspace
+const {
+  connectionDone,
+  expandedWidget,
+  currentDoc,
+  connectDB,
+  setCurrentDoc,
+  currentRoute,
+  isLoading,
+  offline
+} = props.workspace
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -37,6 +45,10 @@ const widgetFormOpen = ref(false)
 
 const { isSidebarVisible } = sidebarStore
 
+onMounted(async () => {
+  await props.workspace.loadMainWidget()
+})
+
 // provide('workspace', workspace)
 provide('searchQuery', searchQuery)
 
@@ -46,12 +58,7 @@ watch(shiftCtrlA, (v) => {
 })
 
 const showMainInput = computed(() => {
-  return
-  let type = 'folder'
-  if (workspace.currentDoc.value) {
-    type = workspace.currentDoc.value.widget
-  }
-  return widgets[type]?.showMainInput || false
+  return expandedWidget?.showMainInput
 })
 
 async function createDoc() {
@@ -78,7 +85,6 @@ async function selectWidget(widget) {
     widgetFormOpen.value = true
   }
 }
-
 </script>
 
 <template>

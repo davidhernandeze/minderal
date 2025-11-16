@@ -30,8 +30,4 @@ export class Tab {
       is_open: this.isOpen
     }
   }
-
-  setDocId(docId: string) {
-    this.docId = docId
-  }
 }

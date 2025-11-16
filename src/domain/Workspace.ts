@@ -19,14 +19,14 @@ export class Workspace {
   }
 
   async loadMainWidget(docId: string | null = null) {
-    if (!docId) {
-      this.expandedWidget = await this.widgetFactory.getOrCreateFromDoc({
-        _id: 'root',
-        content: null,
-        widget: ''
-      })
-    } else {
+    if (docId) {
       this.expandedWidget = await this.widgetFactory.getFromId(docId)
+      return
     }
+    this.expandedWidget = await this.widgetFactory.getOrCreateFromDoc({
+      _id: 'root',
+      content: null,
+      widget: 'folder'
+    })
   }
 }

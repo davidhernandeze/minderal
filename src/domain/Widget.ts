@@ -5,6 +5,7 @@ export class Widget {
   private children: Widget[] = []
   private db: Database
   private doc: WidgetDocStructure
+  public showMainInput: boolean
 
   constructor(db: Database, doc: WidgetDocStructure) {
     this.db = db
