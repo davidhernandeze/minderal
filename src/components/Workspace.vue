@@ -12,14 +12,13 @@ import Panel from 'primevue/panel'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import { Workspace } from '@/domain/Workspace'
-import useWorkspace from '@/composables/useWorkspace'
 
 const props = defineProps<{
   workspace: Workspace
 }>()
 
 // const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = useWorkspace(props.workspace)
-const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = useWorkspace(props.workspace)
+const { connectionDone, currentDoc, connectDB, setCurrentDoc, currentRoute, isLoading, offline } = props.workspace
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -112,7 +111,7 @@ async function selectWidget(widget) {
       />
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pb-[10rem]">
-      <WidgetExpanded v-if="connectionDone" :doc="currentDoc" />
+      <WidgetExpanded v-if="connectionDone" :doc="workspace" />
     </div>
     <button class="hidden" @click="workspace.migrateDatabase()">migrate</button>
     <div

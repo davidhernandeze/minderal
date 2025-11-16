@@ -1,23 +1,18 @@
-<script setup>
+<script setup lang="ts">
 import { defineAsyncComponent, inject } from 'vue'
-import { getWidgetProps } from '@/enums/widgets.js'
-import { Doc } from '@/classes/Doc.js'
+import { Widget } from '@/domain/Widget'
 
-const props = defineProps({
-  doc: {
-    type: Doc,
-    default: null,
-    required: false
-  }
-})
+const props = defineProps<{ widget: Widget }>()
 
 const workspace = inject('workspace')
 
-const widgetProps = getWidgetProps(props.doc?.widget || 'folder')
-const Widget = defineAsyncComponent(() => {
-  return import(`./widgets/${widgetProps.expandedComponent}.vue`)
+const ExpandedWidgetComponent = defineAsyncComponent(() => {
+  return import(`./widgets/${props.widget.expandedComponent}.vue`)
 })
 </script>
 <template>
-  <Widget :doc="doc" @update-value="(newValue) => workspace.updateDoc(doc, newValue)" />
+  <ExpandedWidgetComponent
+    :doc="doc"
+    @update-value="(newValue) => workspace.updateDoc(doc, newValue)"
+  />
 </template>

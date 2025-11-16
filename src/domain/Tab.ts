@@ -5,18 +5,20 @@ import { Workspace } from '@/domain/Workspace'
 
 export class Tab {
   id: string
+  docId: string = ''
+  db: Database
   connectionName: string
   icon: string = 'folder'
   isOpen: boolean
   workspace: Workspace
 
-  constructor(
-    public db: Database,
-    public docId: string = ''
-  ) {
+  constructor(db: Database, config: TabConfig) {
     this.id = generateId()
+    this.db = db
     this.connectionName = db.getConnectionName()
-    this.workspace = new Workspace(db, docId)
+    this.docId = config?.doc_id ?? ''
+    this.isOpen = config?.is_open ?? false
+    this.workspace = new Workspace(db, this.docId)
   }
 
   getConfig(): TabConfig {
@@ -24,7 +26,8 @@ export class Tab {
       id: this.id,
       connection_id: this.db.getConnectionId(),
       doc_id: this.docId,
-      database_name: this.db.name
+      database_name: this.db.name,
+      is_open: this.isOpen
     }
   }
 

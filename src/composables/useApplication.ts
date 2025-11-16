@@ -5,9 +5,8 @@ import { Connection } from '@/domain/Connection'
 
 export default () => {
   const app: Application = inject('app')
-  // console.log('aap from useApplication', app)
-  const tabs = ref<Tab[]>(Array.from(app.tabs.values()))
-  const connections = ref<Connection[]>(Array.from(app.connections.values()))
+  const tabs = ref<Tab[]>(app.getTabs())
+  const connections = ref<Connection[]>(app.getConnections())
 
   app.on('tabs:changed', (newTabs) => {
     tabs.value = newTabs

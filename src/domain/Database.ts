@@ -122,22 +122,20 @@ export class Database extends EventEmitter {
         timeout: false
       })
       .on('change', (change) => {
-        this.emit('change', change)
+        this.emit('doc:changed', change)
       })
     try {
       await this.getInfo()
     } catch {
-      this.emit('offline')
       this.online = false
       this.emit('change')
       console.log('Offline by requesting db info')
       return
     }
     this.online = true
-    this.emit('change')
     clearInterval(this.clientCheckInterval)
     await this.monitorClient()
-    if (wasOffline) this.emit('reconnect')
+    if (wasOffline) this.emit('change')
   }
 
   async monitorClient() {

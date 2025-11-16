@@ -2,7 +2,7 @@
 import sidebarStore from '@/stores/sidebar.js'
 import useApplication from '@/composables/useApplication'
 
-const { tabs } = useApplication()
+const { tabs, app } = useApplication()
 
 const { isSidebarVisible } = sidebarStore
 </script>
@@ -10,10 +10,10 @@ const { isSidebarVisible } = sidebarStore
   <div class="w-full flex px-2 gap-4 justify-between">
     <div class="flex-1 flex overflow-y-auto pb-2">
       <div
-        v-for="(tab, index) in tabs"
+        v-for="tab in tabs"
         :key="tab.id"
         class="relative p-2 rounded-t w-[11rem] flex justify-between cursor-pointer mr-0.5"
-        @click="metadataStore.openTab(index)"
+        @click="app.openTab(tab)"
       >
         <div class="w-full">
           <div class="flex items-center">
@@ -24,7 +24,7 @@ const { isSidebarVisible } = sidebarStore
         </div>
         <div
           class="h-[1.2rem] w-[1.2rem] rounded-full flex-center hover:bg-[var(--p-surface-600)]"
-          @click.stop="metadataStore.closeTab(index)"
+          @click.stop="app.closeTab(tab.id)"
         >
           <i class="bi bi-x" />
         </div>

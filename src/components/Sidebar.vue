@@ -16,7 +16,7 @@ const { app, connections } = useApplication()
 const nodes = computed(() => {
   return connections.value.map((connection: Connection) => ({
     key: connection.id,
-    label: connection.id,
+    label: connection.name,
     children: connection.getDatabaseList().map((db: Database) => ({
       key: db.name,
       label: db.name,
@@ -60,8 +60,8 @@ const isConnectionSetupModalOpen = ref(false)
 const { isSidebarVisible } = sidebarStore
 
 const connectionOnEdit = ref(null)
-function openNewTab(connectionId, connectionName) {
-  metadataStore.openNewTab(connectionId, connectionName)
+function openNewTab(db: Database) {
+  app.openNewTab(db)
   sidebarStore.onTabOpen()
 }
 function openConnectionSetup(connection) {
@@ -91,7 +91,7 @@ onMounted(() => {
       <i class="bi bi-x" />
     </div>
     <div class="p-2 pb-0 text-xs">minderal</div>
-    <div class="px-2 text-gray-300 text-xss">v0.46</div>
+    <div class="px-2 text-gray-300 text-xss">v0.47ts</div>
     <div class="p-2">
       <div class="text-xs uppercase flex items-center mb-2">
         <i class="bi bi-database mr-1" />
@@ -124,7 +124,7 @@ onMounted(() => {
                 </button>
                 <button
                   class="rounded-full w-6 text-gray-400 hover:text-(--p-primary-500) flex-center cursor-pointer"
-                  @click="openNewTab(slotProps.node.key, slotProps.node.name)"
+                  @click="openNewTab(slotProps.node.object)"
                 >
                   <i class="bi bi-box-arrow-up-right" />
                 </button>

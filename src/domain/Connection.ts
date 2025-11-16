@@ -13,6 +13,7 @@ export class Connection extends EventEmitter {
     super()
     this.id = config.id || generateId()
     this.name = config.name
+    this.config = config
 
     for (const databaseConfig of config.dbs || []) {
       this.addDatabase(databaseConfig.name)
@@ -23,6 +24,7 @@ export class Connection extends EventEmitter {
     if (this.dbs.has(name)) return
 
     const database = new Database(name, this)
+    void database.startListening()
     this.dbs.set(name, database)
 
     database.on('change', () => {
