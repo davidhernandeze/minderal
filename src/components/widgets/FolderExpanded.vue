@@ -1,25 +1,27 @@
-<script setup>
+<script setup lang="ts">
 import WidgetPreview from '@/components/WidgetPreview.vue'
-import useFolder from '@/composables/useFolder.js'
-import { inject, ref } from 'vue'
-import { Doc } from '@/classes/Doc.js'
+import { inject, ref, watch } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import dragDocStore from '@/stores/dragDoc.js'
+import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp.js'
+import { Widget } from '@/domain'
+import FolderWidget from '@/domain/widgets/FolderWidget'
 
-const workspace = inject('workspace')
 const searchQuery = inject('searchQuery')
 
 defineEmits(['update-value'])
-defineProps({
-  doc: {
-    type: Doc,
-    default: null,
-    required: false
-  }
-})
+const props = defineProps<{ widget: FolderWidget }>()
 
-const { folderDocuments, widgetDocuments } = useFolder(workspace.childDocs, searchQuery)
+const childrenWidgets = useReactiveObjectProp<FolderWidget, Widget[]>(
+  props.widget,
+  (widget) => widget.getChildren(),
+  'children:changed'
+)
 const dragDisabled = ref(true)
+
+watch(childrenWidgets, () => {
+  console.log(childrenWidgets.value)
+})
 
 function changeOrder() {
   dragDisabled.value = true
@@ -37,26 +39,26 @@ function startWidgetDrag(event) {
 </script>
 
 <template>
+  <!--  <VueDraggable-->
+  <!--    v-show="folderDocuments.length > 0"-->
+  <!--    v-model="folderDocuments"-->
+  <!--    :disabled="dragDisabled"-->
+  <!--    item-key="_id"-->
+  <!--    group="folder"-->
+  <!--    class="pr-6 pb-8 grid auto-rows-[6rem] sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4"-->
+  <!--    @start="startFolderDrag"-->
+  <!--    @end="changeOrder"-->
+  <!--  >-->
+  <!--    <WidgetPreview-->
+  <!--      v-for="document in folderDocuments"-->
+  <!--      :key="document._rev"-->
+  <!--      :doc="document"-->
+  <!--      @enable-drag="dragDisabled = false"-->
+  <!--      @disable-drag="dragDisabled = true"-->
+  <!--    />-->
+  <!--  </VueDraggable>-->
   <VueDraggable
-    v-show="folderDocuments.length > 0"
-    v-model="folderDocuments"
-    :disabled="dragDisabled"
-    item-key="_id"
-    group="folder"
-    class="pr-6 pb-8 grid auto-rows-[6rem] sm:grid-cols-[repeat(auto-fill,minmax(15rem,1fr))] gap-4"
-    @start="startFolderDrag"
-    @end="changeOrder"
-  >
-    <WidgetPreview
-      v-for="document in folderDocuments"
-      :key="document._rev"
-      :doc="document"
-      @enable-drag="dragDisabled = false"
-      @disable-drag="dragDisabled = true"
-    />
-  </VueDraggable>
-  <VueDraggable
-    v-model="widgetDocuments"
+    v-model="childrenWidgets"
     :disabled="dragDisabled"
     item-key="_id"
     group="widgets"
@@ -65,9 +67,9 @@ function startWidgetDrag(event) {
     @end="changeOrder"
   >
     <WidgetPreview
-      v-for="document in widgetDocuments"
-      :key="document._rev"
-      :doc="document"
+      v-for="childWidget in childrenWidgets"
+      :key="childWidget._rev"
+      :widget="childWidget"
       @enable-drag="dragDisabled = false"
       @disable-drag="dragDisabled = true"
     />

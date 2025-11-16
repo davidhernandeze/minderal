@@ -4,13 +4,16 @@ import { Database } from '@/domain'
 
 export default class extends Widget {
   key = 'folder'
-  icon = 'bi bi-folder'
-  expandable: boolean = true
-  expandedComponent: string = 'FolderExpanded'
+  icon = 'bi bi-text-paragraph'
+  expandedComponent: string = 'TextExpanded'
+  previewComponent: string = 'Text'
   showMainInput: boolean = true
 
   constructor(db: Database, doc: WidgetDocStructure) {
     super(db, doc)
-    void this.fetchChildren()
+  }
+
+  getContent() {
+    return this.doc.content
   }
 }

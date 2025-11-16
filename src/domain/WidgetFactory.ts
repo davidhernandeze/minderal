@@ -7,19 +7,17 @@ import moment from 'moment/moment'
 import { Widget } from '@/domain/Widget'
 
 export class WidgetFactory {
-  private db: Database
-  constructor(db: Database) {
-    this.db = db
-  }
+  constructor(private readonly db: Database) {}
 
-  fromDoc(doc: WidgetDocStructure) {
-    const WidgetClass = widgets[doc.widget]
+  async fromDoc(doc: WidgetDocStructure) {
+    const module = await widgets[doc.widget]
+    const WidgetClass = module.default
     return new WidgetClass(this.db, doc)
   }
 
   async createFromDoc(doc: WidgetDocStructure) {
     const storedDoc: WidgetDocStructure = await this.db.createDoc(doc)
-    return this.fromDoc(storedDoc)
+    return await this.fromDoc(storedDoc)
   }
 
   async createFromRequest(request: WidgetRequest) {
@@ -40,7 +38,7 @@ export class WidgetFactory {
 
   async getFromId(id: string): Promise<Widget> {
     const doc: WidgetDocStructure = await this.db.getDoc(id)
-    return this.fromDoc(doc)
+    return await this.fromDoc(doc)
   }
 
   async getOrCreateFromDoc(doc: WidgetRequest): Promise<Widget> {

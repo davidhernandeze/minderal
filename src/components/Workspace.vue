@@ -11,24 +11,26 @@ import ProgressSpinner from 'primevue/progressspinner'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
-import { Workspace, Widget } from '@/domain'
+import { Workspace, Widget, WidgetRoute } from '@/domain'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 
 const props = defineProps<{
   workspace: Workspace
 }>()
 
-const {
-  connectionDone,
-  currentDoc,
-  connectDB,
-  setCurrentDoc,
-  currentRoute,
-  isLoading,
-  offline
-} = props.workspace
+const { connectionDone, connectDB, isLoading, offline } = props.workspace
 
-const expandedWidget = useReactiveObjectProp<Workspace, Widget>
+const expandedWidget = useReactiveObjectProp<Workspace, Widget>(
+  props.workspace,
+  (w) => w.expandedWidget,
+  'expandedWidget:changed'
+)
+
+const currentRoute = useReactiveObjectProp<Workspace, WidgetRoute>(
+  props.workspace,
+  (w) => w.expandedWidget?.route,
+  'expandedWidget:changed'
+)
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -119,7 +121,7 @@ async function selectWidget(widget) {
       />
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pb-[10rem]">
-      <WidgetExpanded v-if="connectionDone" :doc="workspace" />
+      <WidgetExpanded v-if="expandedWidget" :widget="expandedWidget" />
     </div>
     <button class="hidden" @click="workspace.migrateDatabase()">migrate</button>
     <div

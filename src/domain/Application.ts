@@ -33,7 +33,15 @@ export class Application extends EventEmitter {
 
     if (firstTimeUsage) {
       await this.addLocalConnection()
-      await this.openNewTab(LocalConnection.getInstance().getDatabaseList()[0])
+      const database: Database = LocalConnection.getInstance().getDatabaseList()[0]
+      await this.openNewTab(database)
+      const tab: Tab = this.tabs.get(this.activeTabId)
+      await tab.workspace.widgetFactory.createFromRequest({
+        parent_id: 'root',
+        name: 'my first text widget',
+        content: 'important text',
+        widget: 'text'
+      })
       localStorage.setItem('first_setup', 'true')
     }
 

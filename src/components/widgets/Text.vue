@@ -1,20 +1,17 @@
-<script setup>
-import { inject } from 'vue'
-import { Doc } from '@/classes/Doc.js'
-import { useDoc } from '@/composables/useDoc.js'
+<script setup lang="ts">
 import InvisibleTextInput from '@/components/generic/InvisibleTextInput.vue'
-import { toRef } from '@vueuse/core'
+import { Widget } from '@/domain/index.js'
+import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 
-const props = defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  }
-})
+const props = defineProps<{
+  widget: Widget
+}>()
 
-const workspace = inject('workspace')
-const doc = toRef(props, 'doc')
-const { content, startEdition, exitEdition } = useDoc(workspace, doc)
+const content = useReactiveObjectProp<Widget, string>(
+  props.widget,
+  (w) => w.getContent(),
+  'content:changed'
+)
 </script>
 
 <template>

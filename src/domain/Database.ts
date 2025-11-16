@@ -150,7 +150,7 @@ export class Database extends EventEmitter {
     })
   }
 
-  async getDocsByParentId(parentId: string, widget = null) {
+  async getDocsByParentId(parentId: string, widget = null): Promise<WidgetDocStructure[]> {
     const selector: { parent_id: string; deleted_at: string | null; widget?: string } = {
       parent_id: parentId,
       deleted_at: null
@@ -159,11 +159,11 @@ export class Database extends EventEmitter {
       selector.widget = widget
     }
 
-    const response: PouchDB.Find.FindResponse<unknown> = await this.client.find({
+    const response: PouchDB.Find.FindResponse<WidgetDocStructure[]> = await this.client.find({
       selector,
       limit: 9999
     })
-    return response.docs.map((doc) => new Doc(doc))
+    return response.docs
   }
 
   async getDocsByIds(ids: string[], includeAttachments: boolean = false) {

@@ -1,5 +1,5 @@
 export interface WidgetRequest {
-  _id: string
+  _id?: string
   name?: string
   parent_id?: string
   content: string

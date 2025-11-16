@@ -1,10 +1,8 @@
-<script setup>
-import { defineAsyncComponent, inject, ref, useTemplateRef, watch } from 'vue'
+<script setup lang="ts">
+import { defineAsyncComponent, ref, useTemplateRef, watch } from 'vue'
 import safeImport from '@/utils/safe-import.js'
-import { getWidgetProps } from '@/enums/widgets.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
-import { Doc } from '@/classes/Doc.js'
 import { useClipboard } from '@vueuse/core'
 import GenericButton from '@/components/GenericButton.vue'
 import TextInput from '@/components/TextInput.vue'
@@ -15,62 +13,50 @@ import DocSelector from '@/components/DocSelector.vue'
 import Panel from 'primevue/panel'
 import { useTimeAgo } from '@vueuse/core'
 import Dialog from 'primevue/dialog'
+import { Widget } from '@/domain'
 
-const props = defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  },
-  single: {
-    type: Boolean,
-    default: false
-  },
-  hideMenu: {
-    type: Boolean,
-    default: false
-  }
-})
+const props = defineProps<{
+  widget: Widget
+  hideMenu?: boolean
+  single?: boolean
+}>()
 
 defineEmits(['enable-drag', 'disable-drag'])
 
 const { copy } = useClipboard()
-
-const navigate = inject('navigate')
-const workspace = inject('workspace')
 
 const versionsModalOpen = ref(false)
 
 const moveToModalOpen = ref(false)
 
 const renameModalOpen = ref(false)
-const renameInput = ref(props.doc.name)
+const renameInput = ref(props.widget.name)
 const renameInputEl = useTemplateRef('renameInputEl')
 
-const timeAgo = useTimeAgo(props.doc.updated_at)
+const timeAgo = useTimeAgo(props.widget.doc.updated_at)
 
 const isEditingName = ref(false)
 watch(
-  () => props.doc.name,
+  () => props.widget.name,
   () => {
-    renameInput.value = props.doc.name
+    renameInput.value = props.widget.name
   }
 )
 
 const widgetFormOpen = ref(false)
 
-const widgetProps = getWidgetProps(props.doc.widget) ?? getWidgetProps('text')
-const icon = widgetProps.icon
-const Widget = defineAsyncComponent(() =>
-  safeImport(() => import(`./widgets/${widgetProps.previewComponent}.vue`))
+const icon = props.widget.icon
+const WidgetPreviewComponent = defineAsyncComponent(() =>
+  safeImport(() => import(`./widgets/${props.widget.previewComponent}.vue`))
 )
 
 async function clickAction() {
-  if (widgetProps.expandable) {
+  if (props.widget.expandable) {
     if (isEditingName.value) {
       isEditingName.value = false
       return
     }
-    await navigate(props.doc._id)
+    // await navigate(props.doc._id)
   }
 }
 
@@ -101,7 +87,7 @@ const rowActions = ref([
   {
     action: 'edit',
     label: 'Edit',
-    display: !!widgetProps.formComponent,
+    display: !!props.widget.formComponent,
     onClick() {
       widgetFormOpen.value = true
     }
@@ -117,7 +103,7 @@ const rowActions = ref([
     label: 'Rename',
     display: true,
     onClick() {
-      if (!widgetProps.standalonePreview) {
+      if (!props.widget.standalonePreview) {
         renameInputEl.value.focus()
         return
       }
@@ -163,14 +149,14 @@ async function moveDoc(parentDoc) {
 </script>
 <template>
   <Panel
-    :pt:header:class="['!p-2', doc.widget === 'folder' ? '!pb-0' : '']"
+    :pt:header:class="['!p-2', widget.key === 'folder' ? '!pb-0' : '']"
     pt:root:class=" h-full flex flex-col"
     pt:content-container:class="h-full min-h-0 flex-1 flex flex-col"
     pt:content:class="h-full flex-1 min-h-0 flex flex-col !pb-0"
     pt:footer:class="h-[2.5rem] !py-0"
   >
     <template #header>
-      <div v-if="widgetProps.standalonePreview || props.single" />
+      <div v-if="widget.standalonePreview || props.single" />
       <div v-else class="flex-1 flex justify-start items-center text-gray-400 truncate pr-2">
         <i class="text-xl" :class="icon" />
         <InvisibleInput
@@ -238,11 +224,11 @@ async function moveDoc(parentDoc) {
         </Menu>
       </div>
     </template>
-    <template v-if="!widgetProps.standalonePreview" #footer>
+    <template v-if="!widget.standalonePreview" #footer>
       <div class="relative flex flex-wrap items-center justify-between gap-4">
         <div class="flex items-center gap-2">
           <button
-            v-if="!widgetProps.hideCopyButton"
+            v-if="!widget.hideCopyButton"
             class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
             @click="copyToClipboard"
           >
@@ -254,7 +240,7 @@ async function moveDoc(parentDoc) {
       </div>
     </template>
 
-    <Widget :doc="doc" @click="clickAction" @add-actions="addActions" />
+    <WidgetPreviewComponent :widget="widget" @click="clickAction" @add-actions="addActions" />
 
     <Dialog v-model:visible="renameModalOpen" header="Rename widget" modal>
       <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
@@ -266,7 +252,7 @@ async function moveDoc(parentDoc) {
     </Dialog>
     <WidgetVersionsModal v-model:is-open="versionsModalOpen" :doc="doc" />
     <Dialog
-      v-if="widgetProps.formComponent"
+      v-if="widget.formComponent"
       v-model:visible="widgetFormOpen"
       header="Edit widget"
       modal

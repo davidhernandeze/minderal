@@ -1,15 +1,14 @@
-<script setup>
+<script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
+import { WidgetRoute } from '@/domain/index.js'
 
 defineEmits(['navigate'])
 
-const props = defineProps({
-  route: {
-    type: Array,
-    default: () => []
-  }
-})
+const props = defineProps<{
+  route: WidgetRoute
+}>()
+
 const container = ref()
 
 watch(
