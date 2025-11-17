@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref, useTemplateRef, watch } from 'vue'
+import { defineAsyncComponent, ref, useTemplateRef } from 'vue'
 import safeImport from '@/utils/safe-import.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
@@ -14,6 +14,7 @@ import Panel from 'primevue/panel'
 import { useTimeAgo } from '@vueuse/core'
 import Dialog from 'primevue/dialog'
 import { Widget } from '@/domain'
+import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 
 const props = defineProps<{
   widget: Widget
@@ -29,8 +30,12 @@ const versionsModalOpen = ref(false)
 
 const moveToModalOpen = ref(false)
 
+const widgetName = useReactiveObjectProp<Widget, string>(
+  props.widget,
+  (w) => w.getName(),
+  'name:changed'
+)
 const renameModalOpen = ref(false)
-const renameInput = ref(props.widget.name)
 const renameInputEl = useTemplateRef('renameInputEl')
 
 const timeAgo = useTimeAgo(props.widget.doc.updated_at)
@@ -59,7 +64,7 @@ async function endNameEdition(event) {
   isEditingName.value = false
   renameModalOpen.value = false
   event.target?.blur()
-  await props.widget.rename(renameInput.value)
+  await props.widget.rename(widgetName.value)
 }
 
 function startNameEdition(event) {
@@ -155,7 +160,7 @@ async function moveDoc(parentDoc) {
         <i class="text-xl" :class="icon" />
         <InvisibleInput
           v-model:el="renameInputEl"
-          v-model:value="renameInput"
+          v-model:value="widgetName"
           v-on-click-outside="endNameEdition"
           class="flex-1 ml-2 bg-transparent border-none focus:outline-hidden p-0"
           @click.stop

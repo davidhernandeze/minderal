@@ -12,6 +12,7 @@ export class Widget extends EventEmitter {
   children: Map<string, Widget> = new Map()
   doc: WidgetDocStructure
   readonly showMainInput: boolean
+  readonly icon: string
   readonly expandable: boolean = false
   readonly standalonePreview: boolean = false
   readonly hideCopyButton: boolean = false
@@ -23,10 +24,22 @@ export class Widget extends EventEmitter {
   constructor(db: Database, doc: WidgetDocStructure) {
     super()
     this.db = db
-    this.doc = doc
-    this.name = doc.name
+    this.updateDoc(doc)
     void this.fetchRoute()
     this.widgetFactory = new WidgetFactory(db)
+
+    this.db.on('doc:changed', async ({ doc }) => {
+      if (doc._id === this.doc._id && doc._rev !== this.doc._rev) {
+        this.updateDoc(doc)
+      }
+    })
+  }
+
+  updateDoc(doc: WidgetDocStructure) {
+    this.doc = doc
+    this.name = doc.name
+    this.emit('content:changed')
+    this.emit('name:changed')
   }
 
   async fetchRoute() {
@@ -41,6 +54,10 @@ export class Widget extends EventEmitter {
     return this.doc.content
   }
 
+  getName() {
+    return this.name
+  }
+
   async fetchChildren() {
     const childDocs = await this.db.getDocsByParentId(this.doc._id)
     for (const childDoc of childDocs) {
@@ -53,6 +70,7 @@ export class Widget extends EventEmitter {
   async rename(name: string) {
     this.doc.name = name
     await this.db.updateDoc(this.doc)
+    this.emit('name:changed')
   }
 
   async updateContent(content: string) {

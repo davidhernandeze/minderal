@@ -47,10 +47,9 @@ export class Application extends EventEmitter {
 
     await this.updateConfigDocument()
     void this.configDatabase.startListening()
-    this.configDatabase.on('doc:changed', async (change) => {
-      if (change.id === 'config' && change.doc?._rev !== this.configDocument._rev) {
-        console.log('Config doc changed', change)
-        this.configDocument = change.doc
+    this.configDatabase.on('doc:changed', async ({ doc }) => {
+      if (doc._id === 'config' && doc?._rev !== this.configDocument._rev) {
+        this.configDocument = doc
         this.setConnectionsFromConfig()
         this.setTabsFromConfig()
       }
