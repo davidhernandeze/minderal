@@ -19,10 +19,6 @@ const childrenWidgets = useReactiveObjectProp<FolderWidget, Widget[]>(
 )
 const dragDisabled = ref(true)
 
-watch(childrenWidgets, () => {
-  console.log(childrenWidgets.value)
-})
-
 function changeOrder() {
   dragDisabled.value = true
   const childDocs = folderDocuments.value.concat(widgetDocuments.value)

@@ -23,7 +23,7 @@ export class Application extends EventEmitter {
   }
 
   async setInitialStateFromConfig() {
-    this.configDatabase = new Database('_config', LocalConnection.getInstance())
+    this.configDatabase = new Database('config', LocalConnection.getInstance())
     this.configDocument = await this.configDatabase.getOrCreateConfigDoc()
     console.log(this.configDocument)
 
@@ -46,6 +46,15 @@ export class Application extends EventEmitter {
     }
 
     await this.updateConfigDocument()
+    void this.configDatabase.startListening()
+    this.configDatabase.on('doc:changed', async (change) => {
+      if (change.id === 'config' && change.doc?._rev !== this.configDocument._rev) {
+        console.log('Config doc changed', change)
+        this.configDocument = change.doc
+        this.setConnectionsFromConfig()
+        this.setTabsFromConfig()
+      }
+    })
   }
 
   async addLocalConnection() {

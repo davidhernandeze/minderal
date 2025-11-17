@@ -33,7 +33,7 @@ export class Connection extends EventEmitter {
   }
 
   getConfig(): ConnectionConfig {
-    return { ...this.config, dbs: Array.from(this.dbs.values()).map((db) => db.getConfig()) }
+    return { ...this.config, dbs: this.getDatabaseList().map((db) => db.getConfig()) }
   }
 
   getDatabaseList(): Database[] {
