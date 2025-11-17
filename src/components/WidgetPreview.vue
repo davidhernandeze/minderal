@@ -36,12 +36,6 @@ const renameInputEl = useTemplateRef('renameInputEl')
 const timeAgo = useTimeAgo(props.widget.doc.updated_at)
 
 const isEditingName = ref(false)
-watch(
-  () => props.widget.name,
-  () => {
-    renameInput.value = props.widget.name
-  }
-)
 
 const widgetFormOpen = ref(false)
 
@@ -65,7 +59,7 @@ async function endNameEdition(event) {
   isEditingName.value = false
   renameModalOpen.value = false
   event.target?.blur()
-  await workspace.renameDoc({ ...props.doc }, renameInput.value)
+  await props.widget.rename(renameInput.value)
 }
 
 function startNameEdition(event) {
@@ -250,7 +244,7 @@ async function moveDoc(parentDoc) {
         </GenericButton>
       </form>
     </Dialog>
-    <WidgetVersionsModal v-model:is-open="versionsModalOpen" :doc="doc" />
+<!--    <WidgetVersionsModal v-model:is-open="versionsModalOpen" :doc="doc" />-->
     <Dialog
       v-if="widget.formComponent"
       v-model:visible="widgetFormOpen"
@@ -258,7 +252,7 @@ async function moveDoc(parentDoc) {
       modal
       style="width: 40rem"
     >
-      <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />
+<!--      <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />-->
     </Dialog>
     <Dialog v-model:visible="moveToModalOpen" header="Move widget" modal style="width: 35rem">
       <DocSelector :parents-only="true" :exclude-doc-ids="[props.doc._id]" @select="moveDoc" />

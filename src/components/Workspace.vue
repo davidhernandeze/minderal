@@ -110,7 +110,11 @@ async function selectWidget(widget) {
     </div>
     <div class="grow-0 z-10 mb-2">
       <div class="flex items-center">
-        <DocRoute :route="currentRoute" @navigate="(docId) => $emit('navigate', docId)" />
+        <DocRoute
+          v-if="currentRoute"
+          :route="currentRoute"
+          @navigate="(docId) => $emit('navigate', docId)"
+        />
       </div>
       <input
         ref="searchInput"
@@ -123,9 +127,9 @@ async function selectWidget(widget) {
     <div class="flex-1 min-h-0 overflow-y-auto pb-[10rem]">
       <WidgetExpanded v-if="expandedWidget" :widget="expandedWidget" />
     </div>
-    <button class="hidden" @click="workspace.migrateDatabase()">migrate</button>
+    <!--    <button class="hidden" @click="workspace.migrateDatabase()">migrate</button>-->
     <div
-      v-show="showMainInput"
+      v-show="expandedWidget?.showMainInput"
       class="fixed right-0 bottom-0 px-0 p-3 pt-0 pb-0 w-full flex justify-center"
     >
       <div :class="{ 'sm:pl-48': isSidebarVisible }" class="w-full max-w-3xl">

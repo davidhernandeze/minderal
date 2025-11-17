@@ -7,15 +7,17 @@ export type WidgetRoute = { _id: string; name: string; widget: string }[]
 
 export class Widget extends EventEmitter {
   name: string
-  showMainInput: boolean
-  expandable: boolean = false
+  key: string
   route: WidgetRoute = []
   children: Map<string, Widget> = new Map()
-  standalonePreview: boolean = false
-  hideCopyButton: boolean = false
-  formComponent?: string
+  doc: WidgetDocStructure
+  readonly showMainInput: boolean
+  readonly expandable: boolean = false
+  readonly standalonePreview: boolean = false
+  readonly hideCopyButton: boolean = false
+  readonly formComponent?: string
+
   private db: Database
-  private doc: WidgetDocStructure
   private widgetFactory: WidgetFactory
 
   constructor(db: Database, doc: WidgetDocStructure) {
@@ -40,13 +42,21 @@ export class Widget extends EventEmitter {
   }
 
   async fetchChildren() {
-    console.log(this.doc._id)
     const childDocs = await this.db.getDocsByParentId(this.doc._id)
-    console.log(childDocs)
     for (const childDoc of childDocs) {
       const childWidget = await this.widgetFactory.fromDoc(childDoc)
       this.children.set(childDoc._id, childWidget)
     }
     this.emit('children:changed')
+  }
+
+  async rename(name: string) {
+    this.doc.name = name
+    await this.db.updateDoc(this.doc)
+  }
+
+  async updateContent(content: string) {
+    this.doc.content = content
+    await this.db.updateDoc(this.doc)
   }
 }

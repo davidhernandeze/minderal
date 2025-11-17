@@ -2,7 +2,6 @@ import { v4 as generateId } from 'uuid'
 import PouchDB from 'pouchdb-browser'
 import moment from 'moment'
 import { EventEmitter } from 'events'
-import { Doc } from '@/classes/Doc.js'
 import { Connection } from '@/domain/Connection'
 import { ConfigDocStructure, DatabaseConfig } from '@/domain/types/config'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
@@ -93,7 +92,7 @@ export class Database extends EventEmitter {
     return await this.client.post({ ...doc })
   }
 
-  async updateDoc(doc: Doc | ConfigDoc): Promise<string> {
+  async updateDoc(doc: WidgetDocStructure | ConfigDocStructure): Promise<string> {
     await this.startListening()
     doc.updated_at = moment().toISOString()
     const response = await this.client.put(doc, { attachments: false })

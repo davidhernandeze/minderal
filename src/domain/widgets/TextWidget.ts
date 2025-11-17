@@ -8,12 +8,13 @@ export default class extends Widget {
   expandedComponent: string = 'TextExpanded'
   previewComponent: string = 'Text'
   showMainInput: boolean = true
+  doc: WidgetDocStructure
 
   constructor(db: Database, doc: WidgetDocStructure) {
     super(db, doc)
   }
 
-  getContent() {
-    return this.doc.content
+  getContent(): string {
+    return <string>this.doc.content
   }
 }

@@ -1,17 +1,30 @@
 <script setup lang="ts">
 import InvisibleTextInput from '@/components/generic/InvisibleTextInput.vue'
-import { Widget } from '@/domain/index.js'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
+import TextWidget from '@/domain/widgets/TextWidget'
+import { ref } from 'vue'
 
-const props = defineProps<{
-  widget: Widget
+const { widget } = defineProps<{
+  widget: TextWidget
 }>()
 
-const content = useReactiveObjectProp<Widget, string>(
-  props.widget,
+const content = useReactiveObjectProp<TextWidget, string>(
+  widget,
   (w) => w.getContent(),
   'content:changed'
 )
+
+const isEditing = ref(false)
+
+function startEdition() {
+  isEditing.value = true
+}
+
+function exitEdition() {
+  if (!isEditing.value) return
+  isEditing.value = false
+  widget.updateContent(content.value)
+}
 </script>
 
 <template>
