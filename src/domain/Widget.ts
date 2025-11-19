@@ -15,6 +15,8 @@ export class Widget extends EventEmitter {
   readonly icon: string
   readonly expandable: boolean = false
   readonly standalonePreview: boolean = false
+  readonly expandedComponent?: string
+  readonly previewComponent?: string
   readonly hideCopyButton: boolean = false
   readonly formComponent?: string
 
@@ -76,5 +78,9 @@ export class Widget extends EventEmitter {
   async updateContent(content: string) {
     this.doc.content = content
     await this.db.updateDoc(this.doc)
+  }
+
+  getPastableContent(): string {
+    return <string>this.doc.content
   }
 }

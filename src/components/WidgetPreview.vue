@@ -16,7 +16,7 @@ import Dialog from 'primevue/dialog'
 import { Widget } from '@/domain'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 
-const props = defineProps<{
+const { widget, hideMenu, single } = defineProps<{
   widget: Widget
   hideMenu?: boolean
   single?: boolean
@@ -31,26 +31,26 @@ const versionsModalOpen = ref(false)
 const moveToModalOpen = ref(false)
 
 const widgetName = useReactiveObjectProp<Widget, string>(
-  props.widget,
+  widget,
   (w) => w.getName(),
   'name:changed'
 )
 const renameModalOpen = ref(false)
 const renameInputEl = useTemplateRef('renameInputEl')
 
-const timeAgo = useTimeAgo(props.widget.doc.updated_at)
+const timeAgo = useTimeAgo(widget.doc.updated_at)
 
 const isEditingName = ref(false)
 
 const widgetFormOpen = ref(false)
 
-const icon = props.widget.icon
+const icon = widget.icon
 const WidgetPreviewComponent = defineAsyncComponent(() =>
-  safeImport(() => import(`./widgets/${props.widget.previewComponent}.vue`))
+  safeImport(() => import(`./widgets/${widget.previewComponent}.vue`))
 )
 
 async function clickAction() {
-  if (props.widget.expandable) {
+  if (widget.expandable) {
     if (isEditingName.value) {
       isEditingName.value = false
       return
@@ -64,7 +64,7 @@ async function endNameEdition(event) {
   isEditingName.value = false
   renameModalOpen.value = false
   event.target?.blur()
-  await props.widget.rename(widgetName.value)
+  await widget.rename(widgetName.value)
 }
 
 function startNameEdition(event) {
@@ -74,19 +74,14 @@ function startNameEdition(event) {
 }
 
 function copyToClipboard() {
-  if (widgetProps.toClipboard) {
-    copy(widgetProps.toClipboard(props.doc))
-    return
-  }
-
-  copy(props.doc.content)
+  copy(widget.getPastableContent())
 }
 
 const rowActions = ref([
   {
     action: 'edit',
     label: 'Edit',
-    display: !!props.widget.formComponent,
+    display: !!widget.formComponent,
     onClick() {
       widgetFormOpen.value = true
     }
@@ -95,14 +90,14 @@ const rowActions = ref([
     action: 'copy_to_clipboard',
     label: 'Copy to clipboard',
     display: true,
-    onClick: copyToClipboard
+    onClick: widget.getPastableContent()
   },
   {
     action: 'rename',
     label: 'Rename',
     display: true,
     onClick() {
-      if (!props.widget.standalonePreview) {
+      if (!widget.standalonePreview) {
         renameInputEl.value.focus()
         return
       }
@@ -155,7 +150,7 @@ async function moveDoc(parentDoc) {
     pt:footer:class="h-[2.5rem] !py-0"
   >
     <template #header>
-      <div v-if="widget.standalonePreview || props.single" />
+      <div v-if="widget.standalonePreview || single" />
       <div v-else class="flex-1 flex justify-start items-center text-gray-400 truncate pr-2">
         <i class="text-xl" :class="icon" />
         <InvisibleInput
@@ -170,7 +165,7 @@ async function moveDoc(parentDoc) {
       </div>
     </template>
     <template #icons>
-      <div v-if="!props.hideMenu" class="flex items-center gap-2">
+      <div v-if="!hideMenu" class="flex items-center gap-2">
         <div
           class="drag-zone rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
           @pointerdown="$emit('enable-drag')"
@@ -249,7 +244,7 @@ async function moveDoc(parentDoc) {
         </GenericButton>
       </form>
     </Dialog>
-<!--    <WidgetVersionsModal v-model:is-open="versionsModalOpen" :doc="doc" />-->
+    <!--    <WidgetVersionsModal v-model:is-open="versionsModalOpen" :doc="doc" />-->
     <Dialog
       v-if="widget.formComponent"
       v-model:visible="widgetFormOpen"
@@ -257,18 +252,10 @@ async function moveDoc(parentDoc) {
       modal
       style="width: 40rem"
     >
-<!--      <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />-->
+      <!--      <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />-->
     </Dialog>
     <Dialog v-model:visible="moveToModalOpen" header="Move widget" modal style="width: 35rem">
-      <DocSelector :parents-only="true" :exclude-doc-ids="[props.doc._id]" @select="moveDoc" />
+      <DocSelector :parents-only="true" :exclude-doc-ids="[widget.doc._id]" @select="moveDoc" />
     </Dialog>
   </Panel>
 </template>
-
-<style scoped>
-.widget-preview {
-  box-shadow:
-    9px 9px 24px #303946,
-    -9px -9px 24px #3e495c;
-}
-</style>
