@@ -6,9 +6,7 @@ import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
 import { useClipboard } from '@vueuse/core'
 import GenericButton from '@/components/GenericButton.vue'
 import TextInput from '@/components/TextInput.vue'
-import WidgetForm from '@/components/WidgetForm.vue'
 import InvisibleInput from '@/components/InvisibleInput.vue'
-import WidgetVersionsModal from '@/components/WidgetVersionsModal.vue'
 import DocSelector from '@/components/DocSelector.vue'
 import Panel from 'primevue/panel'
 import { useTimeAgo } from '@vueuse/core'
@@ -22,6 +20,8 @@ const { widget, hideMenu, single } = defineProps<{
   single?: boolean
 }>()
 
+console.log(widget)
+
 defineEmits(['enable-drag', 'disable-drag'])
 
 const { copy } = useClipboard()
@@ -30,11 +30,7 @@ const versionsModalOpen = ref(false)
 
 const moveToModalOpen = ref(false)
 
-const widgetName = useReactiveObjectProp<Widget, string>(
-  widget,
-  (w) => w.getName(),
-  'name:changed'
-)
+const widgetName = useReactiveObjectProp<Widget, string>(widget, (w) => w.getName(), 'name:changed')
 const renameModalOpen = ref(false)
 const renameInputEl = useTemplateRef('renameInputEl')
 
@@ -46,7 +42,7 @@ const widgetFormOpen = ref(false)
 
 const icon = widget.icon
 const WidgetPreviewComponent = defineAsyncComponent(() =>
-  safeImport(() => import(`./widgets/${widget.previewComponent}.vue`))
+  safeImport(() => import(`./widgets/preview/${widget.previewComponent}.vue`))
 )
 
 async function clickAction() {

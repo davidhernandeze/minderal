@@ -1,4 +1,29 @@
-export default {
-  folder: import('./FolderWidget'),
-  text: import('./TextWidget')
+import { Database, Widget } from '@/domain'
+import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
+import { WidgetFactory } from '@/domain/WidgetFactory'
+
+export interface WidgetTypeDefinition {
+  key: string
+  label: string
+  icon: string
+  class: () => Promise<{
+    default: new (db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) => Widget
+  }>
 }
+
+// Widgets statically added to application
+// each item contains info that we want to know without importing the widget class
+export const staticWidgetTypes: WidgetTypeDefinition[] = [
+  {
+    key: 'folder',
+    label: 'Folder',
+    icon: 'bi bi-folder',
+    class: () => import('./FolderWidget')
+  },
+  {
+    key: 'text',
+    label: 'Text',
+    icon: 'bi bi-text-paragraph',
+    class: () => import('./TextWidget')
+  }
+]

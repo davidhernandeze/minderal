@@ -13,6 +13,7 @@ import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import { Workspace, Widget, WidgetRoute } from '@/domain'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
+import WidgetButtonBar from '@/components/workspace/WidgetButtonBar.vue'
 
 const props = defineProps<{
   workspace: Workspace
@@ -89,6 +90,11 @@ async function selectWidget(widget) {
     widgetFormOpen.value = true
   }
 }
+
+function openWidgetForm(widgetKey: keyof typeof widgets) {
+  widgetFormOpen.value = true
+
+}
 </script>
 
 <template>
@@ -116,6 +122,7 @@ async function selectWidget(widget) {
           @navigate="(docId) => $emit('navigate', docId)"
         />
       </div>
+      <WidgetButtonBar :workspace="workspace" class="mb-6" />
       <input
         ref="searchInput"
         v-model="searchQuery"
@@ -167,7 +174,7 @@ async function selectWidget(widget) {
         @select="selectWidget"
       />
       <Dialog v-model:visible="widgetFormOpen" header="Create widget" modal style="width: 40rem">
-        <WidgetForm :widget="selectedWidget" @save="widgetFormOpen = false" />
+        <WidgetForm />
       </Dialog>
     </div>
   </Panel>

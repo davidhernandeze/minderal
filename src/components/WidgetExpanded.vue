@@ -5,7 +5,7 @@ import { Widget } from '@/domain/Widget'
 const props = defineProps<{ widget: Widget }>()
 
 const ExpandedWidgetComponent = defineAsyncComponent(() => {
-  return import(`./widgets/${props.widget.expandedComponent}.vue`)
+  return import(`./widgets/expanded/${props.widget.expandedComponent}.vue`)
 })
 </script>
 <template>

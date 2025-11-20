@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import Workspace from '@/components/Workspace.vue'
+import Workspace from '@/components/workspace/Workspace.vue'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import { Application, Tab } from '@/domain'
 import { inject } from 'vue'

@@ -1,18 +1,21 @@
-import widgets from '@/domain/widgets'
 import { Database } from '@/domain/Database'
 import { WidgetRequest } from '@/domain/interfaces/WidgetRequest'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 import { v4 as generateId } from 'uuid'
 import moment from 'moment/moment'
 import { Widget } from '@/domain/Widget'
+import { Workspace } from '@/domain/Workspace'
 
 export class WidgetFactory {
-  constructor(private readonly db: Database) {}
+  constructor(
+    private workspace: Workspace,
+    private readonly db: Database
+  ) {}
 
-  async fromDoc(doc: WidgetDocStructure) {
-    const module = await widgets[doc.widget]
-    const WidgetClass = module.default
-    return new WidgetClass(this.db, doc)
+  async fromDoc(doc: WidgetDocStructure): Promise<Widget> {
+    const widgetModule = await this.workspace.widgetTypes.get(doc.widget).class()
+    const WidgetConstructor = widgetModule.default
+    return new WidgetConstructor(this.db, doc, this)
   }
 
   async createFromDoc(doc: WidgetDocStructure) {

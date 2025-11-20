@@ -1,25 +1,20 @@
-<script setup>
+<script setup lang="ts">
 import { defineAsyncComponent, inject } from 'vue'
+import { Widget } from '@/domain/index.js'
 
-const props = defineProps({
-  widget: {
-    type: Object,
-    required: true
-  },
-  doc: {
-    type: Object,
-    required: false,
-    default: () => ({})
-  }
-})
+const { widget } = defineProps<{
+  widget: Widget
+}>()
 
 const emit = defineEmits(['save'])
 
-const action = props.doc._id ? 'Edit' : 'New'
+const action = widget.doc._id ? 'Edit' : 'New'
 
-const Form = defineAsyncComponent(() => {
-  return import(`./widgets/${props.widget.formComponent}.vue`)
-})
+const Form = widget.formComponent
+  ? null
+  : defineAsyncComponent(() => {
+      return import(`./widgets/${widget.formComponent}.vue`)
+    })
 
 const workspace = inject('workspace')
 

@@ -3,6 +3,7 @@ import { Database } from '@/domain/Database'
 import { Widget } from '@/domain/Widget'
 import { WidgetFactory } from '@/domain/WidgetFactory'
 import { EventEmitter } from 'events'
+import { staticWidgetTypes, WidgetTypeDefinition } from '@/domain/widgets'
 
 export class Workspace extends EventEmitter {
   id: string
@@ -10,14 +11,19 @@ export class Workspace extends EventEmitter {
   docId: string = ''
   expandedWidget: Widget
   loading: boolean = false
+  widgetTypes: Map<string, WidgetTypeDefinition> = new Map()
+
   widgetFactory: WidgetFactory
+  formOpen: boolean = false
+  widgetOnEdit: Widget | null = null
 
   constructor(db: Database, docId: string) {
     super()
     this.id = generateId()
     this.db = db
     this.docId = docId
-    this.widgetFactory = new WidgetFactory(db)
+    this.widgetFactory = new WidgetFactory(this, db)
+    this.loadWidgetTypes()
   }
 
   async loadMainWidget(): Promise<void> {
@@ -28,5 +34,23 @@ export class Workspace extends EventEmitter {
       widget: 'folder'
     })
     this.emit('expandedWidget:changed', this.expandedWidget)
+  }
+
+  loadWidgetTypes() {
+    for (const widgetType of staticWidgetTypes) {
+      this.widgetTypes.set(widgetType.key, widgetType)
+    }
+    this.emit('widgetTypes:changed')
+  }
+
+  getWidgetTypes(): WidgetTypeDefinition[] {
+    return Array.from(this.widgetTypes.values())
+  }
+
+  async openWidgetForm(widget?: Widget) {
+    this.formOpen = true
+    this.widgetOnEdit = widget
+    if (!widget) {
+    }
   }
 }

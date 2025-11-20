@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import Sidebar from '@/components/Sidebar.vue'
 import Tabs from '@/components/Tabs.vue'
-import WorkspaceManager from '@/components/WorkspaceManager.vue'
+import WorkspaceManager from '@/components/workspace/WorkspaceManager.vue'
 import sidebarStore from '@/stores/sidebar.js'
 import ConfirmDialog from 'primevue/confirmdialog'
 
