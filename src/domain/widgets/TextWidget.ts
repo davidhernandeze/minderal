@@ -4,14 +4,22 @@ import { Database } from '@/domain'
 import { WidgetFactory } from '@/domain/WidgetFactory'
 
 export default class extends Widget {
-  key = 'text'
-  expandedComponent: string = 'TextExpanded'
-  previewComponent: string = 'TextPreview'
+  readonly key = 'text'
+  readonly expandedComponent: string = 'TextExpanded'
+  readonly previewComponent: string = 'TextPreview'
+  static readonly formComponent: string = 'GeneralForm'
   showMainInput: boolean = true
   doc: WidgetDocStructure
 
   constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
     super(db, doc, widgetFactory)
+  }
+
+  static getFormStructure() {
+    return {
+      name: { type: 'text', required: true },
+      content: { type: 'textarea', required: true }
+    }
   }
 
   getContent(): string {

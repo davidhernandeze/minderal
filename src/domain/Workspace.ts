@@ -14,7 +14,6 @@ export class Workspace extends EventEmitter {
   widgetTypes: Map<string, WidgetTypeDefinition> = new Map()
 
   widgetFactory: WidgetFactory
-  formOpen: boolean = false
   widgetOnEdit: Widget | null = null
 
   constructor(db: Database, docId: string) {
@@ -47,10 +46,7 @@ export class Workspace extends EventEmitter {
     return Array.from(this.widgetTypes.values())
   }
 
-  async openWidgetForm(widget?: Widget) {
-    this.formOpen = true
-    this.widgetOnEdit = widget
-    if (!widget) {
-    }
+  getWidgetTypeDefinition(key: string): WidgetTypeDefinition {
+    return this.widgetTypes.get(key)
   }
 }

@@ -1,22 +1,20 @@
 <script setup lang="ts">
-import { defineAsyncComponent, inject } from 'vue'
-import { Widget } from '@/domain/index.js'
+import { defineAsyncComponent } from 'vue'
+import { Workspace } from '@/domain'
 
-const { widget } = defineProps<{
-  widget: Widget
+const { workspace, typeKey } = defineProps<{
+  workspace: Workspace,
+  typeKey: string
 }>()
 
 const emit = defineEmits(['save'])
 
-const action = widget.doc._id ? 'Edit' : 'New'
+const action = workspace.widgetOnEdit ? 'Edit' : 'New'
+const widgetTypeDefinition = workspace.getWidgetTypeDefinition(typeKey)
 
-const Form = widget.formComponent
-  ? null
-  : defineAsyncComponent(() => {
-      return import(`./widgets/${widget.formComponent}.vue`)
-    })
-
-const workspace = inject('workspace')
+const Form = defineAsyncComponent(() => {
+  return import(`./widgets/forms/${widgetTypeDefinition.formComponent}.vue`)
+})
 
 async function saveDoc(form) {
   if (form._id) {
@@ -46,7 +44,7 @@ async function saveDoc(form) {
 </script>
 <template>
   <div>
-    <h1 class="mb-4 text-gray-200 text-xl">{{ action }} {{ widget.label }}</h1>
-    <Form :key="doc._rev" :doc="doc" @submit="saveDoc" />
+    <h1 class="mb-4 text-gray-200 text-xl">{{ action }} {{ widgetTypeDefinition.label }}</h1>
+<!--    <Form :key="doc._rev" :doc="doc" @submit="saveDoc" />-->
   </div>
 </template>

@@ -7,10 +7,17 @@ export default class extends Widget {
   key = 'folder'
   expandable: boolean = true
   expandedComponent: string = 'FolderExpanded'
+  previewComponent: string = 'FolderPreview'
   showMainInput: boolean = true
 
   constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
     super(db, doc, widgetFactory)
     void this.fetchChildren()
+  }
+
+  static getFormStructure() {
+    return {
+      name: { type: 'text', required: true }
+    }
   }
 }

@@ -11,16 +11,18 @@ const widgets = useReactiveObjectProp<Workspace, WidgetTypeDefinition[]>(
   (w) => w.getWidgetTypes(),
   'widgetTypes:changed'
 )
+
+defineEmits(['select'])
 </script>
 <template>
   <ButtonGroup variant="outlined">
     <Button
-      v-for="(widget, key) of widgets"
-      :key="key"
+      v-for="widget of widgets"
+      :key="widget.key"
       :label="widget.label"
       :icon="widget.icon"
       variant="outlined"
-      @click="$emit('click-widget', key)"
+      @click="$emit('select', widget.key)"
     />
   </ButtonGroup>
 </template>

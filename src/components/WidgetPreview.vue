@@ -20,8 +20,6 @@ const { widget, hideMenu, single } = defineProps<{
   single?: boolean
 }>()
 
-console.log(widget)
-
 defineEmits(['enable-drag', 'disable-drag'])
 
 const { copy } = useClipboard()

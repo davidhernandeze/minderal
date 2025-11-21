@@ -5,6 +5,7 @@ import { v4 as generateId } from 'uuid'
 import moment from 'moment/moment'
 import { Widget } from '@/domain/Widget'
 import { Workspace } from '@/domain/Workspace'
+import WidgetConstructor from '@/domain/WidgetConstructor'
 
 export class WidgetFactory {
   constructor(
@@ -12,9 +13,13 @@ export class WidgetFactory {
     private readonly db: Database
   ) {}
 
+  async getWidgetClass(widgetType: string): Promise<WidgetConstructor> {
+    const widgetModule = await this.workspace.widgetTypes.get(widgetType).class()
+    return widgetModule.default
+  }
+
   async fromDoc(doc: WidgetDocStructure): Promise<Widget> {
-    const widgetModule = await this.workspace.widgetTypes.get(doc.widget).class()
-    const WidgetConstructor = widgetModule.default
+    const WidgetConstructor = await this.getWidgetClass(doc.widget)
     return new WidgetConstructor(this.db, doc, this)
   }
 

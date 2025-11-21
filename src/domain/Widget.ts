@@ -5,7 +5,7 @@ import { WidgetFactory } from '@/domain/WidgetFactory'
 
 export type WidgetRoute = { _id: string; name: string; widget: string }[]
 
-export class Widget extends EventEmitter {
+export abstract class Widget extends EventEmitter {
   name: string
   key: string
   route: WidgetRoute = []
@@ -18,11 +18,11 @@ export class Widget extends EventEmitter {
   readonly expandedComponent?: string
   readonly previewComponent?: string
   readonly hideCopyButton: boolean = false
-  readonly formComponent?: string
+  static readonly formComponent: string
   private readonly db: Database
   private widgetFactory: WidgetFactory
 
-  constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
+  protected constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
     super()
     this.db = db
     this.updateDoc(doc)

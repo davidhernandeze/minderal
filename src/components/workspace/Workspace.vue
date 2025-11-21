@@ -2,7 +2,6 @@
 import { computed, nextTick, onMounted, provide, ref, watch } from 'vue'
 import DocRoute from '@/components/DocRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
-import { getWidgetList, widgets } from '@/enums/widgets.js'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
 import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
 import sidebarStore from '@/stores/sidebar.js'
@@ -14,24 +13,27 @@ import Dialog from 'primevue/dialog'
 import { Workspace, Widget, WidgetRoute } from '@/domain'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import WidgetButtonBar from '@/components/workspace/WidgetButtonBar.vue'
+import { getWidgetList } from '@/enums/widgets'
 
-const props = defineProps<{
+const { workspace } = defineProps<{
   workspace: Workspace
 }>()
 
-const { connectionDone, connectDB, isLoading, offline } = props.workspace
+const { connectionDone, connectDB, isLoading, offline } = workspace
 
 const expandedWidget = useReactiveObjectProp<Workspace, Widget>(
-  props.workspace,
+  workspace,
   (w) => w.expandedWidget,
   'expandedWidget:changed'
 )
-
 const currentRoute = useReactiveObjectProp<Workspace, WidgetRoute>(
-  props.workspace,
+  workspace,
   (w) => w.expandedWidget?.route,
   'expandedWidget:changed'
 )
+
+const widgetFormModalOpen = ref(false)
+const selectedWidgetKey = ref<string | null>(null)
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -46,12 +48,10 @@ const isTypesModalOpen = ref(false)
 const selectedWidget = ref(getWidgetList()[0])
 const iconRerender = ref(true)
 
-const widgetFormOpen = ref(false)
-
 const { isSidebarVisible } = sidebarStore
 
 onMounted(async () => {
-  await props.workspace.loadMainWidget()
+  await workspace.loadMainWidget()
 })
 
 // provide('workspace', workspace)
@@ -91,9 +91,9 @@ async function selectWidget(widget) {
   }
 }
 
-function openWidgetForm(widgetKey: keyof typeof widgets) {
-  widgetFormOpen.value = true
-
+async function openCreateWidgetModal(widgetKey: string) {
+  selectedWidgetKey.value = widgetKey
+  widgetFormModalOpen.value = true
 }
 </script>
 
@@ -122,7 +122,7 @@ function openWidgetForm(widgetKey: keyof typeof widgets) {
           @navigate="(docId) => $emit('navigate', docId)"
         />
       </div>
-      <WidgetButtonBar :workspace="workspace" class="mb-6" />
+      <WidgetButtonBar :workspace="workspace" @select="openCreateWidgetModal" class="mb-6" />
       <input
         ref="searchInput"
         v-model="searchQuery"
@@ -173,8 +173,13 @@ function openWidgetForm(widgetKey: keyof typeof widgets) {
         @close="isTypesModalOpen = false"
         @select="selectWidget"
       />
-      <Dialog v-model:visible="widgetFormOpen" header="Create widget" modal style="width: 40rem">
-        <WidgetForm />
+      <Dialog
+        v-model:visible="widgetFormModalOpen"
+        header="Create widget"
+        modal
+        style="width: 40rem"
+      >
+        <WidgetForm :type-key="selectedWidgetKey" :workspace="workspace" />
       </Dialog>
     </div>
   </Panel>

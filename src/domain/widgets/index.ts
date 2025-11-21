@@ -1,11 +1,11 @@
-import { Database, Widget } from '@/domain'
+import { Database, Widget, WidgetFactory } from '@/domain'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
-import { WidgetFactory } from '@/domain/WidgetFactory'
 
 export interface WidgetTypeDefinition {
   key: string
   label: string
   icon: string
+  formComponent: string
   class: () => Promise<{
     default: new (db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) => Widget
   }>
@@ -18,12 +18,14 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     key: 'folder',
     label: 'Folder',
     icon: 'bi bi-folder',
-    class: () => import('./FolderWidget')
+    class: () => import('./FolderWidget'),
+    formComponent: 'GeneralForm'
   },
   {
     key: 'text',
     label: 'Text',
     icon: 'bi bi-text-paragraph',
-    class: () => import('./TextWidget')
+    class: () => import('./TextWidget'),
+    formComponent: 'GeneralForm'
   }
 ]
