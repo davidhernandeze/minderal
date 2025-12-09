@@ -16,10 +16,9 @@ export default class extends Widget {
   }
 
   static getFormStructure() {
-    return {
-      name: { type: 'text', required: true },
-      content: { type: 'textarea', required: true }
-    }
+    const formStructure: object = super.getFormStructure()
+    formStructure.content = { type: 'textarea', label: 'Content', required: true }
+    return formStructure
   }
 
   getContent(): string {

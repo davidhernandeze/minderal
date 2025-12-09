@@ -120,8 +120,9 @@ export class Database extends EventEmitter {
         include_docs: true,
         timeout: false
       })
-      .on('change', (change) => {
-        this.emit('doc:changed', change)
+      .on('change', ({ doc }) => {
+        this.emit(`doc:changed:${doc._id}`, doc)
+        this.emit(`child:changed:${doc.parent_id}`, doc)
       })
     try {
       await this.getInfo()

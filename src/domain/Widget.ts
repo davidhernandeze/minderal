@@ -2,40 +2,62 @@ import { Database } from '@/domain/Database'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 import { EventEmitter } from 'events'
 import { WidgetFactory } from '@/domain/WidgetFactory'
+import { FormStructure } from '@/domain/interfaces/FormStructure'
 
 export type WidgetRoute = { _id: string; name: string; widget: string }[]
 
 export abstract class Widget extends EventEmitter {
   name: string
   key: string
+  saved: boolean = false
   route: WidgetRoute = []
   children: Map<string, Widget> = new Map()
   doc: WidgetDocStructure
+  docId: string = ''
   readonly showMainInput: boolean
   readonly icon: string
   readonly expandable: boolean = false
   readonly standalonePreview: boolean = false
   readonly expandedComponent?: string
   readonly previewComponent?: string
+  readonly formComponent?: string = 'GeneralForm'
   readonly hideCopyButton: boolean = false
   static readonly formComponent: string
   private readonly db: Database
-  private widgetFactory: WidgetFactory
+  private readonly widgetFactory: WidgetFactory
+
+  abstract label: string
 
   protected constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
     super()
     this.db = db
-    this.updateDoc(doc)
-    void this.fetchRoute()
+    this.docId = doc._id
+    this.doc = doc
     this.widgetFactory = widgetFactory
+    if (doc.created_at) this.saved = true
   }
 
+  abstract getFormStructure(): FormStructure
+
+  abstract updateDocFromForm(form: object): void
+
   listenForChanges() {
-    this.db.on('doc:changed', async ({ doc }) => {
+    this.db.on(`doc:changed:${this.docId}`, async (doc) => {
       if (doc._id === this.doc._id && doc._rev !== this.doc._rev) {
         this.updateDoc(doc)
       }
     })
+    this.db.on(`child:changed:${this.docId}`, async (doc) => {
+      const childWidget = await this.widgetFactory.fromDoc(doc)
+      childWidget.listenForChanges()
+      this.children.set(doc._id, childWidget)
+      this.emit('children:changed')
+    })
+  }
+
+  async save() {
+    await this.db.createDoc(this.doc)
+    this.saved = true
   }
 
   updateDoc(doc: WidgetDocStructure) {

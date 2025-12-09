@@ -14,7 +14,6 @@ export class Workspace extends EventEmitter {
   widgetTypes: Map<string, WidgetTypeDefinition> = new Map()
 
   widgetFactory: WidgetFactory
-  widgetOnEdit: Widget | null = null
 
   constructor(db: Database, docId: string) {
     super()
@@ -32,6 +31,8 @@ export class Workspace extends EventEmitter {
       content: null,
       widget: 'folder'
     })
+    this.expandedWidget.listenForChanges()
+    await this.expandedWidget.fetchChildren()
     this.emit('expandedWidget:changed', this.expandedWidget)
   }
 
@@ -44,9 +45,5 @@ export class Workspace extends EventEmitter {
 
   getWidgetTypes(): WidgetTypeDefinition[] {
     return Array.from(this.widgetTypes.values())
-  }
-
-  getWidgetTypeDefinition(key: string): WidgetTypeDefinition {
-    return this.widgetTypes.get(key)
   }
 }

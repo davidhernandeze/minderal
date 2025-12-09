@@ -36,19 +36,20 @@ export class Application extends EventEmitter {
       const database: Database = LocalConnection.getInstance().getDatabaseList()[0]
       await this.openNewTab(database)
       const tab: Tab = this.tabs.get(this.activeTabId)
-      await tab.workspace.widgetFactory.createFromRequest({
+      const widget = await tab.workspace.widgetFactory.createFromRequest({
         parent_id: 'root',
         name: 'my first text widget',
         content: 'important text',
         widget: 'text'
       })
+      await widget.save()
       localStorage.setItem('first_setup', 'true')
     }
 
     await this.updateConfigDocument()
     void this.configDatabase.startListening()
-    this.configDatabase.on('doc:changed', async ({ doc }) => {
-      if (doc._id === 'config' && doc?._rev !== this.configDocument._rev) {
+    this.configDatabase.on(`doc:changed:config`, async (doc) => {
+      if (doc?._rev !== this.configDocument._rev) {
         this.configDocument = doc
         this.setConnectionsFromConfig()
         this.setTabsFromConfig()

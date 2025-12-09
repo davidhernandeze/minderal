@@ -137,7 +137,7 @@ async function moveDoc(parentDoc) {
 </script>
 <template>
   <Panel
-    :pt:header:class="['!p-2', widget.key === 'folder' ? '!pb-0' : '']"
+    :pt:header:class="['!p-2', widget.doc.widget === 'folder' ? '!pb-0' : '']"
     pt:root:class=" h-full flex flex-col"
     pt:content-container:class="h-full min-h-0 flex-1 flex flex-col"
     pt:content:class="h-full flex-1 min-h-0 flex flex-col !pb-0"
@@ -246,7 +246,6 @@ async function moveDoc(parentDoc) {
       modal
       style="width: 40rem"
     >
-      <!--      <WidgetForm :doc="doc" :widget="widgetProps" @save="widgetFormOpen = false" />-->
     </Dialog>
     <Dialog v-model:visible="moveToModalOpen" header="Move widget" modal style="width: 35rem">
       <DocSelector :parents-only="true" :exclude-doc-ids="[widget.doc._id]" @select="moveDoc" />

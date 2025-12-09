@@ -23,12 +23,7 @@ export class WidgetFactory {
     return new WidgetConstructor(this.db, doc, this)
   }
 
-  async createFromDoc(doc: WidgetDocStructure) {
-    const storedDoc: WidgetDocStructure = await this.db.createDoc(doc)
-    return await this.fromDoc(storedDoc)
-  }
-
-  async createFromRequest(request: WidgetRequest) {
+  async createFromRequest(request: WidgetRequest): Promise<Widget> {
     const widgetDoc: WidgetDocStructure = {
       _id: request._id ?? generateId(),
       name: request.name ?? '',
@@ -41,7 +36,8 @@ export class WidgetFactory {
       created_by: this.db.username,
       deleted_at: null
     }
-    return await this.createFromDoc(widgetDoc)
+
+    return await this.fromDoc(widgetDoc)
   }
 
   async getFromId(id: string): Promise<Widget> {
@@ -54,7 +50,8 @@ export class WidgetFactory {
       return await this.getFromId(doc._id)
     } catch (e) {
       if (e.status !== 404) return null
-      return await this.createFromRequest(doc)
+      const widget = await this.createFromRequest(doc)
+      await widget.save()
     }
   }
 }

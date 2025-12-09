@@ -8,7 +8,6 @@ import sidebarStore from '@/stores/sidebar.js'
 import WidgetForm from '@/components/WidgetForm.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Panel from 'primevue/panel'
-import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import { Workspace, Widget, WidgetRoute } from '@/domain'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
@@ -33,7 +32,6 @@ const currentRoute = useReactiveObjectProp<Workspace, WidgetRoute>(
 )
 
 const widgetFormModalOpen = ref(false)
-const selectedWidgetKey = ref<string | null>(null)
 
 const mainInput = ref(null)
 const inputValue = ref('')
@@ -80,7 +78,6 @@ async function createDoc() {
 }
 
 async function selectWidget(widget) {
-  selectedWidget.value = widget
   isTypesModalOpen.value = false
   iconRerender.value = false
   await nextTick()
@@ -91,8 +88,13 @@ async function selectWidget(widget) {
   }
 }
 
+const widgetOnEdit = ref<Widget | null>(null)
 async function openCreateWidgetModal(widgetKey: string) {
-  selectedWidgetKey.value = widgetKey
+  widgetOnEdit.value = await workspace.widgetFactory.createFromRequest({
+    parent_id: workspace.docId,
+    widget: widgetKey,
+    content: ''
+  })
   widgetFormModalOpen.value = true
 }
 </script>
@@ -122,7 +124,7 @@ async function openCreateWidgetModal(widgetKey: string) {
           @navigate="(docId) => $emit('navigate', docId)"
         />
       </div>
-      <WidgetButtonBar :workspace="workspace" @select="openCreateWidgetModal" class="mb-6" />
+      <WidgetButtonBar :workspace="workspace" class="mb-6" @select="openCreateWidgetModal" />
       <input
         ref="searchInput"
         v-model="searchQuery"
@@ -134,53 +136,23 @@ async function openCreateWidgetModal(widgetKey: string) {
     <div class="flex-1 min-h-0 overflow-y-auto pb-[10rem]">
       <WidgetExpanded v-if="expandedWidget" :widget="expandedWidget" />
     </div>
-    <!--    <button class="hidden" @click="workspace.migrateDatabase()">migrate</button>-->
-    <div
-      v-show="expandedWidget?.showMainInput"
-      class="fixed right-0 bottom-0 px-0 p-3 pt-0 pb-0 w-full flex justify-center"
+    <!--    <SelectWidgetModal-->
+    <!--      :open-modal="isTypesModalOpen"-->
+    <!--      @close="isTypesModalOpen = false"-->
+    <!--      @select="selectWidget"-->
+    <!--    />-->
+    <Dialog
+      v-model:visible="widgetFormModalOpen"
+      :header="`${widgetOnEdit?.saved ? 'Edit' : 'New'} ${widgetOnEdit?.label}`"
+      modal
+      style="width: 40rem"
     >
-      <div :class="{ 'sm:pl-48': isSidebarVisible }" class="w-full max-w-3xl">
-        <div
-          class="flex-center p-1 py-2 flex-wrap shadow-lg rounded-md bg-[var(--p-surface-50)] dark:bg-[var(--p-surface-800)]"
-        >
-          <div class="w-full sm:w-auto py-2">
-            <button
-              class="px-4 py-2 rounded-sm mr-2 hover:bg-(--p-primary-500) cursor-pointer"
-              @click="isTypesModalOpen = true"
-            >
-              <span v-if="iconRerender">
-                <i :class="selectedWidget.icon" class="h-3 mr-2" />
-              </span>
-              {{ selectedWidget.label }}
-            </button>
-          </div>
-          <div class="flex-1 p-2">
-            <input
-              ref="mainInput"
-              v-model="inputValue"
-              class="w-full rounded-sm text-md p-2 dark:bg-(--p-surface-900)"
-              type="text"
-              @keyup.enter="createDoc"
-            />
-          </div>
-          <div class="flex-center p-2">
-            <Button label="Add" @click="createDoc" />
-          </div>
-        </div>
-      </div>
-      <SelectWidgetModal
-        :open-modal="isTypesModalOpen"
-        @close="isTypesModalOpen = false"
-        @select="selectWidget"
+      <WidgetForm
+        v-if="widgetOnEdit"
+        :key="widgetOnEdit.docId"
+        :widget="widgetOnEdit"
+        @save="widgetFormModalOpen = false"
       />
-      <Dialog
-        v-model:visible="widgetFormModalOpen"
-        header="Create widget"
-        modal
-        style="width: 40rem"
-      >
-        <WidgetForm :type-key="selectedWidgetKey" :workspace="workspace" />
-      </Dialog>
-    </div>
+    </Dialog>
   </Panel>
 </template>

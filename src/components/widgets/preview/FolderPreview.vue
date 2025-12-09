@@ -1,12 +1,9 @@
-<script setup>
-import { Doc } from '@/classes/Doc.js'
+<script setup lang="ts">
+import { Widget } from '@/domain/index.js'
 
-defineProps({
-  doc: {
-    type: Doc,
-    required: true
-  }
-})
+const { widget } = defineProps<{
+  widget: Widget
+}>()
 </script>
 
 <template>
@@ -15,7 +12,7 @@ defineProps({
   >
     <i class="bi bi-folder mx-1" />
     <p class="break-all truncate">
-      {{ doc.name }}
+      {{ widget.doc.name }}
     </p>
   </div>
 </template>
