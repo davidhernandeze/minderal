@@ -2,13 +2,13 @@
 import { defineAsyncComponent, ref, useTemplateRef } from 'vue'
 import safeImport from '@/utils/safe-import.js'
 import { vOnClickOutside } from '@vueuse/components'
-import { Menu, MenuButton, MenuItem, MenuItems } from '@headlessui/vue'
 import { useClipboard } from '@vueuse/core'
-import GenericButton from '@/components/GenericButton.vue'
 import TextInput from '@/components/TextInput.vue'
 import InvisibleInput from '@/components/InvisibleInput.vue'
 import DocSelector from '@/components/DocSelector.vue'
 import Panel from 'primevue/panel'
+import Button from 'primevue/button'
+import Menu from 'primevue/menu'
 import { useTimeAgo } from '@vueuse/core'
 import Dialog from 'primevue/dialog'
 import { Widget } from '@/domain'
@@ -134,6 +134,26 @@ async function moveDoc(parentDoc) {
   await workspace.moveDoc({ ...props.doc }, parentDoc)
   moveToModalOpen.value = false
 }
+
+const menu = useTemplateRef('menu')
+const items = ref([
+  {
+    label: 'Options',
+    items: [
+      {
+        label: 'Edit',
+        icon: 'pi pi-pencil',
+        command: () => {
+          widgetFormOpen.value = true
+        }
+      }
+    ]
+  }
+])
+
+const toggle = (event) => {
+  menu.value.toggle(event)
+}
 </script>
 <template>
   <Panel
@@ -167,49 +187,17 @@ async function moveDoc(parentDoc) {
         >
           <i class="bi bi-grip-horizontal" />
         </div>
-        <Menu as="div" class="relative inline-block text-left">
-          <div>
-            <MenuButton class="flex items-start" @click.stop>
-              <div
-                class="rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
-              >
-                <i class="bi bi-three-dots-vertical" />
-              </div>
-            </MenuButton>
-          </div>
-          <transition
-            enter-active-class="transition ease-out duration-100"
-            enter-from-class="transform opacity-0 scale-95"
-            enter-to-class="transform opacity-100 scale-100"
-            leave-active-class="transition ease-in duration-75"
-            leave-from-class="transform opacity-100 scale-100"
-            leave-to-class="transform opacity-0 scale-95"
-          >
-            <MenuItems
-              class="absolute -translate-x-32 z-10 w-36 rounded-md bg-gray-800 shadow-lg overflow-hidden focus:outline-hidden"
-            >
-              <div>
-                <MenuItem
-                  v-for="rowAction in rowActions"
-                  v-show="rowAction.display"
-                  :key="rowAction.action"
-                  v-slot="{ active }"
-                >
-                  <button
-                    class="w-full text-left"
-                    :class="[
-                      active ? 'bg-gray-900 text-gray-100' : 'text-gray-200',
-                      'block px-4 py-2 text-sm'
-                    ]"
-                    @click.stop="rowAction.onClick"
-                  >
-                    {{ rowAction.label }}
-                  </button>
-                </MenuItem>
-              </div>
-            </MenuItems>
-          </transition>
-        </Menu>
+        <div class="card flex justify-center">
+          <Button
+            type="button"
+            icon="bi bi-three-dots-vertical"
+            variant="text"
+            aria-haspopup="true"
+            aria-controls="overlay_menu"
+            @click="toggle"
+          />
+          <Menu id="overlay_menu" ref="menu" :model="items" :popup="true" />
+        </div>
       </div>
     </template>
     <template v-if="!widget.standalonePreview" #footer>
@@ -233,9 +221,7 @@ async function moveDoc(parentDoc) {
     <Dialog v-model:visible="renameModalOpen" header="Rename widget" modal>
       <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
         <TextInput v-model="renameInput" label="New Name" type="text" class="my-3 w-full" />
-        <GenericButton class="bg-indigo-600 hover:bg-indigo-500 mt-6" type="submit">
-          Rename
-        </GenericButton>
+        <Button type="submit"> Rename </Button>
       </form>
     </Dialog>
     <!--    <WidgetVersionsModal v-model:is-open="versionsModalOpen" :doc="doc" />-->

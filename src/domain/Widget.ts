@@ -8,7 +8,8 @@ export type WidgetRoute = { _id: string; name: string; widget: string }[]
 
 export abstract class Widget extends EventEmitter {
   name: string
-  key: string
+  abstract key: string
+  abstract label: string
   saved: boolean = false
   route: WidgetRoute = []
   children: Map<string, Widget> = new Map()
@@ -24,9 +25,8 @@ export abstract class Widget extends EventEmitter {
   readonly hideCopyButton: boolean = false
   static readonly formComponent: string
   private readonly db: Database
-  private readonly widgetFactory: WidgetFactory
 
-  abstract label: string
+  private readonly widgetFactory: WidgetFactory
 
   protected constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
     super()
