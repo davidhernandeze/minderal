@@ -13,6 +13,7 @@ import { useTimeAgo } from '@vueuse/core'
 import Dialog from 'primevue/dialog'
 import { Widget } from '@/domain'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
+import WidgetMenu from '@/components/WidgetMenu.vue'
 
 const { widget, hideMenu, single } = defineProps<{
   widget: Widget
@@ -23,8 +24,6 @@ const { widget, hideMenu, single } = defineProps<{
 defineEmits(['enable-drag', 'disable-drag'])
 
 const { copy } = useClipboard()
-
-const versionsModalOpen = ref(false)
 
 const moveToModalOpen = ref(false)
 
@@ -71,61 +70,6 @@ function copyToClipboard() {
   copy(widget.getPastableContent())
 }
 
-const rowActions = ref([
-  {
-    action: 'edit',
-    label: 'Edit',
-    display: !!widget.formComponent,
-    onClick() {
-      widgetFormOpen.value = true
-    }
-  },
-  {
-    action: 'copy_to_clipboard',
-    label: 'Copy to clipboard',
-    display: true,
-    onClick: widget.getPastableContent()
-  },
-  {
-    action: 'rename',
-    label: 'Rename',
-    display: true,
-    onClick() {
-      if (!widget.standalonePreview) {
-        renameInputEl.value.focus()
-        return
-      }
-
-      renameModalOpen.value = true
-      isEditingName.value = true
-    }
-  },
-  {
-    action: 'move_to',
-    label: 'Move to...',
-    display: true,
-    onClick() {
-      moveToModalOpen.value = true
-    }
-  },
-  {
-    action: 'version_history',
-    label: 'Version history',
-    display: true,
-    onClick() {
-      versionsModalOpen.value = true
-    }
-  },
-  {
-    action: 'delete',
-    label: 'Delete',
-    display: true,
-    onClick() {
-      workspace.deleteDocRecursively({ ...props.doc })
-    }
-  }
-])
-
 function addActions(actions) {
   rowActions.value = rowActions.value.concat(actions)
 }
@@ -135,25 +79,7 @@ async function moveDoc(parentDoc) {
   moveToModalOpen.value = false
 }
 
-const menu = useTemplateRef('menu')
-const items = ref([
-  {
-    label: 'Options',
-    items: [
-      {
-        label: 'Edit',
-        icon: 'pi pi-pencil',
-        command: () => {
-          widgetFormOpen.value = true
-        }
-      }
-    ]
-  }
-])
-
-const toggle = (event) => {
-  menu.value.toggle(event)
-}
+const menuEvent = ref(null)
 </script>
 <template>
   <Panel
@@ -194,9 +120,9 @@ const toggle = (event) => {
             variant="text"
             aria-haspopup="true"
             aria-controls="overlay_menu"
-            @click="toggle"
+            @click="(e) => (menuEvent = e)"
           />
-          <Menu id="overlay_menu" ref="menu" :model="items" :popup="true" />
+          <WidgetMenu id="overlay_menu" v-model:event="menuEvent" :widget="widget" />
         </div>
       </div>
     </template>

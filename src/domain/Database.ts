@@ -99,8 +99,7 @@ export class Database extends EventEmitter {
     return response.rev
   }
 
-  async deleteDoc(doc) {
-    await this.startListening()
+  async deleteDoc(doc: WidgetDocStructure) {
     doc.deleted_at = moment().toISOString()
     await this.client.put(doc)
   }

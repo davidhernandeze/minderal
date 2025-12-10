@@ -12,6 +12,7 @@ export abstract class Widget extends EventEmitter {
   abstract label: string
   saved: boolean = false
   route: WidgetRoute = []
+  parent?: Widget
   children: Map<string, Widget> = new Map()
   doc: WidgetDocStructure
   docId: string = ''
@@ -43,11 +44,17 @@ export abstract class Widget extends EventEmitter {
 
   listenForChanges() {
     this.db.on(`doc:changed:${this.docId}`, async (doc) => {
+
       if (doc._id === this.doc._id && doc._rev !== this.doc._rev) {
         this.updateDoc(doc)
+        return
       }
     })
     this.db.on(`child:changed:${this.docId}`, async (doc) => {
+      if (doc.deleted_at) {
+        this.removeChild(doc._id)
+        return
+      }
       const childWidget = await this.widgetFactory.fromDoc(doc)
       childWidget.listenForChanges()
       this.children.set(doc._id, childWidget)
@@ -75,6 +82,11 @@ export abstract class Widget extends EventEmitter {
     return Array.from(this.children.values())
   }
 
+  removeChild(child: Widget) {
+    this.children.delete(child.doc._id)
+    this.emit('children:changed')
+  }
+
   getContent() {
     return this.doc.content
   }
@@ -87,6 +99,7 @@ export abstract class Widget extends EventEmitter {
     const childDocs = await this.db.getDocsByParentId(this.doc._id)
     for (const childDoc of childDocs) {
       const childWidget = await this.widgetFactory.fromDoc(childDoc)
+      childWidget.parent = this
       childWidget.listenForChanges()
       this.children.set(childDoc._id, childWidget)
     }
@@ -97,6 +110,10 @@ export abstract class Widget extends EventEmitter {
     this.doc.name = name
     await this.db.updateDoc(this.doc)
     this.emit('name:changed')
+  }
+
+  async delete() {
+    await this.db.deleteDoc(this.doc)
   }
 
   async updateContent(content: string) {

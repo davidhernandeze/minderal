@@ -2,6 +2,7 @@
 import { defineAsyncComponent, onBeforeMount, provide } from 'vue'
 import themeStore from '@/stores/theme.js'
 import { Application } from '@/domain/Application'
+import { Toast, ConfirmDialog } from 'primevue'
 
 const path = location.pathname
 
@@ -25,6 +26,8 @@ onBeforeMount(async () => {
 })
 </script>
 <template>
+  <Toast />
+  <ConfirmDialog />
   <MainComponent />
 </template>
 

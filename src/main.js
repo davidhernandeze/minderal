@@ -11,7 +11,7 @@ import * as Sentry from '@sentry/vue'
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import FocusTrap from 'primevue/focustrap'
-import ConfirmationService from 'primevue/confirmationservice';
+import ConfirmationService from 'primevue/confirmationservice'
 import { defineCustomElements } from '@ionic/pwa-elements/loader'
 import { registerSW } from 'virtual:pwa-register'
 
