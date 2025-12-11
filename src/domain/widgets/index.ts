@@ -17,12 +17,18 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     key: 'folder',
     label: 'Folder',
     icon: 'bi bi-folder',
-    class: () => import('./FolderWidget'),
+    class: () => import('./FolderWidget')
   },
   {
     key: 'text',
     label: 'Text',
     icon: 'bi bi-text-paragraph',
-    class: () => import('./TextWidget'),
+    class: () => import('./TextWidget')
+  },
+  {
+    key: 'checkbox',
+    label: 'Checkbox',
+    icon: 'bi bi-check-square',
+    class: () => import('./CheckboxWidget')
   }
 ]
