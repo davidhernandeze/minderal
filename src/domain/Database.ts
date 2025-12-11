@@ -78,9 +78,9 @@ export class Database extends EventEmitter {
   }
 
   async createDoc(doc: WidgetDocStructure): Promise<WidgetDocStructure> {
-    await this.startListening()
     doc.created_at = moment().toISOString()
-    const { rev } = await this.client.post(doc)
+    doc.updated_at = moment().toISOString()
+    const { rev } = await this.client.put(doc)
     doc._rev = rev
     return doc
   }

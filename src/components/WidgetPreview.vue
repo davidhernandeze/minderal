@@ -8,7 +8,6 @@ import InvisibleInput from '@/components/InvisibleInput.vue'
 import DocSelector from '@/components/DocSelector.vue'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
-import Menu from 'primevue/menu'
 import { useTimeAgo } from '@vueuse/core'
 import Dialog from 'primevue/dialog'
 import { Widget } from '@/domain'
@@ -106,13 +105,13 @@ const menuEvent = ref(null)
     </template>
     <template #icons>
       <div v-if="!hideMenu" class="flex items-center gap-2">
-        <div
-          class="drag-zone rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"
-          @pointerdown="$emit('enable-drag')"
-          @pointerup="$emit('disable-drag')"
-        >
-          <i class="bi bi-grip-horizontal" />
-        </div>
+        <!--        <div-->
+        <!--          class="drag-zone rounded-full p-1 text-gray-400 flex-center hover:text-gray-100 cursor-pointer"-->
+        <!--          @pointerdown="$emit('enable-drag')"-->
+        <!--          @pointerup="$emit('disable-drag')"-->
+        <!--        >-->
+        <!--          <i class="bi bi-grip-horizontal" />-->
+        <!--        </div>-->
         <div class="card flex justify-center">
           <Button
             type="button"

@@ -15,8 +15,8 @@ function submit() {
 }
 
 onMounted(() => {
-  for (const key in formStructure) {
-    form.value[key] = formStructure[key]?.default ?? ''
+  for (const field of formStructure.fields) {
+    form.value[field.name] = formStructure[field.name]?.default ?? ''
   }
 })
 </script>

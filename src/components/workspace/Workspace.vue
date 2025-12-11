@@ -88,9 +88,9 @@ async function selectWidget(widget) {
   }
 }
 
-const widgetOnEdit = ref<Widget | null>(null)
+let widgetOnEdit: Widget | null = null
 async function openCreateWidgetModal(widgetKey: string) {
-  widgetOnEdit.value = await workspace.widgetFactory.createFromRequest({
+  widgetOnEdit = await workspace.widgetFactory.createFromRequest({
     parent_id: workspace.docId,
     widget: widgetKey,
     content: ''
@@ -130,7 +130,7 @@ async function openCreateWidgetModal(widgetKey: string) {
         v-model="searchQuery"
         class="border-none bg-transparent p-1 pl-0 focus:outline-hidden outline-hidden w-full rounded-sm focus:ring-0 text-2xl mb-2"
         type="text"
-        placeholder="Search..."
+        placeholder="Filter..."
       />
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pb-[10rem]">
@@ -148,7 +148,7 @@ async function openCreateWidgetModal(widgetKey: string) {
       style="width: 40rem"
     >
       <WidgetForm
-        v-if="widgetOnEdit"
+        v-if="widgetFormModalOpen"
         :key="widgetOnEdit.docId"
         :widget="widgetOnEdit"
         @save="widgetFormModalOpen = false"

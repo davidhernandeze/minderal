@@ -16,29 +16,29 @@ const items = ref([
   {
     label: 'Options',
     items: [
-      {
-        label: 'Edit',
-        icon: 'pi pi-pencil',
-        command: () => {
-        }
-      },
-      {
-        label: 'Copy to clipboard',
-        icon: 'pi pi-copy',
-        command: () => {
-        }
-      },
-      {
-        label: 'Rename',
-        icon: 'pi pi-pencil',
-        command: () => {}
-      },
-      {
-        label: 'Move to...',
-        icon: 'pi pi-folder-open',
-        command: () => {
-        }
-      },
+      // {
+      //   label: 'Edit',
+      //   icon: 'pi pi-pencil',
+      //   command: () => {
+      //   }
+      // },
+      // {
+      //   label: 'Copy to clipboard',
+      //   icon: 'pi pi-copy',
+      //   command: () => {
+      //   }
+      // },
+      // {
+      //   label: 'Rename',
+      //   icon: 'pi pi-pencil',
+      //   command: () => {}
+      // },
+      // {
+      //   label: 'Move to...',
+      //   icon: 'pi pi-folder-open',
+      //   command: () => {
+      //   }
+      // },
       {
         label: 'Delete',
         icon: 'pi pi-trash',

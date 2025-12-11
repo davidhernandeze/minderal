@@ -38,13 +38,12 @@ export abstract class Widget extends EventEmitter {
     if (doc.created_at) this.saved = true
   }
 
-  abstract getFormStructure(): FormStructure
-
-  abstract updateDocFromForm(form: object): void
+  // abstract getFormStructure(): FormStructure
+  //
+  // abstract updateDocFromForm(form: object): void
 
   listenForChanges() {
     this.db.on(`doc:changed:${this.docId}`, async (doc) => {
-      console.log(doc)
       if (doc.deleted_at) {
         await this.remove()
         return
@@ -70,7 +69,6 @@ export abstract class Widget extends EventEmitter {
   }
 
   removeChild(child: Widget) {
-    console.log('removing child: ', child.docId, ' from parent: ', this.docId, ' children:')
     this.children.delete(child.docId)
     this.emit('children:changed')
   }
@@ -82,7 +80,6 @@ export abstract class Widget extends EventEmitter {
 
   updateDoc(doc: WidgetDocStructure) {
     this.doc = doc
-    this.name = doc.name
     this.emit('content:changed')
     this.emit('name:changed')
   }
@@ -100,7 +97,7 @@ export abstract class Widget extends EventEmitter {
   }
 
   getName() {
-    return this.name
+    return this.doc.name
   }
 
   addChild(widget: Widget) {

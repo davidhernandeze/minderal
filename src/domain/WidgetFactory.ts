@@ -31,8 +31,6 @@ export class WidgetFactory {
       settings: request.settings ?? {},
       parent_id: request.parent_id ?? '',
       content: request.content ?? '',
-      created_at: moment().toISOString(),
-      updated_at: moment().toISOString(),
       created_by: this.db.username,
       deleted_at: null
     }

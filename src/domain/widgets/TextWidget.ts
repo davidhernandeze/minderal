@@ -26,7 +26,7 @@ export default class extends Widget {
     }
   }
 
-  updateDocFromForm(form): void {
+  updateDocFromForm(form: { name: string; content: string }): void {
     this.doc.name = form.name
     this.doc.content = form.content
   }
