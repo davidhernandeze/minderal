@@ -64,7 +64,7 @@ function startWidgetDrag(event) {
   >
     <WidgetPreview
       v-for="childWidget in childrenWidgets"
-      :key="childWidget._rev"
+      :key="childWidget.docId"
       :widget="childWidget"
       @enable-drag="dragDisabled = false"
       @disable-drag="dragDisabled = true"
