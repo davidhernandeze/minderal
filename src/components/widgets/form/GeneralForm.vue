@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Message, InputText, Button, Textarea } from 'primevue'
-import { onMounted, ref } from 'vue'
+import { onMounted, ref, useTemplateRef } from 'vue'
 import { FormStructure } from '@/domain/interfaces/FormStructure'
 
 const { formStructure } = defineProps<{
@@ -22,8 +22,8 @@ onMounted(() => {
 </script>
 
 <template>
-  <form class="text-gray-200 text-xl" @submit.prevent="submit">
-    <div v-for="field in formStructure.fields" :key="field.name" class="mt-4">
+  <form v-focustrap class="text-gray-200 text-xl" @submit.prevent="submit">
+    <div v-for="(field, key) in formStructure.fields" :key="field.name" class="mt-4">
       <div class="flex flex-col gap-2">
         <label class="text-sm" :for="String(field.name)">{{ field.label }}</label>
 
@@ -32,6 +32,7 @@ onMounted(() => {
           :id="String(field.name)"
           v-model="form[field.name]"
           :aria-describedby="field.label + '-desc'"
+          :autofocus="key === 0"
         />
 
         <Textarea v-else-if="field.type === 'textarea'" v-model="form[field.name]" />
