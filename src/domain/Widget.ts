@@ -44,22 +44,35 @@ export abstract class Widget extends EventEmitter {
 
   listenForChanges() {
     this.db.on(`doc:changed:${this.docId}`, async (doc) => {
-
-      if (doc._id === this.doc._id && doc._rev !== this.doc._rev) {
-        this.updateDoc(doc)
+      console.log(doc)
+      if (doc.deleted_at) {
+        await this.remove()
         return
+      }
+      if (doc._rev !== this.doc._rev) {
+        this.updateDoc(doc)
       }
     })
     this.db.on(`child:changed:${this.docId}`, async (doc) => {
-      if (doc.deleted_at) {
-        this.removeChild(doc._id)
-        return
-      }
+      if (this.children.has(doc._id)) return
+      if (doc.deleted_at) return
+
       const childWidget = await this.widgetFactory.fromDoc(doc)
-      childWidget.listenForChanges()
-      this.children.set(doc._id, childWidget)
+      this.addChild(childWidget)
       this.emit('children:changed')
     })
+  }
+
+  async remove() {
+    this.parent?.removeChild(this)
+    this.db.removeAllListeners(`doc:changed:${this.docId}`)
+    this.db.removeAllListeners(`child:changed:${this.docId}`)
+  }
+
+  removeChild(child: Widget) {
+    console.log('removing child: ', child.docId, ' from parent: ', this.docId, ' children:')
+    this.children.delete(child.docId)
+    this.emit('children:changed')
   }
 
   async save() {
@@ -82,11 +95,6 @@ export abstract class Widget extends EventEmitter {
     return Array.from(this.children.values())
   }
 
-  removeChild(child: Widget) {
-    this.children.delete(child.doc._id)
-    this.emit('children:changed')
-  }
-
   getContent() {
     return this.doc.content
   }
@@ -95,13 +103,17 @@ export abstract class Widget extends EventEmitter {
     return this.name
   }
 
+  addChild(widget: Widget) {
+    widget.parent = this
+    widget.listenForChanges()
+    this.children.set(widget.docId, widget)
+  }
+
   async fetchChildren() {
     const childDocs = await this.db.getDocsByParentId(this.doc._id)
     for (const childDoc of childDocs) {
       const childWidget = await this.widgetFactory.fromDoc(childDoc)
-      childWidget.parent = this
-      childWidget.listenForChanges()
-      this.children.set(childDoc._id, childWidget)
+      this.addChild(childWidget)
     }
     this.emit('children:changed')
   }
