@@ -29,6 +29,7 @@ export class Workspace extends EventEmitter {
     this.expandedWidget = await this.widgetFactory.getFromId(widgetId)
     this.expandedWidget.listenForChanges()
     await this.expandedWidget.fetchChildren()
+    await this.expandedWidget.fetchRoute()
     this.emit('expandedWidget:changed', this.expandedWidget)
   }
 

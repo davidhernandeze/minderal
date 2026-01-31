@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
-import { WidgetRoute } from '@/domain/index.js'
+import { WidgetRoute, Workspace } from '@/domain/index.js'
 
 defineEmits(['navigate'])
 
 const props = defineProps<{
   route: WidgetRoute
+  workspace: Workspace
 }>()
 
 const container = ref()
@@ -29,11 +30,11 @@ watch(
     <ol role="list" class="flex items-center">
       <li
         class="flex items-center hover:text-(--p-primary-500) cursor-pointer"
-        @click="$emit('navigate', '')"
+        @click="workspace.navigateToWidget('root')"
       >
         <i class="bi bi-house text-xl mr-1" />
       </li>
-      <li v-for="doc in route" :key="doc.id" @click="$emit('navigate', doc.id)">
+      <li v-for="doc in route" :key="doc.id" @click="workspace.navigateToWidget(doc.id)">
         <div class="flex items-center">
           <i class="bi bi-caret-right-fill mx-4" />
           <div class="ml-2 flex hover:text-(--p-primary-500)">

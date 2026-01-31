@@ -3,7 +3,7 @@ import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 import { EventEmitter } from 'events'
 import { WidgetFactory } from '@/domain/WidgetFactory'
 
-export type WidgetRoute = { _id: string; name: string; widget: string }[]
+export type WidgetRoute = { id: string; name: string; widget: string }[]
 
 export abstract class Widget extends EventEmitter {
   name: string
@@ -93,7 +93,19 @@ export abstract class Widget extends EventEmitter {
   }
 
   async fetchRoute() {
-    return this.route
+    let parentId = this.docId
+    const route = []
+    while (parentId) {
+      const parentDoc = await this.db.getDoc(parentId)
+      route.push({
+        id: parentId,
+        name: parentDoc.name,
+        widget: parentDoc.widget
+      })
+      parentId = parentDoc.parent_id
+    }
+    route.pop()
+    this.route = route.reverse()
   }
 
   getChildren() {

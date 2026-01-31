@@ -85,7 +85,7 @@ export class Application extends EventEmitter {
         this.tabs.delete(tabConfig.id)
         continue
       }
-      const tab = await Tab.createFromConfig(database, tabConfig)
+      const tab = await Tab.createFromConfig(this, database, tabConfig)
       this.tabs.set(tab.id, tab)
     }
     const activeTab = this.tabs.get(this.configDocument.active_tab_id)
@@ -94,7 +94,7 @@ export class Application extends EventEmitter {
   }
 
   async openNewTab(database: Database, docId = 'root'): Promise<void> {
-    const newTab: Tab = await Tab.createFromConfig(database, { doc_id: docId })
+    const newTab: Tab = await Tab.createFromConfig(this, database, { doc_id: docId })
     this.tabs.set(newTab.id, newTab)
     await this.openTab(newTab)
   }
@@ -122,6 +122,7 @@ export class Application extends EventEmitter {
     newConfig.active_tab_id = this.activeTabId
     this.configDocument = newConfig
     this.configDocument._rev = await this.configDatabase.updateDoc(this.configDocument)
+    this.emit('tabs:changed')
   }
 
   getTabs() {

@@ -117,7 +117,7 @@ async function openCreateWidgetModal(widgetKey: string) {
         <DocRoute
           v-if="currentRoute"
           :route="currentRoute"
-          @navigate="(docId) => $emit('navigate', docId)"
+          :workspace="workspace"
         />
       </div>
       <WidgetButtonBar :workspace="workspace" class="mb-6" @select="openCreateWidgetModal" />
