@@ -23,9 +23,8 @@ export class Workspace extends EventEmitter {
     this.loadWidgetTypes()
   }
 
-
-
   async navigateToWidget(widgetId = 'root'): Promise<void> {
+    this.docId = widgetId
     this.expandedWidget?.removeListeners()
     this.expandedWidget = await this.widgetFactory.getFromId(widgetId)
     this.expandedWidget.listenForChanges()
