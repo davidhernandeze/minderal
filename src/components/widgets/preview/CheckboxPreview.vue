@@ -13,7 +13,6 @@ const content = useReactiveObjectProp<CheckboxWidget, boolean>(
   'content:changed'
 )
 
-
 async function switchValue() {
   await widget.updateContent(content.value)
 }
@@ -24,5 +23,3 @@ async function switchValue() {
     <ToggleSwitch v-model="content" pt:root:class="scale-200" @change="switchValue" />
   </div>
 </template>
-
-<style scoped></style>

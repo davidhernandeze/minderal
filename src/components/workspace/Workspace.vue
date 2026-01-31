@@ -48,10 +48,6 @@ const iconRerender = ref(true)
 
 const { isSidebarVisible } = sidebarStore
 
-onMounted(async () => {
-  await workspace.loadMainWidget()
-})
-
 // provide('workspace', workspace)
 provide('searchQuery', searchQuery)
 
@@ -134,7 +130,7 @@ async function openCreateWidgetModal(widgetKey: string) {
       />
     </div>
     <div class="flex-1 min-h-0 overflow-y-auto pb-[10rem]">
-      <WidgetExpanded v-if="expandedWidget" :widget="expandedWidget" />
+      <WidgetExpanded v-if="expandedWidget" :key="expandedWidget.docId" :widget="expandedWidget" />
     </div>
     <!--    <SelectWidgetModal-->
     <!--      :open-modal="isTypesModalOpen"-->

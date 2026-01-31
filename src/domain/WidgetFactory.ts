@@ -2,7 +2,6 @@ import { Database } from '@/domain/Database'
 import { WidgetRequest } from '@/domain/interfaces/WidgetRequest'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 import { v4 as generateId } from 'uuid'
-import moment from 'moment/moment'
 import { Widget } from '@/domain/Widget'
 import { Workspace } from '@/domain/Workspace'
 import WidgetConstructor from '@/domain/WidgetConstructor'
@@ -16,6 +15,10 @@ export class WidgetFactory {
   async getWidgetClass(widgetType: string): Promise<WidgetConstructor> {
     const widgetModule = await this.workspace.widgetTypes.get(widgetType).class()
     return widgetModule.default
+  }
+
+  getWorkspace(): Workspace {
+    return this.workspace
   }
 
   async fromDoc(doc: WidgetDocStructure): Promise<Widget> {

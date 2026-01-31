@@ -28,7 +28,7 @@ export class Application extends EventEmitter {
     console.log(this.configDocument)
 
     this.setConnectionsFromConfig()
-    this.setTabsFromConfig()
+    await this.setTabsFromConfig()
     const firstTimeUsage = localStorage.getItem('first_setup') !== 'true'
 
     if (firstTimeUsage) {
@@ -52,7 +52,7 @@ export class Application extends EventEmitter {
       if (doc?._rev !== this.configDocument._rev) {
         this.configDocument = doc
         this.setConnectionsFromConfig()
-        this.setTabsFromConfig()
+        await this.setTabsFromConfig()
       }
     })
   }
@@ -77,7 +77,7 @@ export class Application extends EventEmitter {
     this.emit('connections:changed')
   }
 
-  setTabsFromConfig() {
+  async setTabsFromConfig() {
     for (const tabConfig of this.configDocument.tabs) {
       const connection = this.connections.get(tabConfig.connection_id)
       const database = connection?.getDatabase(tabConfig.database_name)
@@ -85,7 +85,7 @@ export class Application extends EventEmitter {
         this.tabs.delete(tabConfig.id)
         continue
       }
-      const tab = new Tab(database, tabConfig)
+      const tab = await Tab.createFromConfig(database, tabConfig)
       this.tabs.set(tab.id, tab)
     }
     const activeTab = this.tabs.get(this.configDocument.active_tab_id)
@@ -93,8 +93,8 @@ export class Application extends EventEmitter {
     this.emit('tabs:changed')
   }
 
-  async openNewTab(database: Database): Promise<void> {
-    const newTab: Tab = new Tab(database, {})
+  async openNewTab(database: Database, docId = 'root'): Promise<void> {
+    const newTab: Tab = await Tab.createFromConfig(database, { doc_id: docId })
     this.tabs.set(newTab.id, newTab)
     await this.openTab(newTab)
   }

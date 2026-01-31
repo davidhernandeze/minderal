@@ -2,7 +2,6 @@ import { Database } from '@/domain/Database'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 import { EventEmitter } from 'events'
 import { WidgetFactory } from '@/domain/WidgetFactory'
-import { FormStructure } from '@/domain/interfaces/FormStructure'
 
 export type WidgetRoute = { _id: string; name: string; widget: string }[]
 
@@ -16,7 +15,9 @@ export abstract class Widget extends EventEmitter {
   children: Map<string, Widget> = new Map()
   doc: WidgetDocStructure
   docId: string = ''
-  readonly showMainInput: boolean
+
+  readonly db: Database
+
   readonly icon: string
   readonly expandable: boolean = false
   readonly standalonePreview: boolean = false
@@ -24,9 +25,8 @@ export abstract class Widget extends EventEmitter {
   readonly previewComponent?: string
   readonly formComponent?: string = 'GeneralForm'
   readonly hideCopyButton: boolean = false
-  static readonly formComponent: string
-  private readonly db: Database
 
+  static readonly formComponent: string
   private readonly widgetFactory: WidgetFactory
 
   protected constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
@@ -62,10 +62,18 @@ export abstract class Widget extends EventEmitter {
     })
   }
 
-  async remove() {
-    this.parent?.removeChild(this)
+  async openInWorkspace() {
+    await this.widgetFactory.getWorkspace().navigateToWidget(this.docId)
+  }
+
+  removeListeners() {
     this.db.removeAllListeners(`doc:changed:${this.docId}`)
     this.db.removeAllListeners(`child:changed:${this.docId}`)
+  }
+
+  async remove() {
+    this.parent?.removeChild(this)
+    this.removeListeners()
   }
 
   removeChild(child: Widget) {

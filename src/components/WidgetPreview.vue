@@ -28,7 +28,6 @@ const moveToModalOpen = ref(false)
 
 const widgetName = useReactiveObjectProp<Widget, string>(widget, (w) => w.getName(), 'name:changed')
 const renameModalOpen = ref(false)
-const renameInputEl = useTemplateRef('renameInputEl')
 
 const timeAgo = useTimeAgo(widget.doc.updated_at)
 
@@ -40,16 +39,6 @@ const icon = widget.icon
 const WidgetPreviewComponent = defineAsyncComponent(() =>
   safeImport(() => import(`./widgets/preview/${widget.previewComponent}.vue`))
 )
-
-async function clickAction() {
-  if (widget.expandable) {
-    if (isEditingName.value) {
-      isEditingName.value = false
-      return
-    }
-    // await navigate(props.doc._id)
-  }
-}
 
 async function endNameEdition(event) {
   if (!isEditingName.value) return
@@ -93,7 +82,6 @@ const menuEvent = ref(null)
       <div v-else class="flex-1 flex justify-start items-center text-gray-400 truncate pr-2">
         <i class="text-xl" :class="icon" />
         <InvisibleInput
-          v-model:el="renameInputEl"
           v-model:value="widgetName"
           v-on-click-outside="endNameEdition"
           class="flex-1 ml-2 bg-transparent border-none focus:outline-hidden p-0"
@@ -141,7 +129,8 @@ const menuEvent = ref(null)
       </div>
     </template>
 
-    <WidgetPreviewComponent :widget="widget" @click="clickAction" @add-actions="addActions" />
+    <WidgetPreviewComponent :widget="widget" @add-actions="addActions" />
+<!--    <WidgetPreviewComponent :widget="widget" @navigate="isEditingName = false" @add-actions="addActions" />-->
 
     <Dialog v-model:visible="renameModalOpen" header="Rename widget" modal>
       <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">

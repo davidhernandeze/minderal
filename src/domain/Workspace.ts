@@ -10,7 +10,6 @@ export class Workspace extends EventEmitter {
   db: Database
   docId: string = ''
   expandedWidget: Widget
-  loading: boolean = false
   widgetTypes: Map<string, WidgetTypeDefinition> = new Map()
 
   widgetFactory: WidgetFactory
@@ -24,13 +23,11 @@ export class Workspace extends EventEmitter {
     this.loadWidgetTypes()
   }
 
-  async loadMainWidget(): Promise<void> {
-    this.expandedWidget = await this.widgetFactory.getOrCreateFromDoc({
-      _id: 'root',
-      name: 'home',
-      content: null,
-      widget: 'folder'
-    })
+
+
+  async navigateToWidget(widgetId = 'root'): Promise<void> {
+    this.expandedWidget?.removeListeners()
+    this.expandedWidget = await this.widgetFactory.getFromId(widgetId)
     this.expandedWidget.listenForChanges()
     await this.expandedWidget.fetchChildren()
     this.emit('expandedWidget:changed', this.expandedWidget)
