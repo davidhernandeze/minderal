@@ -56,7 +56,7 @@ function startWidgetDrag(event) {
   <VueDraggable
     v-model="childrenWidgets"
     :disabled="dragDisabled"
-    item-key="_id"
+    item-key="docId"
     group="widgets"
     class="pr-6 pb-32 grid auto-rows-[14rem] sm:grid-cols-[repeat(auto-fill,minmax(20rem,1fr))] gap-4"
     @start="startWidgetDrag"

@@ -77,6 +77,7 @@ export abstract class Widget extends EventEmitter {
   }
 
   removeChild(child: Widget) {
+    child.removeListeners()
     this.children.delete(child.docId)
     this.emit('children:changed')
   }
@@ -128,10 +129,17 @@ export abstract class Widget extends EventEmitter {
 
   async fetchChildren() {
     const childDocs = await this.db.getDocsByParentId(this.doc._id)
+    const idsToDelete = new Set(this.children.keys())
     for (const childDoc of childDocs) {
       const childWidget = await this.widgetFactory.fromDoc(childDoc)
       this.addChild(childWidget)
+      idsToDelete.delete(childWidget.docId)
     }
+
+    for (const id of idsToDelete) {
+      this.removeChild(this.children.get(id))
+    }
+
     this.emit('children:changed')
   }
 
@@ -152,5 +160,21 @@ export abstract class Widget extends EventEmitter {
 
   getPastableContent(): string {
     return <string>this.doc.content
+  }
+
+  async move(parentId: string) {
+    const oldParent = this.parent
+    this.doc.parent_id = parentId
+    await this.db.updateDoc(this.doc)
+    await oldParent.onChildrenMoved()
+  }
+
+  async onChildrenMoved() {
+    console.log('Children moved, updating route...', this.docId)
+    await this.fetchChildren()
+  }
+
+  getWorkspace() {
+    return this.widgetFactory.getWorkspace()
   }
 }

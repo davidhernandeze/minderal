@@ -1,23 +1,18 @@
-<script setup>
-import { onMounted, inject, ref } from 'vue'
+<script setup lang="ts">
+import { onMounted, ref } from 'vue'
 import Tree from 'primevue/tree'
 import Button from 'primevue/button'
 import { getWidgetProps } from '@/enums/widgets.js'
+import { Database } from '@/domain'
 
 const emit = defineEmits(['select'])
 
-const props = defineProps({
-  parentsOnly: {
-    type: Boolean,
-    default: false
-  },
-  excludeDocIds: {
-    type: Array,
-    default: () => []
-  }
-})
+const props = defineProps<{
+  db: Database
+  parentsOnly?: boolean
+  excludedDocIds?: string[]
+}>()
 
-const workspace = inject('workspace')
 const nodes = ref([
   {
     key: '',
@@ -32,7 +27,7 @@ const selectedKey = ref(null)
 const loading = ref(false)
 
 onMounted(async () => {
-  await getChildDocs('', nodes.value[0])
+  await getChildDocs('root', nodes.value[0])
 })
 
 async function getChildDocs(parentId, node = null) {
@@ -40,13 +35,13 @@ async function getChildDocs(parentId, node = null) {
   loading.value = true
   let docs = []
   if (props.parentsOnly) {
-    docs = await workspace.fetchDocsByParentId(parentId, 'folder')
+    docs = await props.db.getDocsByParentId(parentId, 'folder')
   } else {
-    docs = await workspace.fetchDocsByParentId(parentId)
+    docs = await props.db.getDocsByParentId(parentId)
   }
 
   for (const doc of docs) {
-    if (props.excludeDocIds.includes(doc._id)) {
+    if (props.excludedDocIds.includes(doc._id)) {
       continue
     }
     const newNode = {
@@ -88,9 +83,14 @@ function onSelect() {
       :loading="loading"
       class="w-full"
       @node-expand="onNodeExpand"
-    ></Tree>
+    />
     <div class="mt-6 flex justify-end">
       <Button severity="info" :disabled="!selectedKey" label="Select" @click="onSelect" />
     </div>
   </div>
 </template>
+<style>
+.p-tree-node-icon {
+  padding-right: 0.5rem;
+}
+</style>

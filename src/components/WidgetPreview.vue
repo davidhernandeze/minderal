@@ -1,11 +1,9 @@
 <script setup lang="ts">
-import { defineAsyncComponent, ref, useTemplateRef } from 'vue'
+import { defineAsyncComponent, ref } from 'vue'
 import safeImport from '@/utils/safe-import.js'
 import { vOnClickOutside } from '@vueuse/components'
 import { useClipboard } from '@vueuse/core'
-import TextInput from '@/components/TextInput.vue'
 import InvisibleInput from '@/components/InvisibleInput.vue'
-import DocSelector from '@/components/DocSelector.vue'
 import Panel from 'primevue/panel'
 import Button from 'primevue/button'
 import { useTimeAgo } from '@vueuse/core'
@@ -27,7 +25,6 @@ const { copy } = useClipboard()
 const moveToModalOpen = ref(false)
 
 const widgetName = useReactiveObjectProp<Widget, string>(widget, (w) => w.getName(), 'name:changed')
-const renameModalOpen = ref(false)
 
 const timeAgo = useTimeAgo(widget.doc.updated_at)
 
@@ -43,7 +40,6 @@ const WidgetPreviewComponent = defineAsyncComponent(() =>
 async function endNameEdition(event) {
   if (!isEditingName.value) return
   isEditingName.value = false
-  renameModalOpen.value = false
   event.target?.blur()
   await widget.rename(widgetName.value)
 }
@@ -109,7 +105,7 @@ const menuEvent = ref(null)
             aria-controls="overlay_menu"
             @click="(e) => (menuEvent = e)"
           />
-          <WidgetMenu id="overlay_menu" v-model:event="menuEvent" :widget="widget" />
+          <WidgetMenu v-model:event="menuEvent" :widget="widget" />
         </div>
       </div>
     </template>
@@ -125,20 +121,10 @@ const menuEvent = ref(null)
           </button>
         </div>
         <span class="text-xs text-text-gray-700 dark:text-gray-500">Updated {{ timeAgo }}</span>
-        <!--        <span class="absolute bottom-[2rem] text-xs text-text-gray-700 dark:text-gray-500">{{ doc._id }}</span>-->
       </div>
     </template>
 
     <WidgetPreviewComponent :widget="widget" @add-actions="addActions" />
-<!--    <WidgetPreviewComponent :widget="widget" @navigate="isEditingName = false" @add-actions="addActions" />-->
-
-    <Dialog v-model:visible="renameModalOpen" header="Rename widget" modal>
-      <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
-        <TextInput v-model="renameInput" label="New Name" type="text" class="my-3 w-full" />
-        <Button type="submit"> Rename </Button>
-      </form>
-    </Dialog>
-    <!--    <WidgetVersionsModal v-model:is-open="versionsModalOpen" :doc="doc" />-->
     <Dialog
       v-if="widget.formComponent"
       v-model:visible="widgetFormOpen"
@@ -146,9 +132,6 @@ const menuEvent = ref(null)
       modal
       style="width: 40rem"
     >
-    </Dialog>
-    <Dialog v-model:visible="moveToModalOpen" header="Move widget" modal style="width: 35rem">
-      <DocSelector :parents-only="true" :exclude-doc-ids="[widget.doc._id]" @select="moveDoc" />
     </Dialog>
   </Panel>
 </template>
