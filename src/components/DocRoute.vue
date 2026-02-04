@@ -1,10 +1,11 @@
 <script setup lang="ts">
-import { nextTick, ref, watch } from 'vue'
+import { inject, nextTick, ref, watch } from 'vue'
 import { getWidgetProps } from '@/enums/widgets.js'
-import { WidgetRoute, Workspace } from '@/domain/index.js'
+import { Application, WidgetRoute, Workspace } from '@/domain/index.js'
+
+const app = inject<Application>('app')
 
 defineEmits(['navigate'])
-
 const props = defineProps<{
   route: WidgetRoute
   workspace: Workspace
@@ -34,10 +35,13 @@ watch(
       >
         <i class="bi bi-house text-xl mr-1" />
       </li>
-      <li v-for="doc in route" :key="doc.id" @click="workspace.navigateToWidget(doc.id)">
+      <li v-for="doc in route" :key="doc._id" @click="workspace.navigateToWidget(doc._id)">
         <div class="flex items-center">
           <i class="bi bi-caret-right-fill mx-4" />
-          <div class="ml-2 flex hover:text-(--p-primary-500)">
+          <div
+            class="ml-2 flex hover:text-(--p-primary-500)"
+            @click.middle="app.openNewTab(workspace.db, doc._id)"
+          >
             <i :class="getWidgetProps(doc.widget)?.icon" />
             <a href="#" class="font-medium truncate max-w-xs ml-2">{{ doc.name }}</a>
           </div>

@@ -3,7 +3,7 @@ import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 import { EventEmitter } from 'events'
 import { WidgetFactory } from '@/domain/WidgetFactory'
 
-export type WidgetRoute = { id: string; name: string; widget: string }[]
+export type WidgetRoute = { _id: string; name: string; widget: string }[]
 
 export abstract class Widget extends EventEmitter {
   abstract key: string
@@ -98,7 +98,7 @@ export abstract class Widget extends EventEmitter {
     while (parentId) {
       const parentDoc = await this.db.getDoc(parentId)
       route.push({
-        id: parentId,
+        _id: parentId,
         name: parentDoc.name,
         widget: parentDoc.widget
       })
