@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Message, InputText, Button, Textarea, Checkbox } from 'primevue'
+import { Message, InputText, Button, Textarea, Checkbox, InputNumber } from 'primevue'
 import { onMounted, ref } from 'vue'
 import { FormStructure } from '@/domain/interfaces/FormStructure'
 
@@ -36,6 +36,12 @@ onMounted(() => {
         />
 
         <Textarea v-else-if="field.type === 'textarea'" v-model="form[field.name]" />
+
+        <InputNumber
+          v-else-if="field.type === 'number'"
+          :input-id="String(field.name)"
+          v-model="form[field.name]"
+        />
 
         <Checkbox v-else-if="field.type === 'checkbox'" v-model="form[field.name]" binary />
 

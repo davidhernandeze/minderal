@@ -30,5 +30,11 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     label: 'Switch',
     icon: 'bi bi-toggle-on',
     class: () => import('./SwitchWidget')
+  },
+  {
+    key: 'counter',
+    label: 'Counter',
+    icon: 'bi bi-plus-slash-minus',
+    class: () => import('./CounterWidget')
   }
 ]

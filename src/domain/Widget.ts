@@ -162,7 +162,7 @@ export abstract class Widget extends EventEmitter {
     await this.db.deleteDoc(this.doc)
   }
 
-  async updateContent(content: string | boolean) {
+  async updateContent(content: string | boolean | number) {
     this.doc.content = content
     await this.db.updateDoc(this.doc)
   }

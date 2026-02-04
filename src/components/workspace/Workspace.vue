@@ -54,7 +54,7 @@ async function openCreateWidgetModal(widgetKey: string) {
 
 <template>
   <Panel
-    pt:root:class="h-full !rounded-none !border-none flex flex-col"
+    pt:root:class="h-full !rounded-none !border-none flex flex-col !bg-transparent"
     pt:content-container:class="h-full min-h-0 flex-1 flex flex-col"
     pt:content:class="relative h-full flex flex-col !pb-0 p-6 !pr-0 overflow-visible !rounded-t-none"
   >
