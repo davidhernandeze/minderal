@@ -1,13 +1,13 @@
 <script setup lang="ts">
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
-import CheckboxWidget from '@/domain/widgets/CheckboxWidget'
+import SwitchWidget from '@/domain/widgets/SwitchWidget'
 import { ToggleSwitch } from 'primevue'
 
 const { widget } = defineProps<{
-  widget: CheckboxWidget
+  widget: SwitchWidget
 }>()
 
-const content = useReactiveObjectProp<CheckboxWidget, boolean>(
+const content = useReactiveObjectProp<SwitchWidget, boolean>(
   widget,
   (w) => w.getContent(),
   'content:changed'

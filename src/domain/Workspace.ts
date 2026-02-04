@@ -25,6 +25,7 @@ export class Workspace extends EventEmitter {
   }
 
   async navigateToWidget(widgetId = 'root'): Promise<void> {
+    this.filter = ''
     this.docId = widgetId
     this.expandedWidget?.removeListeners()
     this.expandedWidget = await this.widgetFactory.getFromId(widgetId)

@@ -26,9 +26,9 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     class: () => import('./TextWidget')
   },
   {
-    key: 'checkbox',
-    label: 'Checkbox',
-    icon: 'bi bi-check-square',
-    class: () => import('./CheckboxWidget')
+    key: 'switch',
+    label: 'Switch',
+    icon: 'bi bi-toggle-on',
+    class: () => import('./SwitchWidget')
   }
 ]

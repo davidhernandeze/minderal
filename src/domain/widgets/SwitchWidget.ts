@@ -5,11 +5,11 @@ import { WidgetFactory } from '@/domain/WidgetFactory'
 import { FormStructure } from '@/domain/interfaces/FormStructure'
 
 export default class extends Widget {
-  key = 'checkbox'
-  label: string = 'Checkbox'
+  key = 'switch'
+  label: string = 'Switch'
   saved: boolean = false
   expandable: boolean = true
-  previewComponent: string = 'CheckboxPreview'
+  previewComponent: string = 'SwitchPreview'
   standalonePreview: boolean = false
 
   constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {

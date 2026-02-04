@@ -119,7 +119,6 @@ export abstract class Widget extends EventEmitter {
 
     return unfilteredChildren.filter((child) => {
       const searchableContent = child.getName() + child.getContent()
-      console.log(searchableContent)
       return searchableContent.toLowerCase().indexOf(filter) > -1
     })
   }
@@ -143,6 +142,7 @@ export abstract class Widget extends EventEmitter {
     const idsToDelete = new Set(this.children.keys())
     for (const childDoc of childDocs) {
       const childWidget = await this.widgetFactory.fromDoc(childDoc)
+      if (!childWidget) continue
       this.addChild(childWidget)
       idsToDelete.delete(childWidget.docId)
     }

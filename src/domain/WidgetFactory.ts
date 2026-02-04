@@ -13,8 +13,8 @@ export class WidgetFactory {
   ) {}
 
   async getWidgetClass(widgetType: string): Promise<WidgetConstructor> {
-    const widgetModule = await this.workspace.widgetTypes.get(widgetType).class()
-    return widgetModule.default
+    const widgetModule = await this.workspace.widgetTypes.get(widgetType)?.class()
+    return widgetModule?.default
   }
 
   getWorkspace(): Workspace {
@@ -23,7 +23,7 @@ export class WidgetFactory {
 
   async fromDoc(doc: WidgetDocStructure): Promise<Widget> {
     const WidgetConstructor = await this.getWidgetClass(doc.widget)
-    return new WidgetConstructor(this.db, doc, this)
+    return WidgetConstructor ? new WidgetConstructor(this.db, doc, this) : null
   }
 
   async createFromRequest(request: WidgetRequest): Promise<Widget> {
