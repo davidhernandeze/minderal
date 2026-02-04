@@ -6,7 +6,6 @@ import { WidgetFactory } from '@/domain/WidgetFactory'
 export type WidgetRoute = { id: string; name: string; widget: string }[]
 
 export abstract class Widget extends EventEmitter {
-  name: string
   abstract key: string
   abstract label: string
   saved: boolean = false
@@ -109,8 +108,20 @@ export abstract class Widget extends EventEmitter {
     this.route = route.reverse()
   }
 
+  filter() {
+    this.emit('children:changed')
+  }
+
   getChildren() {
-    return Array.from(this.children.values())
+    const unfilteredChildren = Array.from(this.children.values())
+    const filter = this.getWorkspace().filter.toLowerCase()
+    if (!filter) return unfilteredChildren
+
+    return unfilteredChildren.filter((child) => {
+      const searchableContent = child.getName() + child.getContent()
+      console.log(searchableContent)
+      return searchableContent.toLowerCase().indexOf(filter) > -1
+    })
   }
 
   getContent() {
@@ -136,9 +147,7 @@ export abstract class Widget extends EventEmitter {
       idsToDelete.delete(childWidget.docId)
     }
 
-    for (const id of idsToDelete) {
-      this.removeChild(this.children.get(id))
-    }
+    idsToDelete.forEach((id) => this.removeChild(this.children.get(id)))
 
     this.emit('children:changed')
   }

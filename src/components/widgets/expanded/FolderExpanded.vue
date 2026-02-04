@@ -1,13 +1,11 @@
 <script setup lang="ts">
 import WidgetPreview from '@/components/WidgetPreview.vue'
-import { inject, ref, watch } from 'vue'
+import { ref } from 'vue'
 import { VueDraggable } from 'vue-draggable-plus'
 import dragDocStore from '@/stores/dragDoc.js'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp.js'
 import { Widget } from '@/domain'
 import FolderWidget from '@/domain/widgets/FolderWidget'
-
-const searchQuery = inject('searchQuery')
 
 defineEmits(['update-value'])
 const props = defineProps<{ widget: FolderWidget }>()

@@ -11,6 +11,7 @@ export class Workspace extends EventEmitter {
   docId: string = ''
   expandedWidget: Widget
   widgetTypes: Map<string, WidgetTypeDefinition> = new Map()
+  filter: string = ''
 
   widgetFactory: WidgetFactory
 
@@ -42,5 +43,10 @@ export class Workspace extends EventEmitter {
 
   getWidgetTypes(): WidgetTypeDefinition[] {
     return Array.from(this.widgetTypes.values())
+  }
+
+  setFilter(filter: string) {
+    this.filter = filter
+    this.expandedWidget?.filter()
   }
 }

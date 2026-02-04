@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, provide, ref, watch } from 'vue'
+import { ref, watch } from 'vue'
 import DocRoute from '@/components/DocRoute.vue'
 import { useMagicKeys } from '@vueuse/core'
 import WidgetExpanded from '@/components/WidgetExpanded.vue'
-import SelectWidgetModal from '@/components/SelectWidgetModal.vue'
-import sidebarStore from '@/stores/sidebar.js'
 import WidgetForm from '@/components/WidgetForm.vue'
 import ProgressSpinner from 'primevue/progressspinner'
 import Panel from 'primevue/panel'
@@ -12,13 +10,10 @@ import Dialog from 'primevue/dialog'
 import { Workspace, Widget, WidgetRoute } from '@/domain'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import WidgetButtonBar from '@/components/workspace/WidgetButtonBar.vue'
-import { getWidgetList } from '@/enums/widgets'
 
 const { workspace } = defineProps<{
   workspace: Workspace
 }>()
-
-const { connectionDone, connectDB, isLoading, offline } = workspace
 
 const expandedWidget = useReactiveObjectProp<Workspace, Widget>(
   workspace,
@@ -32,57 +27,19 @@ const currentRoute = useReactiveObjectProp<Workspace, WidgetRoute>(
 )
 
 const widgetFormModalOpen = ref(false)
-
-const mainInput = ref(null)
-const inputValue = ref('')
-
 const searchInput = ref(null)
 const searchQuery = ref('')
+watch(searchQuery, (v) => {
+  workspace.setFilter(v)
+})
 
 const keys = useMagicKeys()
 const shiftCtrlA = keys['Ctrl+K']
-
-const isTypesModalOpen = ref(false)
-const selectedWidget = ref(getWidgetList()[0])
-const iconRerender = ref(true)
-
-const { isSidebarVisible } = sidebarStore
-
-// provide('workspace', workspace)
-provide('searchQuery', searchQuery)
 
 watch(shiftCtrlA, (v) => {
   if (!v) return
   searchInput.value.focus()
 })
-
-const showMainInput = computed(() => {
-  return expandedWidget?.showMainInput
-})
-
-async function createDoc() {
-  const content = selectedWidget.value.createWithContent
-    ? inputValue.value
-    : selectedWidget.value.default
-  const name = selectedWidget.value.createWithContent ? '' : inputValue.value
-  await workspace.createDoc({
-    name,
-    content,
-    widget: selectedWidget.value.index
-  })
-  inputValue.value = ''
-}
-
-async function selectWidget(widget) {
-  isTypesModalOpen.value = false
-  iconRerender.value = false
-  await nextTick()
-  iconRerender.value = true
-
-  if (widget.formComponent) {
-    widgetFormOpen.value = true
-  }
-}
 
 let widgetOnEdit: Widget | null = null
 async function openCreateWidgetModal(widgetKey: string) {
@@ -114,11 +71,7 @@ async function openCreateWidgetModal(widgetKey: string) {
     </div>
     <div class="grow-0 z-10 mb-2">
       <div class="flex items-center">
-        <DocRoute
-          v-if="currentRoute"
-          :route="currentRoute"
-          :workspace="workspace"
-        />
+        <DocRoute v-if="currentRoute" :route="currentRoute" :workspace="workspace" />
       </div>
       <WidgetButtonBar :workspace="workspace" class="mb-6" @select="openCreateWidgetModal" />
       <input

@@ -13,8 +13,6 @@ export default class extends Widget {
   previewComponent: string = 'FolderPreview'
   standalonePreview: boolean = true
 
-  showMainInput: boolean = true
-
   constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
     super(db, doc, widgetFactory)
   }
