@@ -1,0 +1,2 @@
+- use AGENT_CONTEXT.md file for agent context
+- modify that file every time if you feel the context needs to be updated
