@@ -11,7 +11,7 @@ const { isSidebarVisible } = sidebarStore
 </script>
 <template>
   <div class="max-h-screen h-screen flex">
-    <SpaceBackground :enabled="themeStore.isDarkTheme" />
+    <SpaceBackground :enabled="themeStore.isDarkTheme.value" />
     <ConfirmDialog />
     <Sidebar class="flex-none z-10" />
     <div

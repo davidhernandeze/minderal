@@ -12,6 +12,12 @@ Minderal is a **widget-based personal workspace** — a Vue 3 SPA where users st
 
 ---
 
+## UI Component Rule
+
+**Always check the PrimeVue MCP server before building custom UI components.** Use `mcp__primevue__suggest_component`, `mcp__primevue__get_overlay_components`, or `mcp__primevue__search_components` to find existing PrimeVue components first. Only create custom components when PrimeVue doesn't cover the use case.
+
+---
+
 ## Stack
 
 | Layer | Tech |
@@ -113,6 +119,7 @@ Current widgets:
 
 | key | class file | preview component | expanded component |
 |---|---|---|---|
+| `list` | `ListWidget.ts` | `FolderPreview.vue` | `FolderExpanded.vue` |
 | `folder` | `FolderWidget.ts` | `FolderPreview.vue` | `FolderExpanded.vue` |
 | `text` | `TextWidget.ts` | `TextPreview.vue` | `TextExpanded.vue` |
 | `switch` | `SwitchWidget.ts` | `SwitchPreview.vue` | `SwitchPreview.vue` (same) |
@@ -196,6 +203,29 @@ Children flow: `db` emits `child:changed:<parentId>` → parent `Widget` adds th
 - The `Application` initialization flow changes.
 
 Do **not** update it for: styling tweaks, minor bug fixes, or changes that are fully captured in code and don't affect how agents should understand the system.
+
+---
+
+## V4 Layout (`/v4` route)
+
+A separate in-progress layout focused on a **list-based UX** and an improved widget creation flow. Access at `/v4`.
+
+**New files:**
+- `src/layouts/AppV4.vue` — layout entry point for `/v4`
+- `src/components/workspace/WorkspaceV4.vue` — workspace shell (breadcrumb + WidgetList)
+- `src/components/v4/WidgetList.vue` — reactive children list + ghost widget trigger
+- `src/components/v4/WidgetListItem.vue` — compact single-row widget entry
+- `src/components/v4/GhostWidget.vue` — unsaved "ghost" widget with inline name input + type selector
+- `src/components/v4/WidgetTypeSelector.vue` — PrimeVue Popover with searchable widget type list
+- `src/composables/useWidgetUsage.ts` — localStorage-backed widget type usage tracker (exposes `recordUsage`, `sortByUsage`)
+
+**Ghost widget creation flow:**
+1. User clicks "+" or "Add first item"
+2. `GhostWidget` appears: type button on left (most-used type pre-selected), name input focused
+3. Clicking the type button opens `WidgetTypeSelector` (Popover with auto-focused search)
+4. Types are ordered by usage frequency via `useWidgetUsage`
+5. Pressing Enter or clicking outside commits: calls `widgetFactory.createFromRequest(...)` + `widget.save()`
+6. Pressing Escape discards the ghost
 
 ---
 

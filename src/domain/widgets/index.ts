@@ -14,6 +14,12 @@ export interface WidgetTypeDefinition {
 // each item contains info that we want to know without importing the widget class
 export const staticWidgetTypes: WidgetTypeDefinition[] = [
   {
+    key: 'list',
+    label: 'List',
+    icon: 'bi bi-list-ul',
+    class: () => import('./ListWidget')
+  },
+  {
     key: 'folder',
     label: 'Folder',
     icon: 'bi bi-folder',

@@ -13,6 +13,9 @@ const MainComponent = defineAsyncComponent(() => {
   if (path === '/v3') {
     return import('@/layouts/AppTS.vue')
   }
+  if (path === '/v4') {
+    return import('@/layouts/AppV4.vue')
+  }
 
   return import('@/layouts/Default.vue')
 })

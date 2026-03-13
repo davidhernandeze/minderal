@@ -29,11 +29,35 @@ export class Application extends EventEmitter {
 
     this.setConnectionsFromConfig()
     await this.setTabsFromConfig()
+    await this.firstTimeSetup()
+
+    await this.updateConfigDocument()
+    void this.configDatabase.startListening()
+    this.configDatabase.on(`doc:changed:config`, async (doc) => {
+      if (doc?._rev !== this.configDocument._rev) {
+        this.configDocument = doc
+        this.setConnectionsFromConfig()
+        await this.setTabsFromConfig()
+      }
+    })
+  }
+
+  private async firstTimeSetup() {
     const firstTimeUsage = localStorage.getItem('first_setup') !== 'true'
 
     if (firstTimeUsage) {
       await this.addLocalConnection()
       const database: Database = LocalConnection.getInstance().getDatabaseList()[0]
+      await database.createDoc({
+        _id: 'root',
+        name: 'root',
+        widget: 'folder',
+        content: '',
+        parent_id: '',
+        settings: {},
+        created_by: 'root',
+        deleted_at: null
+      })
       await this.openNewTab(database)
       const tab: Tab = this.tabs.get(this.activeTabId)
       const widget = await tab.workspace.widgetFactory.createFromRequest({
@@ -45,16 +69,6 @@ export class Application extends EventEmitter {
       await widget.save()
       localStorage.setItem('first_setup', 'true')
     }
-
-    await this.updateConfigDocument()
-    void this.configDatabase.startListening()
-    this.configDatabase.on(`doc:changed:config`, async (doc) => {
-      if (doc?._rev !== this.configDocument._rev) {
-        this.configDocument = doc
-        this.setConnectionsFromConfig()
-        await this.setTabsFromConfig()
-      }
-    })
   }
 
   async addLocalConnection() {
