@@ -1,12 +1,15 @@
 <script setup lang="ts">
-import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import Button from 'primevue/button'
 import type { Workspace } from '@/domain'
+import type { Widget } from '@/domain/Widget'
 import type { WidgetTypeDefinition } from '@/domain/widgets'
+import type { FormStructure } from '@/domain/interfaces/FormStructure'
 import { useWidgetUsage } from '@/composables/useWidgetUsage'
 import { useWidgetRelations } from '@/composables/useWidgetRelations'
 import WidgetTypeSelector from './WidgetTypeSelector.vue'
 import RelationSelector from './RelationSelector.vue'
+import GeneralFormV4 from './GeneralFormV4.vue'
 
 const props = defineProps<{
   workspace: Workspace
@@ -30,20 +33,37 @@ const resolvedDefault = computed(() => {
 })
 
 const DEFAULT_RELATION = 'item'
-
 const selectedType = ref<WidgetTypeDefinition>(resolvedDefault.value)
 const selectedRelation = ref<string>(DEFAULT_RELATION)
 
-const ghostName = ref('')
-const nameInputRef = ref<HTMLInputElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const typeSelectorRef = ref()
 const relationSelectorRef = ref()
 const isAnySelectorOpen = ref(false)
-const isCommitting = ref(false)
+
+const pendingWidget = ref<Widget | null>(null)
+const formStructure = ref<FormStructure | null>(null)
+
+// Recreate the pending widget and its form when type changes
+watch(
+  () => selectedType.value,
+  async (type) => {
+    if (!type) return
+    const widget = await props.workspace.widgetFactory.createFromRequest({
+      parent_id: props.workspace.docId,
+      widget: type.key,
+      content: ''
+    })
+    pendingWidget.value = widget
+    formStructure.value =
+      typeof (widget as any).getFormStructure === 'function'
+        ? (widget as any).getFormStructure()
+        : { fields: [{ name: 'name', type: 'text' as const, label: 'Name' }] }
+  },
+  { immediate: true }
+)
 
 onMounted(() => {
-  nextTick(() => nameInputRef.value?.focus())
   document.addEventListener('mousedown', onDocMousedown)
 })
 
@@ -58,70 +78,45 @@ function isInsideAnyPopover(el: Element): boolean {
 function onDocMousedown(e: MouseEvent) {
   const target = e.target as Element
   if (!containerRef.value?.contains(target) && !isInsideAnyPopover(target)) {
-    commit()
+    emit('discard')
   }
 }
 
 function handleTypeSelect(key: string) {
   const found = allTypes.value.find((t) => t.key === key)
   if (found) selectedType.value = found
-  nextTick(() => nameInputRef.value?.focus())
 }
 
 function handleRelationSelect(relation: string | null) {
   selectedRelation.value = relation ?? DEFAULT_RELATION
-  nextTick(() => nameInputRef.value?.focus())
 }
 
-async function commit() {
-  if (isCommitting.value || isAnySelectorOpen.value) return
-  isCommitting.value = true
+async function onFormSubmit(values: Record<string, unknown>) {
+  if (!pendingWidget.value) return
 
-  const name = ghostName.value.trim()
-  if (!name) {
-    isCommitting.value = false
-    emit('discard')
-    return
+  const relation = selectedRelation.value !== DEFAULT_RELATION ? selectedRelation.value : null
+
+  if (typeof (pendingWidget.value as any).updateDocFromForm === 'function') {
+    ;(pendingWidget.value as any).updateDocFromForm(values)
   }
+  if (relation !== null) pendingWidget.value.doc.relation = relation
 
-  const relation =
-    selectedRelation.value && selectedRelation.value !== DEFAULT_RELATION
-      ? selectedRelation.value
-      : null
-
-  const widget = await props.workspace.widgetFactory.createFromRequest({
-    parent_id: props.workspace.docId,
-    widget: selectedType.value.key,
-    name,
-    content: '',
-    relation
-  })
-  await widget.save()
+  await pendingWidget.value.save()
   recordUsage(selectedType.value.key)
   if (relation) recordRelation(relation)
   emit('saved')
-}
-
-function handleKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') {
-    e.preventDefault()
-    commit()
-  } else if (e.key === 'Escape') {
-    emit('discard')
-  }
 }
 </script>
 
 <template>
   <div
     ref="containerRef"
-    class="flex flex-col gap-2 px-3 py-3 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30"
+    class="v4-ui-chrome flex flex-col gap-3 px-3 py-3 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30"
   >
-    <!-- Top label row: "Add a [Type] [Relation]" -->
+    <!-- Header: "Add a [Type] as [Relation]" -->
     <div class="flex items-center gap-1 text-surface-400 dark:text-surface-500">
       <span class="text-sm">Add a</span>
 
-      <!-- Type button -->
       <Button
         :icon="selectedType?.icon"
         :label="selectedType?.label"
@@ -139,14 +134,19 @@ function handleKeydown(e: KeyboardEvent) {
         @close="isAnySelectorOpen = false"
       />
 
-      <!-- Relation button -->
+      <span class="text-sm">as</span>
+
       <Button
-        :label="selectedRelation ?? '···'"
-        :icon="selectedRelation ? 'bi bi-tag' : 'bi bi-plus'"
+        :label="selectedRelation"
+        :icon="selectedRelation !== DEFAULT_RELATION ? 'bi bi-tag' : undefined"
         variant="text"
         size="small"
         class="!px-1.5 !py-0.5 font-medium"
-        :class="selectedRelation ? 'text-primary' : 'text-surface-400 dark:text-surface-500'"
+        :class="
+          selectedRelation !== DEFAULT_RELATION
+            ? 'text-primary'
+            : 'text-surface-400 dark:text-surface-500'
+        "
         @click="(e) => relationSelectorRef?.toggle(e)"
       />
       <RelationSelector
@@ -158,18 +158,13 @@ function handleKeydown(e: KeyboardEvent) {
       />
     </div>
 
-    <!-- Name input row -->
-    <div class="flex items-center gap-2">
-      <input
-        ref="nameInputRef"
-        v-model="ghostName"
-        class="flex-1 bg-transparent border-none outline-none text-sm placeholder-surface-400 dark:placeholder-surface-500 min-w-0"
-        placeholder="Name your item..."
-        @keydown="handleKeydown"
-      />
-      <span class="text-xs text-surface-400 dark:text-surface-500 shrink-0 hidden sm:block">
-        Enter ↵
-      </span>
-    </div>
+    <!-- Form -->
+    <GeneralFormV4
+      v-if="formStructure"
+      :key="selectedType?.key"
+      :form-structure="formStructure"
+      :submit-label="`Add ${selectedType?.label}`"
+      @submit="onFormSubmit"
+    />
   </div>
 </template>

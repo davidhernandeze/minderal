@@ -48,5 +48,11 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     label: 'Countdown',
     icon: 'bi bi-hourglass',
     class: () => import('./CountdownWidget')
+  },
+  {
+    key: 'color',
+    label: 'Color',
+    icon: 'bi bi-palette',
+    class: () => import('./ColorWidget')
   }
 ]
