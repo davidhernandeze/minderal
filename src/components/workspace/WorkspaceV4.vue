@@ -24,18 +24,20 @@ const currentRoute = useReactiveObjectProp<Workspace, WidgetRoute>(
 <template>
   <div class="flex flex-col h-full">
     <!-- Breadcrumb -->
-    <div class="px-4 pt-4 pb-2 shrink-0">
+    <div class="shrink-0 mx-auto w-full max-w-2xl xl:max-w-3xl px-6 lg:px-8 pt-4 pb-2">
       <DocRoute v-if="currentRoute?.length" :route="currentRoute" :workspace="workspace" />
     </div>
 
     <!-- Widget list — remounted on widget change so subscriptions refresh -->
-    <div class="flex-1 overflow-y-auto px-3 pb-32">
-      <WidgetList
-        v-if="expandedWidget"
-        :key="expandedWidget.docId"
-        :widget="expandedWidget"
-        :workspace="workspace"
-      />
+    <div class="flex-1 overflow-y-auto pb-32">
+      <div class="mx-auto w-full max-w-2xl xl:max-w-3xl px-6 lg:px-8">
+        <WidgetList
+          v-if="expandedWidget"
+          :key="expandedWidget.docId"
+          :widget="expandedWidget"
+          :workspace="workspace"
+        />
+      </div>
     </div>
   </div>
 </template>

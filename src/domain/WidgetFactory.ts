@@ -32,6 +32,7 @@ export class WidgetFactory {
       name: request.name ?? '',
       widget: request.widget,
       settings: request.settings ?? {},
+      relation: request.relation ?? null,
       parent_id: request.parent_id ?? '',
       content: request.content ?? '',
       created_by: this.db.username,

@@ -4,7 +4,15 @@ import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import { Application, Tab } from '@/domain'
 import SpaceBackground from '@/components/SpaceBackground.vue'
 import themeStore from '@/stores/theme.js'
-import { inject } from 'vue'
+import { inject, onMounted, onUnmounted } from 'vue'
+
+onMounted(() => {
+  document.documentElement.classList.add('v4-layout')
+})
+
+onUnmounted(() => {
+  document.documentElement.classList.remove('v4-layout')
+})
 
 const app = inject<Application>('app')
 const tabs = useReactiveObjectProp<Application, Tab[]>(app, (a) => a.getTabs(), 'tabs:changed')
@@ -31,3 +39,21 @@ const activeTabId = useReactiveObjectProp<Application, string | null>(
     </div>
   </div>
 </template>
+
+<style>
+html.v4-layout {
+  font-size: 16px;
+}
+
+@media (min-width: 768px) {
+  html.v4-layout {
+    font-size: 22px;
+  }
+}
+
+@media (min-width: 1280px) {
+  html.v4-layout {
+    font-size: 28px;
+  }
+}
+</style>

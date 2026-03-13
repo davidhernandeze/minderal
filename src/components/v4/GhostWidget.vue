@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { ref, computed, watch, nextTick, defineAsyncComponent, onMounted, onUnmounted } from 'vue'
+import { ref, computed, nextTick, onMounted, onUnmounted } from 'vue'
 import Button from 'primevue/button'
 import type { Workspace } from '@/domain'
 import type { WidgetTypeDefinition } from '@/domain/widgets'
 import { useWidgetUsage } from '@/composables/useWidgetUsage'
+import { useWidgetRelations } from '@/composables/useWidgetRelations'
 import WidgetTypeSelector from './WidgetTypeSelector.vue'
-import type { Widget } from '@/domain/Widget'
+import RelationSelector from './RelationSelector.vue'
 
 const props = defineProps<{
   workspace: Workspace
+  defaultTypeKey?: string
 }>()
 
 const emit = defineEmits<{
@@ -17,38 +19,28 @@ const emit = defineEmits<{
 }>()
 
 const { sortByUsage, recordUsage } = useWidgetUsage()
+const { recordRelation } = useWidgetRelations()
 
 const allTypes = computed(() => props.workspace.getWidgetTypes())
 const sortedTypes = computed(() => sortByUsage(allTypes.value))
 
-const selectedType = ref<WidgetTypeDefinition>(sortedTypes.value[0])
+const resolvedDefault = computed(() => {
+  const key = props.defaultTypeKey ?? 'text'
+  return allTypes.value.find((t) => t.key === key) ?? sortedTypes.value[0]
+})
+
+const DEFAULT_RELATION = 'item'
+
+const selectedType = ref<WidgetTypeDefinition>(resolvedDefault.value)
+const selectedRelation = ref<string>(DEFAULT_RELATION)
+
 const ghostName = ref('')
 const nameInputRef = ref<HTMLInputElement | null>(null)
 const containerRef = ref<HTMLElement | null>(null)
 const typeSelectorRef = ref()
-const isTypeSelectorOpen = ref(false)
+const relationSelectorRef = ref()
+const isAnySelectorOpen = ref(false)
 const isCommitting = ref(false)
-
-const ghostWidget = ref<Widget | null>(null)
-
-const GhostPreviewComponent = computed(() => {
-  const previewName = selectedType.value?.previewComponent
-  if (!previewName) return null
-  return defineAsyncComponent(() => import(`../widgets/preview/${previewName}.vue`))
-})
-
-watch(
-  () => selectedType.value,
-  async (type) => {
-    if (!type) return
-    ghostWidget.value = await props.workspace.widgetFactory.createFromRequest({
-      parent_id: props.workspace.docId,
-      widget: type.key,
-      content: ''
-    })
-  },
-  { immediate: true }
-)
 
 onMounted(() => {
   nextTick(() => nameInputRef.value?.focus())
@@ -70,18 +62,19 @@ function onDocMousedown(e: MouseEvent) {
   }
 }
 
-function openTypeSelector(event: Event) {
-  typeSelectorRef.value?.toggle(event)
-}
-
 function handleTypeSelect(key: string) {
   const found = allTypes.value.find((t) => t.key === key)
   if (found) selectedType.value = found
   nextTick(() => nameInputRef.value?.focus())
 }
 
+function handleRelationSelect(relation: string | null) {
+  selectedRelation.value = relation ?? DEFAULT_RELATION
+  nextTick(() => nameInputRef.value?.focus())
+}
+
 async function commit() {
-  if (isCommitting.value || isTypeSelectorOpen.value) return
+  if (isCommitting.value || isAnySelectorOpen.value) return
   isCommitting.value = true
 
   const name = ghostName.value.trim()
@@ -91,14 +84,21 @@ async function commit() {
     return
   }
 
+  const relation =
+    selectedRelation.value && selectedRelation.value !== DEFAULT_RELATION
+      ? selectedRelation.value
+      : null
+
   const widget = await props.workspace.widgetFactory.createFromRequest({
     parent_id: props.workspace.docId,
     widget: selectedType.value.key,
     name,
-    content: ''
+    content: '',
+    relation
   })
   await widget.save()
   recordUsage(selectedType.value.key)
+  if (relation) recordRelation(relation)
   emit('saved')
 }
 
@@ -115,41 +115,61 @@ function handleKeydown(e: KeyboardEvent) {
 <template>
   <div
     ref="containerRef"
-    class="flex items-center gap-2 px-3 py-2.5 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30 opacity-80 hover:opacity-100 transition-opacity"
+    class="flex flex-col gap-2 px-3 py-3 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30"
   >
-    <!-- Type selector button -->
-    <Button
-      :icon="selectedType?.icon"
-      :label="selectedType?.label"
-      variant="text"
-      size="small"
-      class="shrink-0 !px-2 !py-1 gap-1.5 text-primary font-medium"
-      @click="openTypeSelector"
-    />
-    <WidgetTypeSelector
-      ref="typeSelectorRef"
-      :types="sortedTypes"
-      :selected-key="selectedType?.key ?? ''"
-      @select="handleTypeSelect"
-      @open="isTypeSelectorOpen = true"
-      @close="isTypeSelectorOpen = false"
-    />
+    <!-- Top label row: "Add a [Type] [Relation]" -->
+    <div class="flex items-center gap-1 text-surface-400 dark:text-surface-500">
+      <span class="text-sm">Add a</span>
 
-    <!-- Divider -->
-    <div class="w-px h-4 bg-surface-200 dark:bg-surface-700 shrink-0" />
+      <!-- Type button -->
+      <Button
+        :icon="selectedType?.icon"
+        :label="selectedType?.label"
+        variant="text"
+        size="small"
+        class="!px-1.5 !py-0.5 text-primary font-medium"
+        @click="(e) => typeSelectorRef?.toggle(e)"
+      />
+      <WidgetTypeSelector
+        ref="typeSelectorRef"
+        :types="sortedTypes"
+        :selected-key="selectedType?.key ?? ''"
+        @select="handleTypeSelect"
+        @open="isAnySelectorOpen = true"
+        @close="isAnySelectorOpen = false"
+      />
 
-    <!-- Name input -->
-    <input
-      ref="nameInputRef"
-      v-model="ghostName"
-      class="flex-1 bg-transparent border-none outline-none text-sm placeholder-surface-400 dark:placeholder-surface-500 min-w-0"
-      placeholder="Paste, write, or drag..."
-      @keydown="handleKeydown"
-    />
+      <!-- Relation button -->
+      <Button
+        :label="selectedRelation ?? '···'"
+        :icon="selectedRelation ? 'bi bi-tag' : 'bi bi-plus'"
+        variant="text"
+        size="small"
+        class="!px-1.5 !py-0.5 font-medium"
+        :class="selectedRelation ? 'text-primary' : 'text-surface-400 dark:text-surface-500'"
+        @click="(e) => relationSelectorRef?.toggle(e)"
+      />
+      <RelationSelector
+        ref="relationSelectorRef"
+        :selected-relation="selectedRelation"
+        @select="handleRelationSelect"
+        @open="isAnySelectorOpen = true"
+        @close="isAnySelectorOpen = false"
+      />
+    </div>
 
-    <!-- Hint -->
-    <span class="text-xs text-surface-400 dark:text-surface-500 shrink-0 hidden sm:block">
-      Enter ↵
-    </span>
+    <!-- Name input row -->
+    <div class="flex items-center gap-2">
+      <input
+        ref="nameInputRef"
+        v-model="ghostName"
+        class="flex-1 bg-transparent border-none outline-none text-sm placeholder-surface-400 dark:placeholder-surface-500 min-w-0"
+        placeholder="Name your item..."
+        @keydown="handleKeydown"
+      />
+      <span class="text-xs text-surface-400 dark:text-surface-500 shrink-0 hidden sm:block">
+        Enter ↵
+      </span>
+    </div>
   </div>
 </template>

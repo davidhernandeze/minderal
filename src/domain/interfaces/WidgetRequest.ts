@@ -5,5 +5,6 @@ export interface WidgetRequest {
   content: string
   widget: string
   settings?: object
+  relation?: string | null
   files?: object[]
 }

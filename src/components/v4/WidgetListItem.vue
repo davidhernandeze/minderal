@@ -3,18 +3,31 @@ import { ref, computed } from 'vue'
 import Button from 'primevue/button'
 import InvisibleInput from '@/components/InvisibleInput.vue'
 import WidgetMenu from '@/components/WidgetMenu.vue'
+import RelationSelector from './RelationSelector.vue'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
+import { useWidgetRelations } from '@/composables/useWidgetRelations'
 import type { Widget } from '@/domain/Widget'
 
-const { widget } = defineProps<{
+const { widget, showRelation } = defineProps<{
   widget: Widget
+  showRelation?: boolean
 }>()
+
+const { recordRelation } = useWidgetRelations()
 
 const widgetName = useReactiveObjectProp<Widget, string>(widget, (w) => w.getName(), 'name:changed')
 const isEditingName = ref(false)
 const menuEvent = ref<Event | null>(null)
+const relationSelectorRef = ref()
 
 const icon = computed(() => widget.getWorkspace().widgetTypes.get(widget.key)?.icon ?? '')
+const relation = computed(() => widget.doc.relation ?? null)
+
+async function onRelationSelect(value: string | null) {
+  widget.doc.relation = value
+  await widget.db.updateDoc(widget.doc)
+  if (value) recordRelation(value)
+}
 
 function startNameEdit() {
   isEditingName.value = true
@@ -27,29 +40,60 @@ async function endNameEdit() {
 }
 
 function handleNameKeydown(e: KeyboardEvent) {
-  if (e.key === 'Enter') {
-    ;(e.target as HTMLElement).blur()
-  }
+  if (e.key === 'Enter') (e.target as HTMLElement).blur()
 }
 </script>
 
 <template>
   <div
-    class="group flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-default"
+    class="group flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-default"
   >
-    <!-- Widget icon -->
-    <i :class="icon" class="text-base text-surface-400 shrink-0" />
+    <!-- Icon -->
+    <i :class="icon" class="text-base text-surface-400 shrink-0 self-center" />
 
-    <!-- Name -->
-    <InvisibleInput
-      v-model:value="widgetName"
-      class="flex-1 text-sm min-w-0 cursor-text"
-      @focus="startNameEdit"
-      @blur="endNameEdit"
-      @keydown="handleNameKeydown"
-    />
+    <!-- Content: relation descriptor + name -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Relation descriptor (above name) -->
+      <div v-if="showRelation">
+        <button
+          v-if="relation !== null"
+          class="group/rel inline-flex items-center gap-1 text-xs tracking-widest uppercase font-semibold transition-colors"
+          :class="
+            relation
+              ? 'text-primary/70 hover:text-primary'
+              : 'text-surface-300 dark:text-surface-600 hover:text-surface-400 dark:hover:text-surface-500'
+          "
+          @click="(e) => relationSelectorRef?.toggle(e)"
+        >
+          <span class="text-[0.5rem] max-w-24 truncate">{{ relation }}</span>
+          <i class="bi bi-pencil text-[0.6rem] opacity-0 group-hover/rel:opacity-60 transition-opacity" />
+        </button>
+        <RelationSelector
+          ref="relationSelectorRef"
+          :selected-relation="relation"
+          @select="onRelationSelect"
+        />
+      </div>
 
-    <!-- Navigate button for expandable widgets -->
+      <!-- Name -->
+      <button
+        v-if="widget.expandable"
+        class="text-sm min-w-0 text-left truncate hover:text-primary transition-colors cursor-pointer leading-snug"
+        @click="widget.openInWorkspace()"
+      >
+        {{ widgetName }}
+      </button>
+      <InvisibleInput
+        v-else
+        v-model:value="widgetName"
+        class="text-sm min-w-0 cursor-text leading-snug"
+        @focus="startNameEdit"
+        @blur="endNameEdit"
+        @keydown="handleNameKeydown"
+      />
+    </div>
+
+    <!-- Navigate chevron -->
     <Button
       v-if="widget.expandable"
       icon="bi bi-chevron-right"
@@ -59,7 +103,7 @@ function handleNameKeydown(e: KeyboardEvent) {
       @click="widget.openInWorkspace()"
     />
 
-    <!-- Menu trigger -->
+    <!-- Menu -->
     <Button
       icon="bi bi-three-dots"
       variant="text"
