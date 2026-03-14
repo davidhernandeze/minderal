@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import InvisibleInput from '@/components/InvisibleInput.vue'
 import WidgetMenu from '@/components/WidgetMenu.vue'
 import RelationSelector from './RelationSelector.vue'
+import WidgetInlinePreview from './WidgetInlinePreview.vue'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import { useWidgetRelations } from '@/composables/useWidgetRelations'
 import type { Widget } from '@/domain/Widget'
@@ -46,7 +47,7 @@ function handleNameKeydown(e: KeyboardEvent) {
 
 <template>
   <div
-    class="group flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors cursor-default"
+    class="group flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-surface-100 dark:hover:shadow-sm transition-colors cursor-default"
   >
     <!-- Icon -->
     <i :class="icon" class="text-base text-surface-400 shrink-0 self-center" />
@@ -93,15 +94,13 @@ function handleNameKeydown(e: KeyboardEvent) {
       />
     </div>
 
-    <!-- Navigate chevron -->
-    <Button
-      v-if="widget.expandable"
-      icon="bi bi-chevron-right"
-      variant="text"
-      size="small"
-      class="!p-1 shrink-0"
-      @click="widget.openInWorkspace()"
-    />
+    <!-- Inline preview (fixed column, only when widget has one) -->
+    <div
+      v-if="widget.previewComponent"
+      class="shrink-0 w-6 h-6 rounded-full overflow-hidden"
+    >
+      <WidgetInlinePreview :widget="widget" />
+    </div>
 
     <!-- Menu -->
     <Button

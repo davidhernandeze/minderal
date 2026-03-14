@@ -20,7 +20,7 @@ export default class extends Widget {
   getFormStructure(): FormStructure {
     return {
       fields: [
-        { name: 'name', type: 'text', label: 'Name' }
+        { name: 'name', type: 'text' }
       ]
     }
   }

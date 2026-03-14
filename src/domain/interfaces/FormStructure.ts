@@ -1,7 +1,7 @@
 interface FieldStructure {
   name: string
   type: 'text' | 'textarea' | 'number' | 'checkbox' | 'color'
-  label: string
+  label?: string
   required?: boolean
   default?: string
 }

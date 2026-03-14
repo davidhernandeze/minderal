@@ -15,15 +15,12 @@ export default class extends Widget {
 
   getFormStructure(): FormStructure {
     return {
-      fields: [
-        { name: 'name', type: 'text', label: 'Name' },
-        { name: 'content', type: 'color', label: 'Color', default: '#6366f1' }
-      ]
+      fields: [{ name: 'name', type: 'color', label: '', default: '#6366f1' }]
     }
   }
 
   updateDocFromForm(form: { content: string }): void {
-    this.doc.content = form.content
+    this.doc.name = form.name
   }
 
   getContent(): string {

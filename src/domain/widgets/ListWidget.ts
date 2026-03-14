@@ -10,7 +10,6 @@ export default class extends Widget {
   saved: boolean = false
   expandable: boolean = true
   expandedComponent: string = 'FolderExpanded'
-  previewComponent: string = 'FolderPreview'
   standalonePreview: boolean = true
 
   constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
