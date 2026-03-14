@@ -49,6 +49,16 @@ function handleNameKeydown(e: KeyboardEvent) {
   <div
     class="group flex items-center gap-3 px-3 py-1.5 rounded-lg hover:bg-surface-100 dark:hover:shadow-sm transition-colors cursor-default"
   >
+    <!-- Menu -->
+    <Button
+      icon="bi bi-three-dots-vertical"
+      variant="text"
+      size="small"
+      class="!p-1 shrink-0"
+      @click="(e) => (menuEvent = e)"
+    />
+    <WidgetMenu v-model:event="menuEvent" :widget="widget" />
+
     <!-- Icon -->
     <i :class="icon" class="text-base text-surface-400 shrink-0 self-center" />
 
@@ -76,40 +86,33 @@ function handleNameKeydown(e: KeyboardEvent) {
         />
       </div>
 
-      <!-- Name -->
-      <button
-        v-if="widget.expandable"
-        class="text-sm min-w-0 text-left truncate hover:text-primary transition-colors cursor-pointer leading-snug"
-        @click="widget.openInWorkspace()"
-      >
-        {{ widgetName }}
-      </button>
-      <InvisibleInput
-        v-else
-        v-model:value="widgetName"
-        class="text-sm min-w-0 cursor-text leading-snug"
-        @focus="startNameEdit"
-        @blur="endNameEdit"
-        @keydown="handleNameKeydown"
-      />
+      <!-- Name + preview row -->
+      <div class="flex items-center gap-2 min-w-0">
+        <button
+          v-if="widget.expandable"
+          class="flex-1 text-sm min-w-0 text-left truncate hover:text-primary transition-colors cursor-pointer leading-snug"
+          @click="widget.openInWorkspace()"
+        >
+          {{ widgetName }}
+        </button>
+        <InvisibleInput
+          v-else
+          v-model:value="widgetName"
+          class="w-1/2 text-sm min-w-0 cursor-text leading-snug"
+          @focus="startNameEdit"
+          @blur="endNameEdit"
+          @keydown="handleNameKeydown"
+        />
+
+        <!-- Inline preview (shares row with name) -->
+        <div
+          v-if="widget.previewComponent"
+          class="shrink-0 w-6 h-6 rounded-full overflow-hidden"
+        >
+          <WidgetInlinePreview :widget="widget" />
+        </div>
+      </div>
     </div>
 
-    <!-- Inline preview (fixed column, only when widget has one) -->
-    <div
-      v-if="widget.previewComponent"
-      class="shrink-0 w-6 h-6 rounded-full overflow-hidden"
-    >
-      <WidgetInlinePreview :widget="widget" />
-    </div>
-
-    <!-- Menu -->
-    <Button
-      icon="bi bi-three-dots"
-      variant="text"
-      size="small"
-      class="!p-1 shrink-0"
-      @click="(e) => (menuEvent = e)"
-    />
-    <WidgetMenu v-model:event="menuEvent" :widget="widget" />
   </div>
 </template>
