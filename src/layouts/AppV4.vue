@@ -42,7 +42,7 @@ const activeTabId = useReactiveObjectProp<Application, string | null>(
 
 <style>
 html.v4-layout {
-  font-size: 16px;
+  font-size: 20px;
 }
 
 @media (min-width: 768px) {

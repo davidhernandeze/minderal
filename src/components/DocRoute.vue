@@ -25,7 +25,7 @@ watch(
   <nav
     ref="container"
     v-bind="$attrs"
-    class="flex w-full overflow-x-auto pb-3 pr-3 text-lg"
+    class="flex w-full overflow-x-auto pr-3 text-sm"
     aria-label="Breadcrumb"
   >
     <ol role="list" class="flex items-center">
@@ -33,13 +33,13 @@ watch(
         class="flex items-center hover:text-(--p-primary-500) cursor-pointer"
         @click="workspace.navigateToWidget('root')"
       >
-        <i class="bi bi-house text-xl mr-1" />
+        <i class="bi bi-house mr-1" />
       </li>
       <li v-for="doc in route" :key="doc._id" @click="workspace.navigateToWidget(doc._id)">
         <div class="flex items-center">
-          <i class="bi bi-caret-right-fill mx-4" />
+          <i class="bi bi-caret-right-fill mx-1" />
           <div
-            class="ml-2 flex hover:text-(--p-primary-500)"
+            class="ml-1 flex hover:text-(--p-primary-500)"
             @click.middle="app.openNewTab(workspace.db, doc._id)"
           >
             <i :class="getWidgetProps(doc.widget)?.icon" />

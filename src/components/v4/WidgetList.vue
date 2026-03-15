@@ -14,6 +14,8 @@ const { widget, workspace } = defineProps<{
   workspace: Workspace
 }>()
 
+const selectedWidgetId = ref<string | null>(null)
+
 const children = useReactiveObjectProp<Widget, Widget[]>(
   widget,
   (w) => w.getChildren(),
@@ -84,7 +86,7 @@ function onGhostDiscard() {
     <input
       ref="titleInputRef"
       v-model="widgetName"
-      class="w-full bg-transparent border-none outline-none text-3xl lg:text-4xl xl:text-5xl font-bold placeholder-surface-300 dark:placeholder-surface-600 cursor-text p-0"
+      class="w-full bg-transparent border-none !outline-none text-3xl lg:text-4xl xl:text-5xl font-bold placeholder-surface-300 dark:placeholder-surface-600 cursor-text p-0"
       placeholder="Untitled"
       @focus="startTitleEdit"
       @blur="endTitleEdit"
@@ -130,7 +132,13 @@ function onGhostDiscard() {
   <!-- Children list -->
   <div v-else class="flex flex-col">
     <TransitionGroup name="list" tag="div" class="flex flex-col gap-0.5">
-      <WidgetListItem v-for="child in children" :key="child.docId" :widget="child" />
+      <WidgetListItem
+        v-for="child in children"
+        :key="child.docId"
+        :widget="child"
+        :is-selected="selectedWidgetId === child.docId"
+        @select="selectedWidgetId = child.docId"
+      />
     </TransitionGroup>
 
     <!-- Ghost widget or add button -->
@@ -144,7 +152,7 @@ function onGhostDiscard() {
       />
       <button
         v-else
-        class="flex items-center gap-2 w-full px-3 py-2 cursor-pointer text-sm text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+        class="text-green-500 flex items-center gap-2 w-full px-3 py-2 cursor-pointer text-sm text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
         @click="activateGhost"
       >
         <i class="bi bi-plus text-base" />

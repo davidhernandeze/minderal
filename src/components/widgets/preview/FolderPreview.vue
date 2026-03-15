@@ -11,13 +11,13 @@ const app = inject<Application>('app')
 
 <template>
   <button
-    class="flex h-full items-center box-border gap-2 hover:text-(--p-primary-500) cursor-pointer text-2xl"
+    class="flex h-full items-center box-border gap-2 hover:text-(--p-primary-500) cursor-pointer"
     @click.middle="app.openNewTab(widget.db, widget.docId)"
     @click="widget.openInWorkspace()"
   >
-    <i class="bi bi-folder mx-1" />
-    <p class="break-all truncate">
+    <p v-if="widget.getName() !== ''" class="break-all truncate">
       {{ widget.doc.name }}
     </p>
+    <p v-if="widget.getName() === ''" class="break-all truncate">untitled</p>
   </button>
 </template>

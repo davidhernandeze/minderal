@@ -131,9 +131,10 @@ async function onFormSubmit(values: Record<string, unknown>) {
         @close="isAnySelectorOpen = false"
       />
 
-      <span v-if="selectedType?.e" class="text-sm">as</span>
+      <span v-if="selectedType?.showNameSelector" class="text-sm">as</span>
 
       <Button
+        v-if="selectedType?.showNameSelector"
         :label="selectedRelation"
         :icon="selectedRelation !== DEFAULT_RELATION ? 'bi bi-tag' : undefined"
         variant="text"

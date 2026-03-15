@@ -5,6 +5,7 @@ export interface WidgetTypeDefinition {
   key: string
   label: string
   icon: string
+  showNameSelector?: boolean
   class: () => Promise<{
     default: new (db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) => Widget
   }>
@@ -29,6 +30,7 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     key: 'text',
     label: 'Text',
     icon: 'bi bi-text-paragraph',
+    showNameSelector: true,
     class: () => import('./TextWidget')
   },
   {
@@ -53,6 +55,7 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     key: 'color',
     label: 'Color',
     icon: 'bi bi-palette',
+    showNameSelector: true,
     class: () => import('./ColorWidget')
   }
 ]
