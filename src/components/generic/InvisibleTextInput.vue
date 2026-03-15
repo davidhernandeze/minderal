@@ -5,6 +5,7 @@ const value = defineModel({ type: String })
   <textarea
     v-bind="$attrs"
     v-model="value"
-    class="resize-none bg-transparent border-none focus:outline-none !outline-none p-0 border-none focus:ring-0"
+    style="field-sizing: content"
+    class="resize-none bg-transparent focus:outline-none !outline-none p-0 border-none focus:ring-0"
   />
 </template>

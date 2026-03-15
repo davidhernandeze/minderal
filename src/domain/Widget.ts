@@ -2,6 +2,7 @@ import { Database } from '@/domain/Database'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 import { EventEmitter } from 'events'
 import { WidgetFactory } from '@/domain/WidgetFactory'
+import { FormStructure } from '@/domain/interfaces/FormStructure'
 
 export type WidgetRoute = { _id: string; name: string; widget: string }[]
 
@@ -27,6 +28,8 @@ export abstract class Widget extends EventEmitter {
 
   static readonly formComponent: string
   private readonly widgetFactory: WidgetFactory
+
+  abstract getFormStructure(): FormStructure
 
   protected constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
     super()

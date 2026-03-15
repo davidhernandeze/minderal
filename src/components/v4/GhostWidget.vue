@@ -42,23 +42,20 @@ const relationSelectorRef = ref()
 const isAnySelectorOpen = ref(false)
 
 const pendingWidget = ref<Widget | null>(null)
-const formStructure = ref<FormStructure | null>(null)
+const formStructure = ref<FormStructure>()
 
 // Recreate the pending widget and its form when type changes
 watch(
   () => selectedType.value,
   async (type) => {
     if (!type) return
-    const widget = await props.workspace.widgetFactory.createFromRequest({
+    const widget: Widget = await props.workspace.widgetFactory.createFromRequest({
       parent_id: props.workspace.docId,
       widget: type.key,
       content: ''
     })
     pendingWidget.value = widget
-    formStructure.value =
-      typeof (widget as any).getFormStructure === 'function'
-        ? (widget as any).getFormStructure()
-        : { fields: [{ name: 'name', type: 'text' as const, label: 'Name' }] }
+    formStructure.value = widget.getFormStructure()
   },
   { immediate: true }
 )
@@ -134,7 +131,7 @@ async function onFormSubmit(values: Record<string, unknown>) {
         @close="isAnySelectorOpen = false"
       />
 
-      <span class="text-sm">as</span>
+      <span v-if="selectedType?.e" class="text-sm">as</span>
 
       <Button
         :label="selectedRelation"

@@ -130,11 +130,7 @@ function onGhostDiscard() {
   <!-- Children list -->
   <div v-else class="flex flex-col">
     <TransitionGroup name="list" tag="div" class="flex flex-col gap-0.5">
-      <WidgetListItem
-        v-for="child in children"
-        :key="child.docId"
-        :widget="child"
-      />
+      <WidgetListItem v-for="child in children" :key="child.docId" :widget="child" />
     </TransitionGroup>
 
     <!-- Ghost widget or add button -->
