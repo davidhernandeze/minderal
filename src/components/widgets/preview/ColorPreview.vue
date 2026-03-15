@@ -27,9 +27,9 @@ async function onChange(e: Event) {
 </script>
 
 <template>
-  <div class="relative w-full h-full cursor-pointer" title="Click to change color">
+  <div class="relative cursor-pointer" title="Click to change color">
     <div
-      class="w-full h-full rounded-full shadow-inner transition-transform hover:scale-110"
+      class="mt-1 w-5 h-5 rounded-full shadow-inner transition-transform hover:scale-110"
       :style="{ backgroundColor: localColor }"
     />
     <input

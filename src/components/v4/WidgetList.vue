@@ -20,8 +20,6 @@ const children = useReactiveObjectProp<Widget, Widget[]>(
   'children:changed'
 )
 
-const anyHasRelation = computed(() => children.value?.some((c) => !!c.doc.relation) ?? false)
-
 const widgetName = useReactiveObjectProp<Widget, string>(widget, (w) => w.getName(), 'name:changed')
 const isEditingTitle = ref(false)
 const titleInputRef = ref<HTMLInputElement | null>(null)
@@ -136,7 +134,6 @@ function onGhostDiscard() {
         v-for="child in children"
         :key="child.docId"
         :widget="child"
-        :show-relation="anyHasRelation"
       />
     </TransitionGroup>
 

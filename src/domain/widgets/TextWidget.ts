@@ -20,13 +20,12 @@ export default class extends Widget {
   getFormStructure(): FormStructure {
     return {
       fields: [
-        { name: 'name', type: 'text' }
+        { name: 'content', type: 'text' }
       ]
     }
   }
 
   updateDocFromForm(form: { name: string; content: string }): void {
-    this.doc.name = form.name
     this.doc.content = form.content
   }
 
