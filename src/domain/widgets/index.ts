@@ -36,7 +36,7 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
   {
     key: 'checkbox',
     label: 'Checkbox',
-    icon: 'bi bi-dot',
+    icon: 'bi bi-check-square',
     showNameSelector: false,
     class: () => import('./CheckboxWidget')
   },

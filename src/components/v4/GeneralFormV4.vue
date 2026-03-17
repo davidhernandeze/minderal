@@ -16,7 +16,6 @@ const emit = defineEmits<{ submit: [values: Record<string, unknown>] }>()
 const form = ref<Record<string, unknown>>({})
 
 onMounted(() => {
-  console.log(formStructure)
   for (const field of formStructure.fields) {
     if (field.type === 'color') {
       form.value[field.name] = field.default
