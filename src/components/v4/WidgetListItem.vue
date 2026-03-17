@@ -37,13 +37,17 @@ function handleNameKeydown(e: KeyboardEvent) {
     @click="emit('select')"
   >
     <!-- Icon -->
-    <i :class="icon" class="text-base text-surface-400 shrink-0 self-center" />
+    <i
+      v-if="!widget.hideIcon"
+      :class="icon"
+      class="text-base text-surface-400 shrink-0 self-center"
+    />
 
     <!-- Content: name descriptor + content preview -->
     <div class="flex-1 flex flex-col min-w-0">
       <!-- Name (small descriptor, editable) -->
       <InvisibleInput
-        v-if="widget.getName() && !widget.expandable"
+        v-if="widget.getName() && !widget.standalonePreview"
         v-model:value="widgetName"
         class="text-[0.55rem] tracking-widest uppercase font-semibold text-surface-400 min-w-0 truncate leading-none mb-0.5"
         placeholder="_"

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import Button from 'primevue/button'
 import type { Workspace } from '@/domain'
 import type { Widget } from '@/domain/Widget'
@@ -49,6 +49,7 @@ watch(
   () => selectedType.value,
   async (type) => {
     if (!type) return
+    formStructure.value = null
     const widget: Widget = await props.workspace.widgetFactory.createFromRequest({
       parent_id: props.workspace.docId,
       widget: type.key,

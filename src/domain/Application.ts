@@ -50,7 +50,7 @@ export class Application extends EventEmitter {
       const database: Database = LocalConnection.getInstance().getDatabaseList()[0]
       await database.createDoc({
         _id: 'root',
-        name: 'root',
+        name: 'Home',
         widget: 'folder',
         content: '',
         parent_id: '',
@@ -59,14 +59,6 @@ export class Application extends EventEmitter {
         deleted_at: null
       })
       await this.openNewTab(database)
-      const tab: Tab = this.tabs.get(this.activeTabId)
-      const widget = await tab.workspace.widgetFactory.createFromRequest({
-        parent_id: 'root',
-        name: 'my first text widget',
-        content: 'important text',
-        widget: 'text'
-      })
-      await widget.save()
       localStorage.setItem('first_setup', 'true')
     }
   }
