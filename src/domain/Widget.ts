@@ -25,6 +25,7 @@ export abstract class Widget extends EventEmitter {
   readonly previewComponent?: string
   readonly formComponent?: string = 'GeneralForm'
   readonly hideCopyButton: boolean = false
+  readonly hideIcon: boolean = false
 
   static readonly formComponent: string
   private readonly widgetFactory: WidgetFactory
