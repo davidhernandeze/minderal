@@ -34,23 +34,30 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     class: () => import('./TextWidget')
   },
   {
-    key: 'switch',
-    label: 'Switch',
-    icon: 'bi bi-toggle-on',
-    class: () => import('./SwitchWidget')
+    key: 'checkbox',
+    label: 'Checkbox',
+    icon: 'bi bi-dot',
+    showNameSelector: false,
+    class: () => import('./CheckboxWidget')
   },
-  {
-    key: 'counter',
-    label: 'Counter',
-    icon: 'bi bi-plus-slash-minus',
-    class: () => import('./CounterWidget')
-  },
-  {
-    key: 'countdown',
-    label: 'Countdown',
-    icon: 'bi bi-hourglass',
-    class: () => import('./CountdownWidget')
-  },
+  // {
+  //   key: 'switch',
+  //   label: 'Switch',
+  //   icon: 'bi bi-toggle-on',
+  //   class: () => import('./SwitchWidget')
+  // },
+  // {
+  //   key: 'counter',
+  //   label: 'Counter',
+  //   icon: 'bi bi-plus-slash-minus',
+  //   class: () => import('./CounterWidget')
+  // },
+  // {
+  //   key: 'countdown',
+  //   label: 'Countdown',
+  //   icon: 'bi bi-hourglass',
+  //   class: () => import('./CountdownWidget')
+  // },
   {
     key: 'color',
     label: 'Color',
