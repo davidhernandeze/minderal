@@ -73,7 +73,7 @@ async function moveDoc(parentDoc: string) {
 }
 </script>
 <template>
-  <Menu id="overlay_menu" ref="menu" :model="items" :popup="true" />
+  <Menu id="overlay_menu" ref="menu" :model="items" :popup="true" pt:root:class="text-xss" />
 
   <Dialog v-model:visible="renameModalOpen" header="Rename widget" modal>
     <form class="text-gray-200 text-xl" @submit.prevent="endNameEdition">
