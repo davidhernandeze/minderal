@@ -19,14 +19,13 @@ export default class extends Widget {
 
   getFormStructure(): FormStructure {
     return {
-      fields: [
-        { name: 'content', type: 'text' }
-      ]
+      fields: [{ name: 'content', type: 'text' }]
     }
   }
 
   updateDocFromForm(form: { name: string; content: string }): void {
     this.doc.content = form.content
+    this.doc.name = form.name
   }
 
   getContent(): string {

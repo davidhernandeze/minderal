@@ -152,7 +152,7 @@ function onGhostDiscard() {
       />
       <button
         v-else
-        class="text-green-500 flex items-center gap-2 w-full px-3 py-2 cursor-pointer text-sm text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
+        class="flex items-center gap-2 w-full px-3 py-2 cursor-pointer text-sm text-surface-400 hover:text-surface-600 dark:hover:text-surface-300 rounded-lg hover:bg-surface-100 dark:hover:bg-surface-800 transition-colors"
         @click="activateGhost"
       >
         <i class="bi bi-plus text-base" />

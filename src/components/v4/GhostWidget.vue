@@ -94,9 +94,8 @@ async function onFormSubmit(values: Record<string, unknown>) {
   const relation = selectedRelation.value !== DEFAULT_RELATION ? selectedRelation.value : null
 
   if (typeof (pendingWidget.value as any).updateDocFromForm === 'function') {
-    ;(pendingWidget.value as any).updateDocFromForm(values)
+    ;(pendingWidget.value as any).updateDocFromForm({ ...values, name: relation ?? values.name })
   }
-  if (relation !== null) pendingWidget.value.doc.relation = relation
 
   await pendingWidget.value.save()
   recordUsage(selectedType.value.key)
