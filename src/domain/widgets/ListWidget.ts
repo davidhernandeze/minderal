@@ -17,9 +17,16 @@ export default class extends Widget {
     super(db, doc, widgetFactory)
   }
 
+  getAvailableSettings(): Array<{ name: string; type: string; label: string }> {
+    return [{ name: 'children_type', type: 'widget', label: 'Items type' }]
+  }
+
   getFormStructure(): FormStructure {
     return {
-      fields: [{ name: 'name', type: 'text', label: 'Name', required: true }]
+      fields: [
+        { name: 'name', type: 'text', label: 'Name', required: true },
+        { name: 'children_type', type: 'widget', label: 'Items type' }
+      ]
     }
   }
 

@@ -43,7 +43,7 @@ function handleTitleKeydown(e: KeyboardEvent) {
 
 // Default widget type for new items — stored in settings, fallback to 'text'
 const settings = computed(() => widget.doc.settings as Record<string, any>)
-const defaultTypeKey = ref<string>((settings.value.defaultWidgetType as string) ?? 'text')
+const defaultTypeKey = ref<string>((settings.value.children_type as string) ?? 'text')
 
 const allTypes = computed(() => workspace.getWidgetTypes())
 const { sortByUsage } = useWidgetUsage()
@@ -61,8 +61,7 @@ function openDefaultTypeSelector(event: Event) {
 
 async function onDefaultTypeSelect(key: string) {
   defaultTypeKey.value = key
-  ;(widget.doc.settings as Record<string, any>).defaultWidgetType = key
-  await widget.db.updateDoc(widget.doc)
+  await widget.updateSetting('children_type', key)
 }
 
 // Ghost

@@ -1,6 +1,6 @@
 import { DocStructure } from '@/domain/interfaces/DocStructure'
 
-type AllowedContentTypes = string | number | boolean | null
+export type AllowedContentTypes = string | number | boolean | null | [] | object
 
 export interface WidgetDocStructure extends DocStructure {
   parent_id: string

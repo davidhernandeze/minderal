@@ -178,6 +178,14 @@ export abstract class Widget extends EventEmitter {
     await this.db.updateDoc(this.doc)
   }
 
+  async updateSetting(key: string, value: AllowedContentTypes) {
+    if (!this.doc.settings || typeof this.doc.settings !== 'object') {
+      this.doc.settings = {}
+    }
+    this.doc.settings[key] = value
+    await this.db.updateDoc(this.doc)
+  }
+
   getPastableContent(): string {
     return <string>this.doc.content
   }

@@ -190,6 +190,7 @@ async function onFormSubmit(values: Record<string, unknown>) {
       :form-structure="formStructure"
       :submit-label="isEditMode ? `Save` : `Add ${selectedType?.label}`"
       :initial-values="initialValues"
+      :widget-types="workspace.getWidgetTypes()"
       @submit="onFormSubmit"
     />
   </div>
