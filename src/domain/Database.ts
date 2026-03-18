@@ -5,6 +5,7 @@ import { EventEmitter } from 'events'
 import { Connection } from '@/domain/Connection'
 import { ConfigDocStructure, DatabaseConfig } from '@/domain/types/config'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
+import { WidgetTypeDocStructure } from '@/domain/interfaces/WidgetTypeDocStructure'
 
 interface ChangeListener {
   cancel: () => void
@@ -199,6 +200,17 @@ export class Database extends EventEmitter {
     this.emit('offline')
     this.online = true
     console.log('Offline by external source')
+  }
+
+  async createWidgetTypeDoc(name: string): Promise<WidgetTypeDocStructure> {
+    const doc: WidgetTypeDocStructure = {
+      _id: 'widget_types/' + name,
+      created_at: moment().toISOString(),
+      updated_at: moment().toISOString()
+    }
+    const { rev } = await this.client.put(doc)
+    doc._rev = rev
+    return doc
   }
 
   async migrate() {
