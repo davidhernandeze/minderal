@@ -19,11 +19,15 @@ export default class extends Widget {
 
   getFormStructure(): FormStructure {
     return {
-      fields: [{ name: 'name', type: 'text', required: true }]
+      fields: [
+        { name: 'name', type: 'text', required: true },
+        { name: 'icon', type: 'icon', required: true, default: 'folder', label: 'Icon' }
+      ]
     }
   }
 
   updateDocFromForm(form): void {
     this.doc.name = form.name
+    this.doc.settings.icon = form.icon
   }
 }

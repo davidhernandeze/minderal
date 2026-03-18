@@ -7,6 +7,7 @@ import Button from 'primevue/button'
 import type { FieldStructure } from '@/domain/interfaces/FormStructure'
 import type { WidgetTypeDefinition } from '@/domain/widgets'
 import WidgetTypeSelector from './WidgetTypeSelector.vue'
+import IconSelector from './IconSelector.vue'
 
 const props = defineProps<{
   field: FieldStructure
@@ -20,6 +21,7 @@ const emit = defineEmits<{
 }>()
 
 const typeSelectorRef = ref()
+const iconSelectorRef = ref()
 
 const selectedWidgetType = computed(
   () => props.widgetTypes?.find((t) => t.key === props.modelValue) ?? props.widgetTypes?.[0]
@@ -108,6 +110,22 @@ function handleWidgetSelect(key: string) {
       :types="widgetTypes ?? []"
       :selected-key="(modelValue as string) ?? ''"
       @select="handleWidgetSelect"
+    />
+  </div>
+
+  <!-- Icon selector -->
+  <div v-else-if="field.type === 'icon'" class="flex items-center gap-2">
+    <Button
+      :icon="modelValue ? `bi bi-${modelValue}` : 'bi bi-image'"
+      :label="(modelValue as string) || 'Select icon'"
+      variant="outlined"
+      size="small"
+      @click="(e) => iconSelectorRef?.toggle(e)"
+    />
+    <IconSelector
+      ref="iconSelectorRef"
+      :selected-key="(modelValue as string) ?? ''"
+      @select="emit('update:modelValue', $event)"
     />
   </div>
 </template>

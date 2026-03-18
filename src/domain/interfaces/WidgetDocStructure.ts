@@ -7,7 +7,7 @@ export interface WidgetDocStructure extends DocStructure {
   name: string
   content: AllowedContentTypes
   widget: string
-  settings: object
+  settings: { [key: string]: AllowedContentTypes }
   created_by?: string
   deleted_at: string | null
   files?: object[]

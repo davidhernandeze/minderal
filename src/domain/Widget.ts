@@ -190,4 +190,9 @@ export abstract class Widget extends EventEmitter {
   getWorkspace() {
     return this.widgetFactory.getWorkspace()
   }
+
+  getIcon() {
+    if (this.doc.settings?.icon) return `bi bi-${this.doc.settings?.icon}`
+    return this.widgetFactory.getWorkspace().widgetTypes.get(this.key)?.icon
+  }
 }

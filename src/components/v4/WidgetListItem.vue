@@ -14,7 +14,7 @@ const widgetName = useReactiveObjectProp<Widget, string>(widget, (w) => w.getNam
 const isEditingName = ref(false)
 const menuEvent = ref<Event | null>(null)
 
-const icon = computed(() => widget.getWorkspace().widgetTypes.get(widget.key)?.icon ?? '')
+const icon = computed(() => widget.getIcon())
 
 function startNameEdit() {
   isEditingName.value = true

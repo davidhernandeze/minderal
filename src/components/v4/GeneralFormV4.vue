@@ -21,8 +21,8 @@ const form = ref<Record<string, unknown>>({})
 
 onMounted(() => {
   for (const field of formStructure.fields) {
-    if (field.type === 'color') {
-      form.value[field.name] = field.default
+    if (field.type === 'color' || field.type === 'icon') {
+      form.value[field.name] = field.default ?? ''
     } else if (field.type === 'number') {
       form.value[field.name] = field.default ? Number(field.default) : 0
     } else if (field.type === 'checkbox') {
