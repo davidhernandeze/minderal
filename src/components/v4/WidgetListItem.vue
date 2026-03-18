@@ -8,7 +8,7 @@ import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import type { Widget } from '@/domain/Widget'
 
 const { widget, isSelected } = defineProps<{ widget: Widget; isSelected?: boolean }>()
-const emit = defineEmits<{ select: [] }>()
+const emit = defineEmits<{ select: []; edit: [] }>()
 
 const widgetName = useReactiveObjectProp<Widget, string>(widget, (w) => w.getName(), 'name:changed')
 const isEditingName = ref(false)
@@ -76,6 +76,6 @@ function handleNameKeydown(e: KeyboardEvent) {
         }
       "
     />
-    <WidgetMenu v-model:event="menuEvent" :widget="widget" />
+    <WidgetMenu v-model:event="menuEvent" :widget="widget" :on-edit="() => emit('edit')" />
   </div>
 </template>

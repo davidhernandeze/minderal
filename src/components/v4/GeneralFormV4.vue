@@ -8,11 +8,13 @@ import AbstractInput from './AbstractInput.vue'
 const {
   formStructure,
   submitLabel = 'Add',
-  widgetTypes
+  widgetTypes,
+  initialValues
 } = defineProps<{
   formStructure: FormStructure
   submitLabel?: string
   widgetTypes?: WidgetTypeDefinition[]
+  initialValues?: Record<string, unknown>
 }>()
 
 const emit = defineEmits<{ submit: [values: Record<string, unknown>] }>()
@@ -21,7 +23,9 @@ const form = ref<Record<string, unknown>>({})
 
 onMounted(() => {
   for (const field of formStructure.fields) {
-    if (field.type === 'color' || field.type === 'icon') {
+    if (initialValues && field.name in initialValues) {
+      form.value[field.name] = initialValues[field.name]
+    } else if (field.type === 'color' || field.type === 'icon') {
       form.value[field.name] = field.default ?? ''
     } else if (field.type === 'number') {
       form.value[field.name] = field.default ? Number(field.default) : 0

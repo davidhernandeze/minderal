@@ -26,6 +26,13 @@ export default class extends Widget {
     }
   }
 
+  getFormValues(): Record<string, unknown> {
+    return {
+      name: this.doc.name,
+      icon: this.doc.settings?.icon ?? 'folder'
+    }
+  }
+
   updateDocFromForm(form): void {
     this.doc.name = form.name
     this.doc.settings.icon = form.icon

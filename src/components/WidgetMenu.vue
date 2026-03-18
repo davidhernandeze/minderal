@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, useTemplateRef, watch } from 'vue'
+import { ref, computed, useTemplateRef, watch } from 'vue'
 import Menu from 'primevue/menu'
 import { Widget } from '@/domain'
 import Dialog from 'primevue/dialog'
@@ -7,8 +7,9 @@ import TextInput from '@/components/TextInput.vue'
 import Button from 'primevue/button'
 import DocSelector from '@/components/DocSelector.vue'
 
-const { widget } = defineProps<{
+const { widget, onEdit } = defineProps<{
   widget: Widget
+  onEdit?: () => void
 }>()
 
 const menu = useTemplateRef('menu')
@@ -20,22 +21,13 @@ const moveToModalOpen = ref(false)
 
 watch(event, (e) => menu.value?.toggle(e))
 
-const items = ref([
+const items = computed(() => [
   {
     label: 'Options',
     items: [
-      // {
-      //   label: 'Edit',
-      //   icon: 'pi pi-pencil',
-      //   command: () => {
-      //   }
-      // },
-      // {
-      //   label: 'Copy to clipboard',
-      //   icon: 'pi pi-copy',
-      //   command: () => {
-      //   }
-      // },
+      ...(onEdit
+        ? [{ label: 'Edit', icon: 'pi pi-pencil', command: () => onEdit() }]
+        : []),
       {
         label: 'Rename',
         icon: 'pi pi-pencil',

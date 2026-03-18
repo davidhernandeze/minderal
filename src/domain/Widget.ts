@@ -4,7 +4,7 @@ import { EventEmitter } from 'events'
 import { WidgetFactory } from '@/domain/WidgetFactory'
 import { FormStructure } from '@/domain/interfaces/FormStructure'
 
-export type WidgetRoute = { _id: string; name: string; widget: string }[]
+export type WidgetRoute = { _id: string; name: string; widget: string; icon: string }[]
 
 export abstract class Widget extends EventEmitter {
   abstract key: string
@@ -31,6 +31,10 @@ export abstract class Widget extends EventEmitter {
   private readonly widgetFactory: WidgetFactory
 
   abstract getFormStructure(): FormStructure
+
+  getFormValues(): Record<string, unknown> {
+    return { name: this.doc.name }
+  }
 
   protected constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
     super()
@@ -104,7 +108,10 @@ export abstract class Widget extends EventEmitter {
       route.push({
         _id: parentId,
         name: parentDoc.name,
-        widget: parentDoc.widget
+        widget: parentDoc.widget,
+        icon: parentDoc.settings?.icon
+          ? `bi bi-${parentDoc.settings?.icon}`
+          : this.getWorkspace().widgetTypes.get(parentDoc.widget)?.icon
       })
       parentId = parentDoc.parent_id
     }

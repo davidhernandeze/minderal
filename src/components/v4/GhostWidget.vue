@@ -14,6 +14,7 @@ import GeneralFormV4 from './GeneralFormV4.vue'
 const props = defineProps<{
   workspace: Workspace
   defaultTypeKey?: string
+  editWidget?: Widget
 }>()
 
 const emit = defineEmits<{
@@ -24,10 +25,15 @@ const emit = defineEmits<{
 const { sortByUsage, recordUsage } = useWidgetUsage()
 const { recordRelation } = useWidgetRelations()
 
+const isEditMode = computed(() => !!props.editWidget)
+
 const allTypes = computed(() => props.workspace.getWidgetTypes())
 const sortedTypes = computed(() => sortByUsage(allTypes.value))
 
 const resolvedDefault = computed(() => {
+  if (props.editWidget) {
+    return allTypes.value.find((t) => t.key === props.editWidget!.key) ?? sortedTypes.value[0]
+  }
   const key = props.defaultTypeKey ?? 'text'
   return allTypes.value.find((t) => t.key === key) ?? sortedTypes.value[0]
 })
@@ -43,20 +49,25 @@ const isAnySelectorOpen = ref(false)
 
 const pendingWidget = ref<Widget | null>(null)
 const formStructure = ref<FormStructure>()
+const initialValues = computed(() => props.editWidget?.getFormValues())
 
-// Recreate the pending widget and its form when type changes
+// In edit mode use the existing widget's form; in create mode recreate on type change
 watch(
   () => selectedType.value,
   async (type) => {
     if (!type) return
     formStructure.value = null
-    const widget: Widget = await props.workspace.widgetFactory.createFromRequest({
-      parent_id: props.workspace.docId,
-      widget: type.key,
-      content: ''
-    })
-    pendingWidget.value = widget
-    formStructure.value = widget.getFormStructure()
+    if (isEditMode.value) {
+      formStructure.value = props.editWidget!.getFormStructure()
+    } else {
+      const widget: Widget = await props.workspace.widgetFactory.createFromRequest({
+        parent_id: props.workspace.docId,
+        widget: type.key,
+        content: ''
+      })
+      pendingWidget.value = widget
+      formStructure.value = widget.getFormStructure()
+    }
   },
   { immediate: true }
 )
@@ -90,6 +101,16 @@ function handleRelationSelect(relation: string | null) {
 }
 
 async function onFormSubmit(values: Record<string, unknown>) {
+  if (isEditMode.value) {
+    const widget = props.editWidget!
+    if (typeof (widget as any).updateDocFromForm === 'function') {
+      ;(widget as any).updateDocFromForm(values)
+    }
+    await widget.db.updateDoc(widget.doc)
+    emit('saved')
+    return
+  }
+
   if (!pendingWidget.value) return
 
   const relation = selectedRelation.value !== DEFAULT_RELATION ? selectedRelation.value : null
@@ -110,8 +131,14 @@ async function onFormSubmit(values: Record<string, unknown>) {
     ref="containerRef"
     class="v4-ui-chrome flex flex-col gap-3 px-3 py-3 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30"
   >
-    <!-- Header: "Add a [Type] as [Relation]" -->
-    <div class="flex items-center gap-1 text-surface-400 dark:text-surface-500">
+    <!-- Header: edit mode -->
+    <div v-if="isEditMode" class="flex items-center gap-1 text-surface-400 dark:text-surface-500">
+      <i :class="selectedType?.icon" class="text-sm" />
+      <span class="text-sm font-medium text-surface-500 dark:text-surface-400">Edit {{ selectedType?.label }}</span>
+    </div>
+
+    <!-- Header: create mode "Add a [Type] as [Relation]" -->
+    <div v-else class="flex items-center gap-1 text-surface-400 dark:text-surface-500">
       <span class="text-sm">Add a</span>
 
       <Button
@@ -161,7 +188,8 @@ async function onFormSubmit(values: Record<string, unknown>) {
       v-if="formStructure"
       :key="selectedType?.key"
       :form-structure="formStructure"
-      :submit-label="`Add ${selectedType?.label}`"
+      :submit-label="isEditMode ? `Save` : `Add ${selectedType?.label}`"
+      :initial-values="initialValues"
       @submit="onFormSubmit"
     />
   </div>

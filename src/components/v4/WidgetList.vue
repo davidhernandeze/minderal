@@ -15,6 +15,7 @@ const { widget, workspace } = defineProps<{
 }>()
 
 const selectedWidgetId = ref<string | null>(null)
+const editingWidgetId = ref<string | null>(null)
 
 const children = useReactiveObjectProp<Widget, Widget[]>(
   widget,
@@ -132,13 +133,22 @@ function onGhostDiscard() {
   <!-- Children list -->
   <div v-else class="flex flex-col">
     <TransitionGroup name="list" tag="div" class="flex flex-col gap-0.5">
-      <WidgetListItem
-        v-for="child in children"
-        :key="child.docId"
-        :widget="child"
-        :is-selected="selectedWidgetId === child.docId"
-        @select="selectedWidgetId = child.docId"
-      />
+      <template v-for="child in children" :key="child.docId">
+        <GhostWidget
+          v-if="editingWidgetId === child.docId"
+          :workspace="workspace"
+          :edit-widget="child"
+          @saved="editingWidgetId = null"
+          @discard="editingWidgetId = null"
+        />
+        <WidgetListItem
+          v-else
+          :widget="child"
+          :is-selected="selectedWidgetId === child.docId"
+          @select="selectedWidgetId = child.docId"
+          @edit="editingWidgetId = child.docId"
+        />
+      </template>
     </TransitionGroup>
 
     <!-- Ghost widget or add button -->

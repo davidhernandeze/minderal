@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { inject, nextTick, ref, watch } from 'vue'
-import { getWidgetProps } from '@/enums/widgets.js'
 import { Application, WidgetRoute, Workspace } from '@/domain/index.js'
 
 const app = inject<Application>('app')
@@ -42,7 +41,7 @@ watch(
             class="ml-1 flex hover:text-(--p-primary-500)"
             @click.middle="app.openNewTab(workspace.db, doc._id)"
           >
-            <i :class="getWidgetProps(doc.widget)?.icon" />
+            <i :class="doc.icon" />
             <a href="#" class="font-medium truncate max-w-xs ml-2">{{ doc.name }}</a>
           </div>
         </div>
