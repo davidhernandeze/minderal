@@ -1,6 +1,6 @@
-interface FieldStructure {
+export interface FieldStructure {
   name: string
-  type: 'text' | 'textarea' | 'number' | 'checkbox' | 'color'
+  type: 'text' | 'textarea' | 'number' | 'checkbox' | 'color' | 'widget'
   label?: string
   required?: boolean
   default?: string
