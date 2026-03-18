@@ -68,7 +68,7 @@ const menuEvent = ref(null)
 <template>
   <Panel
     :pt:header:class="['!p-2', widget.doc.widget === 'folder' ? '!pb-0' : '']"
-    pt:root:class=" h-full flex flex-col"
+    pt:root:class="h-full flex flex-col"
     pt:content-container:class="h-full min-h-0 flex-1 flex flex-col"
     pt:content:class="h-full flex-1 min-h-0 flex flex-col !pb-0"
     pt:footer:class="h-[2.5rem] !py-0"

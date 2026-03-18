@@ -15,6 +15,7 @@ import Tooltip from 'primevue/tooltip'
 import ConfirmationService from 'primevue/confirmationservice'
 import { defineCustomElements } from '@ionic/pwa-elements/loader'
 import { registerSW } from 'virtual:pwa-register'
+import Panel from 'primevue/panel'
 
 defineCustomElements(window)
 
@@ -36,6 +37,7 @@ app.use(PrimeVue, {
 app.directive('focustrap', FocusTrap)
 app.directive('tooltip', Tooltip)
 app.use(ConfirmationService)
+app.component('Panel', Panel)
 
 // eslint-disable-next-line no-undef
 if (process.env.NODE_ENV !== 'development') {

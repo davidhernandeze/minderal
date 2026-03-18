@@ -32,8 +32,10 @@ function handleNameKeydown(e: KeyboardEvent) {
 </script>
 
 <template>
-  <div
-    class="group flex items-center gap-3 py-1.5 rounded-lg hover:bg-surface-100 dark:hover:shadow-sm transition-colors cursor-default"
+  <Panel
+    pt:content:class="group flex items-center gap-3 !p-0 rounded-lg dark:hover:shadow-sm transition-colors cursor-default border-none"
+    pt:header:class="!hidden"
+    pt:root:class="!border-0"
     @click="emit('select')"
   >
     <!-- Icon -->
@@ -77,5 +79,5 @@ function handleNameKeydown(e: KeyboardEvent) {
       "
     />
     <WidgetMenu v-model:event="menuEvent" :widget="widget" :on-edit="() => emit('edit')" />
-  </div>
+  </Panel>
 </template>
