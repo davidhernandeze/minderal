@@ -109,12 +109,7 @@ function handleTagRemove(tagId: string) {
 }
 
 onMounted(async () => {
-  document.addEventListener('mousedown', onDocMousedown)
   availableTags.value = await props.workspace.db.getTagDocs()
-})
-
-onUnmounted(() => {
-  document.removeEventListener('mousedown', onDocMousedown)
 })
 
 function isInsideOverlay(el: Element): boolean {
@@ -125,6 +120,7 @@ function isInsideOverlay(el: Element): boolean {
   )
 }
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function onDocMousedown(e: MouseEvent) {
   if (createModalVisible.value) return
   const target = e.target as Element
@@ -223,7 +219,7 @@ async function onFormSubmit(values: Record<string, unknown>) {
         class="cursor-pointer text-xs text-(--p-surface-500) hover:text-primary transition-colors flex items-center gap-0.5"
         @click="(e) => tagSelectorRef?.toggle(e)"
       >
-        <i class="bi bi-hash text-xs" />
+        <i class="bi bi-hash text-xs hover:text-(--p-surface-100) transition-colors" />
       </button>
       <TagSelector
         ref="tagSelectorRef"
