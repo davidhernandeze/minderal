@@ -7,17 +7,7 @@ import { Toast, ConfirmDialog } from 'primevue'
 const path = location.pathname
 
 const MainComponent = defineAsyncComponent(() => {
-  if (path === '/mindbar') {
-    return import('@/layouts/Mindbar.vue')
-  }
-  if (path === '/v3') {
-    return import('@/layouts/AppTS.vue')
-  }
-  if (path === '/v4') {
-    return import('@/layouts/AppV4.vue')
-  }
-
-  return import('@/layouts/Default.vue')
+  return import('@/layouts/AppV4.vue')
 })
 
 const app: Application = new Application()
