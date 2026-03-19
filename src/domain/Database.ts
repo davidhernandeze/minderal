@@ -9,6 +9,7 @@ import {
   WidgetTypeDocStructure,
   WidgetTypeTemplateEntry
 } from '@/domain/interfaces/WidgetTypeDocStructure'
+import { TagDocStructure } from '@/domain/interfaces/TagDocStructure'
 
 interface ChangeListener {
   cancel: () => void
@@ -234,6 +235,39 @@ export class Database extends EventEmitter {
       include_docs: true
     })
     return result.rows.map((r) => r.doc as WidgetTypeDocStructure)
+  }
+
+  async createOrUpdateTagDoc(label: string): Promise<TagDocStructure> {
+    const normalized = label.trim().toLowerCase()
+    const id = 'tag:' + normalized.replace(/\s+/g, '_')
+    try {
+      const existing = (await this.client.get(id)) as TagDocStructure
+      existing.usage = (existing.usage ?? 0) + 1
+      existing.updated_at = moment().toISOString()
+      await this.client.put(existing)
+      return existing
+    } catch (e) {
+      if (e.status !== 404) throw e
+      const doc: TagDocStructure = {
+        _id: id,
+        label: normalized,
+        usage: 1,
+        created_at: moment().toISOString(),
+        updated_at: moment().toISOString()
+      }
+      const { rev } = await this.client.put(doc)
+      doc._rev = rev
+      return doc
+    }
+  }
+
+  async getTagDocs(): Promise<TagDocStructure[]> {
+    const result = await this.client.allDocs({
+      startkey: 'tag:',
+      endkey: 'tag:\uffff',
+      include_docs: true
+    })
+    return result.rows.map((r) => r.doc as TagDocStructure)
   }
 
   async migrate() {

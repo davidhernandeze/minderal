@@ -49,12 +49,14 @@ export class Application extends EventEmitter {
       await this.addLocalConnection()
       const database: Database = LocalConnection.getInstance().getDatabaseList()[0]
       await database.createWidgetDoc({
-        _id: 'root',
+        _id: 'widget:root',
         name: 'Home',
         widget: 'folder',
         content: '',
         parent_id: '',
-        settings: {},
+        settings: {
+          icon: 'bi bi-house'
+        },
         created_by: 'root',
         deleted_at: null
       })
@@ -99,7 +101,7 @@ export class Application extends EventEmitter {
     this.emit('tabs:changed')
   }
 
-  async openNewTab(database: Database, docId = 'root'): Promise<void> {
+  async openNewTab(database: Database, docId = 'widget:root'): Promise<void> {
     const newTab: Tab = await Tab.createFromConfig(this, database, { doc_id: docId })
     this.tabs.set(newTab.id, newTab)
     await this.openTab(newTab)

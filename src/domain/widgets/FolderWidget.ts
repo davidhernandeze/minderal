@@ -22,7 +22,7 @@ export default class extends Widget {
     return {
       fields: [
         { name: 'name', type: 'text', required: true },
-        { name: 'icon', type: 'icon', required: true, default: 'folder', label: 'Icon' }
+        { name: 'icon', type: 'icon', required: false, default: null, label: 'Icon' }
       ]
     }
   }
@@ -35,7 +35,8 @@ export default class extends Widget {
   }
 
   updateDocFromForm(form): void {
+    super.updateDocFromForm(form)
     this.doc.name = form.name
-    this.doc.settings.icon = form.icon
+    if (form.icon) this.doc.settings.icon = form.icon
   }
 }

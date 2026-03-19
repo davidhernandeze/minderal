@@ -26,6 +26,7 @@ export default class extends Widget {
   }
 
   updateDocFromForm(form: { name: string; content: number }): void {
+    super.updateDocFromForm(form)
     this.doc.name = form.name
     this.doc.content = typeof form.content === 'number' ? form.content : 0
   }

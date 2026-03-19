@@ -191,6 +191,22 @@ export abstract class Widget extends EventEmitter {
     await this.db.updateDoc(this.doc)
   }
 
+  getTags(): string[] {
+    return this.doc.tags ?? []
+  }
+
+  async updateTags(tags: string[]): Promise<void> {
+    this.doc.tags = tags
+    await this.db.updateDoc(this.doc)
+    this.emit('content:changed')
+  }
+
+  updateDocFromForm(form: Record<string, unknown>): void {
+    if (Array.isArray(form.tags)) {
+      this.doc.tags = form.tags as string[]
+    }
+  }
+
   getPastableContent(): string {
     return <string>this.doc.content
   }

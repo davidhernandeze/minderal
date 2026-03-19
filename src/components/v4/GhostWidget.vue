@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
 import Button from 'primevue/button'
+import Tag from 'primevue/tag'
 import type { Workspace } from '@/domain'
 import type { Widget } from '@/domain/Widget'
 import type { WidgetTypeDefinition } from '@/domain/widgets'
 import type { FormStructure } from '@/domain/interfaces/FormStructure'
 import type { AllowedContentTypes } from '@/domain/interfaces/WidgetDocStructure'
+import type { TagDocStructure } from '@/domain/interfaces/TagDocStructure'
 import { useWidgetUsage } from '@/composables/useWidgetUsage'
 import { useWidgetRelations } from '@/composables/useWidgetRelations'
 import WidgetTypeSelector from './WidgetTypeSelector.vue'
 import RelationSelector from './RelationSelector.vue'
+import TagSelector from './TagSelector.vue'
 import GeneralFormV4 from './GeneralFormV4.vue'
 import CreateWidgetTypeModal from './CreateWidgetTypeModal.vue'
 
@@ -47,7 +50,11 @@ const selectedRelation = ref<string>(DEFAULT_RELATION)
 const containerRef = ref<HTMLElement | null>(null)
 const typeSelectorRef = ref()
 const relationSelectorRef = ref()
+const tagSelectorRef = ref()
 const isAnySelectorOpen = ref(false)
+
+const selectedTags = ref<string[]>(props.editWidget?.getTags() ?? [])
+const availableTags = ref<TagDocStructure[]>([])
 
 const createModalVisible = ref(false)
 const createModalLabel = ref('')
@@ -87,8 +94,23 @@ watch(
   { immediate: true }
 )
 
-onMounted(() => {
+function tagIdToLabel(id: string): string {
+  return id.replace(/_/g, ' ')
+}
+
+function handleTagAdd(tagId: string) {
+  if (!selectedTags.value.includes(tagId)) {
+    selectedTags.value = [...selectedTags.value, tagId]
+  }
+}
+
+function handleTagRemove(tagId: string) {
+  selectedTags.value = selectedTags.value.filter((t) => t !== tagId)
+}
+
+onMounted(async () => {
   document.addEventListener('mousedown', onDocMousedown)
+  availableTags.value = await props.workspace.db.getTagDocs()
 })
 
 onUnmounted(() => {
@@ -121,12 +143,17 @@ function handleRelationSelect(relation: string | null) {
 }
 
 async function onFormSubmit(values: Record<string, unknown>) {
+  const valuesWithTags = { ...values, tags: selectedTags.value }
+
   if (isEditMode.value) {
     const widget = props.editWidget!
     if (typeof (widget as any).updateDocFromForm === 'function') {
-      ;(widget as any).updateDocFromForm(values)
+      ;(widget as any).updateDocFromForm(valuesWithTags)
     }
     await widget.db.updateDoc(widget.doc)
+    for (const tagId of selectedTags.value) {
+      await props.workspace.db.createOrUpdateTagDoc(tagIdToLabel(tagId))
+    }
     emit('saved')
     return
   }
@@ -136,7 +163,10 @@ async function onFormSubmit(values: Record<string, unknown>) {
   const relation = selectedRelation.value !== DEFAULT_RELATION ? selectedRelation.value : null
 
   if (typeof (pendingWidget.value as any).updateDocFromForm === 'function') {
-    ;(pendingWidget.value as any).updateDocFromForm({ ...values, name: relation ?? values.name })
+    ;(pendingWidget.value as any).updateDocFromForm({
+      ...valuesWithTags,
+      name: relation ?? values.name
+    })
   }
 
   // Apply pre-configured settings from custom type
@@ -158,6 +188,10 @@ async function onFormSubmit(values: Record<string, unknown>) {
   }
 
   await pendingWidget.value.save()
+
+  for (const tagId of selectedTags.value) {
+    await props.workspace.db.createOrUpdateTagDoc(tagIdToLabel(tagId))
+  }
 
   // Auto-create template children for custom types
   if (selectedType.value.isCustom) {
@@ -225,6 +259,34 @@ async function onFormSubmit(values: Record<string, unknown>) {
         ref="relationSelectorRef"
         :selected-relation="selectedRelation"
         @select="handleRelationSelect"
+        @open="isAnySelectorOpen = true"
+        @close="isAnySelectorOpen = false"
+      />
+    </div>
+
+    <!-- Tags row -->
+    <div class="flex items-center gap-1.5 flex-wrap">
+      <Tag
+        v-for="tagId in selectedTags"
+        :key="tagId"
+        :value="tagIdToLabel(tagId)"
+        severity="secondary"
+        class="cursor-pointer !text-xs"
+        @mousedown.prevent="handleTagRemove(tagId)"
+      />
+      <button
+        class="text-xs text-surface-400 hover:text-primary transition-colors flex items-center gap-0.5"
+        @click="(e) => tagSelectorRef?.toggle(e)"
+      >
+        <i class="bi bi-hash text-xs" />
+        <span>tag</span>
+      </button>
+      <TagSelector
+        ref="tagSelectorRef"
+        :selected-tags="selectedTags"
+        :available-tags="availableTags"
+        @add="handleTagAdd"
+        @remove="handleTagRemove"
         @open="isAnySelectorOpen = true"
         @close="isAnySelectorOpen = false"
       />

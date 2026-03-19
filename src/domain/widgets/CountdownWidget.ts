@@ -37,6 +37,7 @@ export default class extends Widget {
   }
 
   updateDocFromForm(form: { name: string; year?: number; month?: number; day?: number; time?: string }): void {
+    super.updateDocFromForm(form)
     this.doc.name = form.name
     const prev = (this.doc.content as unknown as Partial<CountdownContent>) || {}
     const content: CountdownContent = {

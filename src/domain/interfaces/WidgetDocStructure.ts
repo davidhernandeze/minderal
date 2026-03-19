@@ -11,4 +11,5 @@ export interface WidgetDocStructure extends DocStructure {
   created_by?: string
   deleted_at: string | null
   files?: object[]
+  tags?: string[]
 }
