@@ -5,7 +5,10 @@ import { EventEmitter } from 'events'
 import { Connection } from '@/domain/Connection'
 import { ConfigDocStructure, DatabaseConfig } from '@/domain/types/config'
 import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
-import { WidgetTypeDocStructure } from '@/domain/interfaces/WidgetTypeDocStructure'
+import {
+  WidgetTypeDocStructure,
+  WidgetTypeTemplateEntry
+} from '@/domain/interfaces/WidgetTypeDocStructure'
 
 interface ChangeListener {
   cancel: () => void
@@ -78,7 +81,7 @@ export class Database extends EventEmitter {
     return await this.client.get(id, { attachments: includeAttachments })
   }
 
-  async createDoc(doc: WidgetDocStructure): Promise<WidgetDocStructure> {
+  async createWidgetDoc(doc: WidgetDocStructure): Promise<WidgetDocStructure> {
     doc.created_at = moment().toISOString()
     doc.updated_at = moment().toISOString()
     const { rev } = await this.client.put(doc)
@@ -202,15 +205,35 @@ export class Database extends EventEmitter {
     console.log('Offline by external source')
   }
 
-  async createWidgetTypeDoc(name: string): Promise<WidgetTypeDocStructure> {
+  async createWidgetTypeDoc(
+    label: string,
+    icon: string,
+    primitive: string,
+    settings?: object,
+    template?: WidgetTypeTemplateEntry[]
+  ): Promise<WidgetTypeDocStructure> {
     const doc: WidgetTypeDocStructure = {
-      _id: 'widget_types/' + name,
+      _id: 'widget_type:' + generateId(),
+      label,
+      icon,
+      primitive,
+      settings,
+      template,
       created_at: moment().toISOString(),
       updated_at: moment().toISOString()
     }
     const { rev } = await this.client.put(doc)
     doc._rev = rev
     return doc
+  }
+
+  async getWidgetTypeDocs(): Promise<WidgetTypeDocStructure[]> {
+    const result = await this.client.allDocs({
+      startkey: 'widget_type:',
+      endkey: 'widget_type:\uffff',
+      include_docs: true
+    })
+    return result.rows.map((r) => r.doc as WidgetTypeDocStructure)
   }
 
   async migrate() {

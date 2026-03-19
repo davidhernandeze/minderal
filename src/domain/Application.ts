@@ -48,7 +48,7 @@ export class Application extends EventEmitter {
     if (firstTimeUsage) {
       await this.addLocalConnection()
       const database: Database = LocalConnection.getInstance().getDatabaseList()[0]
-      await database.createDoc({
+      await database.createWidgetDoc({
         _id: 'root',
         name: 'Home',
         widget: 'folder',

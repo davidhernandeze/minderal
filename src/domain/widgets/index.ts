@@ -6,6 +6,7 @@ export interface WidgetTypeDefinition {
   label: string
   icon: string
   showNameSelector?: boolean
+  isCustom: boolean
   class: () => Promise<{
     default: new (db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) => Widget
   }>
@@ -65,4 +66,4 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
     showNameSelector: true,
     class: () => import('./ColorWidget')
   }
-]
+].map((widget) => ({ ...widget, isCustom: false }))

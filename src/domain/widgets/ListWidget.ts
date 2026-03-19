@@ -9,6 +9,7 @@ export default class extends Widget {
   label: string = 'List'
   saved: boolean = false
   expandable: boolean = true
+  readonly parentable: boolean = true
   expandedComponent: string = 'FolderExpanded'
   previewComponent: string = 'ListPreview'
   standalonePreview: boolean = true
@@ -32,5 +33,6 @@ export default class extends Widget {
 
   updateDocFromForm(form): void {
     this.doc.name = form.name
+    this.doc.settings.children_type = form.children_type
   }
 }

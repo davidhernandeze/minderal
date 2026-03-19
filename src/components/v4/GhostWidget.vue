@@ -5,11 +5,13 @@ import type { Workspace } from '@/domain'
 import type { Widget } from '@/domain/Widget'
 import type { WidgetTypeDefinition } from '@/domain/widgets'
 import type { FormStructure } from '@/domain/interfaces/FormStructure'
+import type { AllowedContentTypes } from '@/domain/interfaces/WidgetDocStructure'
 import { useWidgetUsage } from '@/composables/useWidgetUsage'
 import { useWidgetRelations } from '@/composables/useWidgetRelations'
 import WidgetTypeSelector from './WidgetTypeSelector.vue'
 import RelationSelector from './RelationSelector.vue'
 import GeneralFormV4 from './GeneralFormV4.vue'
+import CreateWidgetTypeModal from './CreateWidgetTypeModal.vue'
 
 const props = defineProps<{
   workspace: Workspace
@@ -47,6 +49,19 @@ const typeSelectorRef = ref()
 const relationSelectorRef = ref()
 const isAnySelectorOpen = ref(false)
 
+const createModalVisible = ref(false)
+const createModalLabel = ref('')
+
+function handleTypeCreate(label: string) {
+  createModalLabel.value = label
+  createModalVisible.value = true
+}
+
+function handleTypeCreated(typeId: string) {
+  const found = allTypes.value.find((t) => t.key === typeId)
+  if (found) selectedType.value = found
+}
+
 const pendingWidget = ref<Widget | null>(null)
 const formStructure = ref<FormStructure>()
 const initialValues = computed(() => props.editWidget?.getFormValues())
@@ -80,13 +95,18 @@ onUnmounted(() => {
   document.removeEventListener('mousedown', onDocMousedown)
 })
 
-function isInsideAnyPopover(el: Element): boolean {
-  return !!el.closest('[data-pc-name="popover"]')
+function isInsideOverlay(el: Element): boolean {
+  return (
+    !!el.closest('[data-pc-name="popover"]') ||
+    !!el.closest('[data-pc-name="dialog"]') ||
+    !!el.closest('.p-dialog-mask')
+  )
 }
 
 function onDocMousedown(e: MouseEvent) {
+  if (createModalVisible.value) return
   const target = e.target as Element
-  if (!containerRef.value?.contains(target) && !isInsideAnyPopover(target)) {
+  if (!containerRef.value?.contains(target) && !isInsideOverlay(target)) {
     emit('discard')
   }
 }
@@ -119,7 +139,31 @@ async function onFormSubmit(values: Record<string, unknown>) {
     ;(pendingWidget.value as any).updateDocFromForm({ ...values, name: relation ?? values.name })
   }
 
+  // Apply pre-configured settings from custom type
+  if (selectedType.value.isCustom) {
+    const typeDef = props.workspace.widgetTypes.get(selectedType.value.key)
+    if (typeDef) {
+      try {
+        const typeDoc = await props.workspace.db.getDoc(selectedType.value.key)
+        if (typeDoc.settings) {
+          pendingWidget.value.doc.settings = {
+            ...pendingWidget.value.doc.settings,
+            ...(typeDoc.settings as Record<string, AllowedContentTypes>)
+          }
+        }
+      } catch {
+        // ignore
+      }
+    }
+  }
+
   await pendingWidget.value.save()
+
+  // Auto-create template children for custom types
+  if (selectedType.value.isCustom) {
+    await props.workspace.widgetFactory.createTemplateChildren(pendingWidget.value)
+  }
+
   recordUsage(selectedType.value.key)
   if (relation) recordRelation(relation)
   emit('saved')
@@ -134,7 +178,9 @@ async function onFormSubmit(values: Record<string, unknown>) {
     <!-- Header: edit mode -->
     <div v-if="isEditMode" class="flex items-center gap-1 text-surface-400 dark:text-surface-500">
       <i :class="selectedType?.icon" class="text-sm" />
-      <span class="text-sm font-medium text-surface-500 dark:text-surface-400">Edit {{ selectedType?.label }}</span>
+      <span class="text-sm font-medium text-surface-500 dark:text-surface-400"
+        >Edit {{ selectedType?.label }}</span
+      >
     </div>
 
     <!-- Header: create mode "Add a [Type] as [Relation]" -->
@@ -154,6 +200,7 @@ async function onFormSubmit(values: Record<string, unknown>) {
         :types="sortedTypes"
         :selected-key="selectedType?.key ?? ''"
         @select="handleTypeSelect"
+        @create="handleTypeCreate"
         @open="isAnySelectorOpen = true"
         @close="isAnySelectorOpen = false"
       />
@@ -192,6 +239,13 @@ async function onFormSubmit(values: Record<string, unknown>) {
       :initial-values="initialValues"
       :widget-types="workspace.getWidgetTypes()"
       @submit="onFormSubmit"
+    />
+
+    <CreateWidgetTypeModal
+      v-model:visible="createModalVisible"
+      :workspace="workspace"
+      :initial-label="createModalLabel"
+      @created="handleTypeCreated"
     />
   </div>
 </template>

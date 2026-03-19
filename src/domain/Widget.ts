@@ -1,8 +1,9 @@
 import { Database } from '@/domain/Database'
-import { WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
+import { AllowedContentTypes, WidgetDocStructure } from '@/domain/interfaces/WidgetDocStructure'
 import { EventEmitter } from 'events'
 import { WidgetFactory } from '@/domain/WidgetFactory'
 import { FormStructure } from '@/domain/interfaces/FormStructure'
+import { WidgetTypeDefinition } from '@/domain/widgets'
 
 export type WidgetRoute = { _id: string; name: string; widget: string; icon: string }[]
 
@@ -15,11 +16,13 @@ export abstract class Widget extends EventEmitter {
   children: Map<string, Widget> = new Map()
   doc: WidgetDocStructure
   docId: string = ''
+  widgetTypeDefinition: WidgetTypeDefinition
 
   readonly db: Database
 
   readonly icon: string
   readonly expandable: boolean = false
+  readonly parentable: boolean = false
   readonly standalonePreview: boolean = false
   readonly expandedComponent?: string
   readonly previewComponent?: string
@@ -42,12 +45,14 @@ export abstract class Widget extends EventEmitter {
     this.docId = doc._id
     this.doc = doc
     this.widgetFactory = widgetFactory
+    this.widgetTypeDefinition = this.getWorkspace().widgetTypes.get(doc.widget)
+
     if (doc.created_at) this.saved = true
   }
 
-  // abstract getFormStructure(): FormStructure
-  //
-  // abstract updateDocFromForm(form: object): void
+  getAvailableSettings(): Array<{ name: string; type: string; label: string }> {
+    return []
+  }
 
   listenForChanges() {
     this.db.on(`doc:changed:${this.docId}`, async (doc) => {
@@ -90,7 +95,7 @@ export abstract class Widget extends EventEmitter {
   }
 
   async save() {
-    await this.db.createDoc(this.doc)
+    await this.db.createWidgetDoc(this.doc)
     this.saved = true
   }
 
@@ -208,6 +213,7 @@ export abstract class Widget extends EventEmitter {
 
   getIcon() {
     if (this.doc.settings?.icon) return `bi bi-${this.doc.settings?.icon}`
+    if (this.widgetTypeDefinition?.icon) return this.widgetTypeDefinition.icon
     return this.widgetFactory.getWorkspace().widgetTypes.get(this.key)?.icon
   }
 }

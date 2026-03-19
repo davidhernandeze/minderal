@@ -4,6 +4,7 @@ import Button from 'primevue/button'
 import WidgetListItem from './WidgetListItem.vue'
 import GhostWidget from './GhostWidget.vue'
 import WidgetTypeSelector from './WidgetTypeSelector.vue'
+import CreateWidgetTypeModal from './CreateWidgetTypeModal.vue'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import { useWidgetUsage } from '@/composables/useWidgetUsage'
 import type { Widget } from '@/domain/Widget'
@@ -64,6 +65,20 @@ async function onDefaultTypeSelect(key: string) {
   await widget.updateSetting('children_type', key)
 }
 
+// Create widget type modal
+const createModalVisible = ref(false)
+const createModalLabel = ref('')
+
+function handleDefaultTypeCreate(label: string) {
+  createModalLabel.value = label
+  createModalVisible.value = true
+}
+
+async function handleDefaultTypeCreated(typeId: string) {
+  defaultTypeKey.value = typeId
+  await widget.updateSetting('children_type', typeId)
+}
+
 // Ghost
 const ghostActive = ref(false)
 
@@ -110,6 +125,13 @@ function onGhostDiscard() {
       :types="sortedTypes"
       :selected-key="defaultTypeKey"
       @select="onDefaultTypeSelect"
+      @create="handleDefaultTypeCreate"
+    />
+    <CreateWidgetTypeModal
+      v-model:visible="createModalVisible"
+      :workspace="workspace"
+      :initial-label="createModalLabel"
+      @created="handleDefaultTypeCreated"
     />
   </div>
 

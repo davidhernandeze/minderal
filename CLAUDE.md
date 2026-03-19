@@ -63,7 +63,7 @@ Application
 **`Database`** (`Database.ts`)
 - Wraps PouchDB. Listens to live changes and re-emits them as targeted events.
 - Key events emitted: `doc:changed:<docId>`, `child:changed:<parentId>`.
-- CRUD: `createDoc`, `updateDoc`, `deleteDoc`, `getDoc`, `getDocsByParentId`.
+- CRUD: `createWidgetDoc`, `updateDoc`, `deleteDoc`, `getDoc`, `getDocsByParentId`.
 - Soft-delete: sets `deleted_at` timestamp; hard-delete via `hardDeleteDoc`.
 - `monitorClient()` polls every 10s to detect connectivity.
 
@@ -235,3 +235,7 @@ A separate in-progress layout focused on a **list-based UX** and an improved wid
 - `SwitchWidget` sets `expandable: true` but uses the same component for both preview and expanded — acceptable but inconsistent.
 - `WidgetDocStructure.content` is typed as `string | number | boolean | null` but some widgets (e.g. `CountdownWidget`) store objects. Cast with `as unknown as T` where needed.
 - `Database.migrate()` is a no-op stub — left for future migrations.
+
+
+## PouchDB
+- the documentation for PouchDB is in /docs/PouchDB.html

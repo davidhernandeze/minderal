@@ -11,6 +11,7 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   select: [key: string]
+  create: [label: string]
   open: []
   close: []
 }>()
@@ -23,6 +24,14 @@ const filteredTypes = computed(() => {
   const q = searchQuery.value.toLowerCase().trim()
   return q ? props.types.filter((t) => t.label.toLowerCase().includes(q)) : props.types
 })
+
+const hasExactMatch = computed(() =>
+  filteredTypes.value.some(
+    (t) => t.label.toLowerCase() === searchQuery.value.trim().toLowerCase()
+  )
+)
+
+const showCreate = computed(() => searchQuery.value.trim() && !hasExactMatch.value)
 
 function toggle(event: Event) {
   popoverRef.value?.toggle(event)
@@ -43,6 +52,25 @@ function selectType(key: string) {
   popoverRef.value?.hide()
 }
 
+function createType() {
+  const label = searchQuery.value.trim()
+  if (label) {
+    emit('create', label)
+    popoverRef.value?.hide()
+  }
+}
+
+function handleSearchKeydown(e: KeyboardEvent) {
+  e.stopPropagation()
+  if (e.key === 'Enter') {
+    if (filteredTypes.value.length > 0 && !showCreate.value) {
+      selectType(filteredTypes.value[0].key)
+    } else if (showCreate.value) {
+      createType()
+    }
+  }
+}
+
 defineExpose({ toggle })
 </script>
 
@@ -55,8 +83,7 @@ defineExpose({ toggle })
         placeholder="Search types..."
         size="small"
         fluid
-        @keydown.stop
-        @keydown.enter.prevent="filteredTypes[0] && selectType(filteredTypes[0].key)"
+        @keydown="handleSearchKeydown"
       />
       <ul class="flex flex-col">
         <li
@@ -73,7 +100,21 @@ defineExpose({ toggle })
           <i :class="type.icon" class="text-sm w-4" />
           <span class="text-sm">{{ type.label }}</span>
         </li>
-        <li v-if="filteredTypes.length === 0" class="text-xs text-surface-400 px-2 py-1.5">
+
+        <!-- Create new -->
+        <li
+          v-if="showCreate"
+          class="flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer hover:bg-surface-100 dark:hover:bg-surface-700 transition-colors text-primary"
+          @mousedown.prevent="createType"
+        >
+          <i class="bi bi-plus text-sm w-4" />
+          <span class="text-sm">Create "{{ searchQuery.trim() }}"</span>
+        </li>
+
+        <li
+          v-if="filteredTypes.length === 0 && !showCreate"
+          class="text-xs text-surface-400 px-2 py-1.5"
+        >
           No results
         </li>
       </ul>

@@ -12,6 +12,7 @@ export class Workspace extends EventEmitter {
   expandedWidget: Widget
   widgetTypes: Map<string, WidgetTypeDefinition> = new Map()
   filter: string = ''
+  typesLoadedPromise: Promise<void>
 
   widgetFactory: WidgetFactory
 
@@ -21,10 +22,11 @@ export class Workspace extends EventEmitter {
     this.db = db
     this.docId = docId
     this.widgetFactory = new WidgetFactory(this, db)
-    this.loadWidgetTypes()
+    this.typesLoadedPromise = this.loadWidgetTypes()
   }
 
   async navigateToWidget(widgetId = 'root'): Promise<void> {
+    await this.typesLoadedPromise
     this.filter = ''
     this.docId = widgetId
     this.expandedWidget?.removeListeners()
@@ -35,11 +37,37 @@ export class Workspace extends EventEmitter {
     this.emit('expandedWidget:changed', this.expandedWidget)
   }
 
-  loadWidgetTypes() {
+  async loadWidgetTypes() {
+    this.widgetTypes.clear()
     for (const widgetType of staticWidgetTypes) {
       this.widgetTypes.set(widgetType.key, widgetType)
     }
+
+    try {
+      const customTypeDocs = await this.db.getWidgetTypeDocs()
+      for (const doc of customTypeDocs) {
+        const primitiveType = this.widgetTypes.get(doc.primitive)
+        if (!primitiveType) continue
+
+        this.widgetTypes.set(doc._id, {
+          key: doc._id,
+          label: doc.label,
+          icon: doc.icon ? `bi bi-${doc.icon}` : primitiveType.icon,
+          showNameSelector: primitiveType.showNameSelector,
+          isCustom: true,
+          class: primitiveType.class
+        })
+      }
+    } catch {
+      // DB may not be ready yet — static types are still available
+    }
+
     this.emit('widgetTypes:changed')
+  }
+
+  async reloadWidgetTypes() {
+    this.typesLoadedPromise = this.loadWidgetTypes()
+    await this.typesLoadedPromise
   }
 
   getWidgetTypes(): WidgetTypeDefinition[] {
