@@ -4,8 +4,6 @@ import themeStore from '@/stores/theme.js'
 import { Application } from '@/domain/Application'
 import { Toast, ConfirmDialog } from 'primevue'
 
-const path = location.pathname
-
 const MainComponent = defineAsyncComponent(() => {
   return import('@/layouts/AppV4.vue')
 })
@@ -22,6 +20,7 @@ onBeforeMount(async () => {
   <Toast />
   <ConfirmDialog />
   <MainComponent />
+  <span class="fixed bottom-0 text-xss m-1">v4.01</span>
 </template>
 
 <style>

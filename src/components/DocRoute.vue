@@ -27,7 +27,7 @@ watch(
     class="flex w-full overflow-x-auto pr-3 text-sm"
     aria-label="Breadcrumb"
   >
-    <ol role="list" class="flex items-center">
+    <ol v-if="route.length > 1" role="list" class="flex items-center">
       <li v-for="(doc, index) in route" :key="doc._id" @click="workspace.navigateToWidget(doc._id)">
         <div class="flex items-center">
           <i v-if="index !== 0" class="bi bi-caret-right-fill mx-1" />
