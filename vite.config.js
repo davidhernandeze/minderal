@@ -61,11 +61,11 @@ export default defineConfig({
         }
       }
     }),
-    sentryVitePlugin({
-      org: 'coworg',
-      project: 'minderal',
-      authToken: process.env.SENTRY_AUTH_TOKEN
-    })
+    // sentryVitePlugin({
+    //   org: 'coworg',
+    //   project: 'minderal',
+    //   authToken: process.env.SENTRY_AUTH_TOKEN
+    // })
   ],
 
   define: {
