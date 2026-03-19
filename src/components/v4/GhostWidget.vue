@@ -210,7 +210,7 @@ async function onFormSubmit(values: Record<string, unknown>) {
     class="v4-ui-chrome flex flex-col gap-1 px-3 pt-1 pb-3 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30"
   >
     <!-- Tags row -->
-    <div class="flex justify-end items-center gap-1.5 flex-wrap">
+    <div class="flex justify-between items-center gap-1.5 flex-wrap">
       <Tag
         v-for="tagId in selectedTags"
         :key="tagId"
@@ -234,6 +234,13 @@ async function onFormSubmit(values: Record<string, unknown>) {
         @open="isAnySelectorOpen = true"
         @close="isAnySelectorOpen = false"
       />
+
+      <button>
+        <i
+          class="bi bi-x text-surface-400 dark:text-surface-500 hover:text-primary transition-colors cursor-pointer"
+          @click="emit('discard')"
+        />
+      </button>
     </div>
 
     <!-- Header: edit mode -->

@@ -120,7 +120,6 @@ export abstract class Widget extends EventEmitter {
       })
       parentId = parentDoc.parent_id
     }
-    route.pop()
     this.route = route.reverse()
   }
 

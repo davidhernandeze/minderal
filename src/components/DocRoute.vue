@@ -28,16 +28,11 @@ watch(
     aria-label="Breadcrumb"
   >
     <ol role="list" class="flex items-center">
-      <li
-        class="flex items-center hover:text-(--p-primary-500) cursor-pointer"
-        @click="workspace.navigateToWidget('root')"
-      >
-        <i class="bi bi-house mr-1" />
-      </li>
-      <li v-for="doc in route" :key="doc._id" @click="workspace.navigateToWidget(doc._id)">
+      <li v-for="(doc, index) in route" :key="doc._id" @click="workspace.navigateToWidget(doc._id)">
         <div class="flex items-center">
-          <i class="bi bi-caret-right-fill mx-1" />
+          <i v-if="index !== 0" class="bi bi-caret-right-fill mx-1" />
           <div
+            :class="{ 'text-(--p-primary-500)': index === route.length - 1 }"
             class="ml-1 flex hover:text-(--p-primary-500)"
             @click.middle="app.openNewTab(workspace.db, doc._id)"
           >

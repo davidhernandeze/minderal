@@ -97,7 +97,8 @@ function onGhostDiscard() {
 
 <template>
   <!-- Document title -->
-  <div class="px-1 mb-1">
+  <div class="flex gap-2 items-center px-1 mb-1">
+    <i :class="widget.getIcon()" class="mr-2 text-2xl" />
     <input
       ref="titleInputRef"
       v-model="widgetName"

@@ -22,7 +22,7 @@ const currentRoute = useReactiveObjectProp<Workspace, WidgetRoute>(
 </script>
 
 <template>
-  <div class="flex flex-col h-full px-4 lg:px-8 py-2">
+  <div class="flex flex-col h-full px-4 lg:px-8 py-2 mx-auto max-w-lg">
     <!-- Breadcrumb -->
     <div class="shrink-0 mx-auto w-full max-w-2xl xl:max-w-3xl">
       <DocRoute v-if="currentRoute?.length" :route="currentRoute" :workspace="workspace" />
