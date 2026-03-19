@@ -42,7 +42,7 @@ function handleWidgetSelect(key: string) {
       class="w-10 h-10 rounded-lg cursor-pointer border-none bg-transparent p-0.5"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
-    <span class="text-sm font-mono text-surface-500 dark:text-surface-400 uppercase">
+    <span class="text-sm font-mono text-(p-surface-500) uppercase">
       {{ modelValue }}
     </span>
   </div>

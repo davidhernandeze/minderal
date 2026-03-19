@@ -30,7 +30,7 @@ export default class extends Widget {
   getFormValues(): Record<string, unknown> {
     return {
       name: this.doc.name,
-      icon: this.doc.settings?.icon ?? 'folder'
+      icon: this.doc.settings?.icon ?? null
     }
   }
 

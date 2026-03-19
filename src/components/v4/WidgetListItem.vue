@@ -41,7 +41,10 @@ function blurTag(tagId: string) {
 }
 
 async function commitTagEdit(oldTagId: string) {
-  const newLabel = editingTagValue.value.trim().toLowerCase().replace(/[^a-z0-9 ]/g, '')
+  const newLabel = editingTagValue.value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9 ]/g, '')
   const newTagId = labelToTagId(newLabel)
   focusedTagId.value = null
 
@@ -98,11 +101,13 @@ function handleNameKeydown(e: KeyboardEvent) {
     @click="emit('select')"
   >
     <!-- Icon -->
-    <i
-      v-if="!widget.hideIcon"
-      :class="icon"
-      class="text-base text-surface-400 shrink-0 self-center"
-    />
+    <button class="cursor-pointer" @click="emit('edit')">
+      <i
+        v-if="!widget.hideIcon"
+        :class="icon"
+        class="text-base text-surface-400 shrink-0 self-center"
+      />
+    </button>
 
     <!-- Content: name descriptor + content preview -->
     <div class="flex-1 flex flex-col min-w-0">
@@ -124,16 +129,8 @@ function handleNameKeydown(e: KeyboardEvent) {
     </div>
 
     <!-- Tags -->
-    <div
-      v-if="tags.length"
-      class="flex items-center gap-1 shrink-0"
-      @click.stop
-    >
-      <div
-        v-for="tagId in tags"
-        :key="tagId"
-        class="relative flex items-center"
-      >
+    <div v-if="tags.length" class="flex items-center gap-1 shrink-0" @click.stop>
+      <div v-for="tagId in tags" :key="tagId" class="relative flex items-center">
         <!-- Focused: editable input + delete button -->
         <template v-if="focusedTagId === tagId">
           <div class="flex items-center gap-0.5 bg-primary/10 rounded-full px-2 py-0.5">

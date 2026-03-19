@@ -23,6 +23,10 @@ export default class extends Widget {
     }
   }
 
+  getFormValues(): Record<string, unknown> {
+    return { content: this.doc.content }
+  }
+
   updateDocFromForm(form: { name: string; content: string }): void {
     super.updateDocFromForm(form)
     this.doc.content = form.content

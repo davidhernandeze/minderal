@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue'
+import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import type { Workspace } from '@/domain'
@@ -207,8 +207,35 @@ async function onFormSubmit(values: Record<string, unknown>) {
 <template>
   <div
     ref="containerRef"
-    class="v4-ui-chrome flex flex-col gap-3 px-3 py-3 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30"
+    class="v4-ui-chrome flex flex-col gap-1 px-3 pt-1 pb-3 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30"
   >
+    <!-- Tags row -->
+    <div class="flex justify-end items-center gap-1.5 flex-wrap">
+      <Tag
+        v-for="tagId in selectedTags"
+        :key="tagId"
+        :value="tagIdToLabel(tagId)"
+        severity="secondary"
+        class="cursor-pointer !text-xs"
+        @mousedown.prevent="handleTagRemove(tagId)"
+      />
+      <button
+        class="cursor-pointer text-xs text-(--p-surface-500) hover:text-primary transition-colors flex items-center gap-0.5"
+        @click="(e) => tagSelectorRef?.toggle(e)"
+      >
+        <i class="bi bi-hash text-xs" />
+      </button>
+      <TagSelector
+        ref="tagSelectorRef"
+        :selected-tags="selectedTags"
+        :available-tags="availableTags"
+        @add="handleTagAdd"
+        @remove="handleTagRemove"
+        @open="isAnySelectorOpen = true"
+        @close="isAnySelectorOpen = false"
+      />
+    </div>
+
     <!-- Header: edit mode -->
     <div v-if="isEditMode" class="flex items-center gap-1 text-surface-400 dark:text-surface-500">
       <i :class="selectedType?.icon" class="text-sm" />
@@ -259,34 +286,6 @@ async function onFormSubmit(values: Record<string, unknown>) {
         ref="relationSelectorRef"
         :selected-relation="selectedRelation"
         @select="handleRelationSelect"
-        @open="isAnySelectorOpen = true"
-        @close="isAnySelectorOpen = false"
-      />
-    </div>
-
-    <!-- Tags row -->
-    <div class="flex items-center gap-1.5 flex-wrap">
-      <Tag
-        v-for="tagId in selectedTags"
-        :key="tagId"
-        :value="tagIdToLabel(tagId)"
-        severity="secondary"
-        class="cursor-pointer !text-xs"
-        @mousedown.prevent="handleTagRemove(tagId)"
-      />
-      <button
-        class="text-xs text-surface-400 hover:text-primary transition-colors flex items-center gap-0.5"
-        @click="(e) => tagSelectorRef?.toggle(e)"
-      >
-        <i class="bi bi-hash text-xs" />
-        <span>tag</span>
-      </button>
-      <TagSelector
-        ref="tagSelectorRef"
-        :selected-tags="selectedTags"
-        :available-tags="availableTags"
-        @add="handleTagAdd"
-        @remove="handleTagRemove"
         @open="isAnySelectorOpen = true"
         @close="isAnySelectorOpen = false"
       />
