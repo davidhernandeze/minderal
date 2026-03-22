@@ -67,7 +67,7 @@ watch(
         widget: key,
         content: ''
       })
-      availableSettings.value = widget.getAvailableSettings()
+      availableSettings.value = widget.getParentableSettings()
     } catch {
       availableSettings.value = []
     }

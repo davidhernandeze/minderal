@@ -36,7 +36,32 @@ export abstract class Widget extends EventEmitter {
   abstract getFormStructure(): FormStructure
 
   getFormValues(): Record<string, unknown> {
-    return { name: this.doc.name }
+    const formStructure = this.getFormStructure()
+    const formValues: Record<string, unknown> = {}
+    for (const field of formStructure.fields) {
+      const fieldPath = field.name.split('.')
+      let value = this.doc
+      for (const part of fieldPath) {
+        value = value?.[part]
+      }
+      formValues[field.name] = value
+    }
+    return formValues
+  }
+
+  updateDocFromForm(form: Record<string, unknown>): void {
+    if (Array.isArray(form.tags)) {
+      this.doc.tags = form.tags as string[]
+    }
+    for (const [key, value] of Object.entries(form)) {
+      const fieldPath = key.split('.')
+      let target = this.doc
+      for (let i = 0; i < fieldPath.length - 1; i++) {
+        const part = fieldPath[i]
+        target = target[part] ||= {}
+      }
+      target[fieldPath[fieldPath.length - 1]] = value
+    }
   }
 
   protected constructor(db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) {
@@ -50,7 +75,7 @@ export abstract class Widget extends EventEmitter {
     if (doc.created_at) this.saved = true
   }
 
-  getAvailableSettings(): Array<{ name: string; type: string; label: string }> {
+  getParentableSettings(): Array<{ name: string; type: string; label: string }> {
     return []
   }
 
@@ -198,12 +223,6 @@ export abstract class Widget extends EventEmitter {
     this.doc.tags = tags
     await this.db.updateDoc(this.doc)
     this.emit('content:changed')
-  }
-
-  updateDocFromForm(form: Record<string, unknown>): void {
-    if (Array.isArray(form.tags)) {
-      this.doc.tags = form.tags as string[]
-    }
   }
 
   getPastableContent(): string {

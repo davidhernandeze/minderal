@@ -206,21 +206,23 @@ async function onFormSubmit(values: Record<string, unknown>) {
     class="v4-ui-chrome flex flex-col gap-1 px-3 pt-1 pb-3 rounded-lg border border-dashed border-surface-300 dark:border-surface-600 bg-surface-50/30 dark:bg-surface-800/30"
   >
     <!-- Tags row -->
-    <div class="flex justify-between items-center gap-1.5 flex-wrap">
-      <Tag
-        v-for="tagId in selectedTags"
-        :key="tagId"
-        :value="tagIdToLabel(tagId)"
-        severity="secondary"
-        class="cursor-pointer !text-xs"
-        @mousedown.prevent="handleTagRemove(tagId)"
-      />
-      <button
-        class="cursor-pointer text-xs text-(--p-surface-500) hover:text-primary transition-colors flex items-center gap-0.5"
-        @click="(e) => tagSelectorRef?.toggle(e)"
-      >
-        <i class="bi bi-hash text-xs hover:text-(--p-surface-100) transition-colors" />
-      </button>
+    <div class="flex justify-between items-center my-1">
+      <div class="flex justify-start gap-1 flex-wrap">
+        <Tag
+          v-for="tagId in selectedTags"
+          :key="tagId"
+          :value="tagIdToLabel(tagId)"
+          severity="secondary"
+          class="cursor-pointer !text-xs"
+          @mousedown.prevent="handleTagRemove(tagId)"
+        />
+        <button
+          class="cursor-pointer text-xs text-(--p-surface-500) hover:text-primary transition-colors flex items-center gap-0.5"
+          @click="(e) => tagSelectorRef?.toggle(e)"
+        >
+          <i class="bi bi-hash text-xs hover:text-(--p-surface-100) transition-colors" />
+        </button>
+      </div>
       <TagSelector
         ref="tagSelectorRef"
         :selected-tags="selectedTags"

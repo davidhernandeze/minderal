@@ -22,21 +22,8 @@ export default class extends Widget {
     return {
       fields: [
         { name: 'name', type: 'text', required: true },
-        { name: 'icon', type: 'icon', required: false, default: null, label: 'Icon' }
+        { name: 'settings.icon', type: 'icon', required: false, default: null, label: 'Icon' }
       ]
     }
-  }
-
-  getFormValues(): Record<string, unknown> {
-    return {
-      name: this.doc.name,
-      icon: this.doc.settings?.icon ?? null
-    }
-  }
-
-  updateDocFromForm(form): void {
-    super.updateDocFromForm(form)
-    this.doc.name = form.name
-    if (form.icon) this.doc.settings.icon = form.icon
   }
 }

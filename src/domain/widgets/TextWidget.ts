@@ -19,7 +19,7 @@ export default class extends Widget {
 
   getFormStructure(): FormStructure {
     return {
-      fields: [{ name: 'content', type: 'text' }]
+      fields: [{ name: 'content', type: 'textarea' }]
     }
   }
 

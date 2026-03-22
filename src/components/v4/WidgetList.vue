@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, useTemplateRef } from 'vue'
 import Button from 'primevue/button'
+import Popover from 'primevue/popover'
 import WidgetListItem from './WidgetListItem.vue'
 import GhostWidget from './GhostWidget.vue'
 import WidgetTypeSelector from './WidgetTypeSelector.vue'
@@ -17,6 +18,7 @@ const { widget, workspace } = defineProps<{
 
 const selectedWidgetId = ref<string | null>(null)
 const editingWidgetId = ref<string | null>(null)
+const parentEditPopover = useTemplateRef('parentEditPopover')
 
 const children = useReactiveObjectProp<Widget, Widget[]>(
   widget,
@@ -98,7 +100,9 @@ function onGhostDiscard() {
 <template>
   <!-- Document title -->
   <div class="flex gap-2 items-center px-1 mb-1">
-    <i :class="widget.getIcon()" class="mr-2 text-2xl" />
+    <button @click="parentEditPopover.toggle" >
+      <i :class="widget.getIcon()" class="mr-2 text-2xl" />
+    </button>
     <input
       ref="titleInputRef"
       v-model="widgetName"
@@ -108,6 +112,14 @@ function onGhostDiscard() {
       @blur="endTitleEdit"
       @keydown="handleTitleKeydown"
     />
+    <Popover ref="parentEditPopover" :dismissable="false" class="w-full md:w-72">
+      <GhostWidget
+        :workspace="workspace"
+        :edit-widget="widget"
+        @saved="parentEditPopover.toggle()"
+        @discard="parentEditPopover.toggle()"
+      />
+    </Popover>
   </div>
 
   <!-- Default type label -->
@@ -116,11 +128,13 @@ function onGhostDiscard() {
   >
     <span>List of</span>
     <button
+      v-if="!settings.children_type_locked"
       class="text-surface-500 dark:text-surface-400 hover:text-primary dark:hover:text-primary underline underline-offset-2 decoration-dashed transition-colors"
       @click="openDefaultTypeSelector"
     >
       {{ defaultTypeLabel }}
     </button>
+    <span v-else class="text-surface-500 dark:text-surface-400">{{ defaultTypeLabel }}</span>
     <WidgetTypeSelector
       ref="defaultTypeSelectorRef"
       :types="sortedTypes"

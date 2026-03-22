@@ -18,22 +18,25 @@ export default class extends Widget {
     super(db, doc, widgetFactory)
   }
 
-  getAvailableSettings(): Array<{ name: string; type: string; label: string }> {
-    return [{ name: 'children_type', type: 'widget', label: 'Items type' }]
+  getParentableSettings(): Array<{ name: string; type: string; label: string }> {
+    return [
+      { name: 'children_type', type: 'widget', label: 'Items type' },
+      { name: 'children_type_locked', type: 'checkbox', label: 'Lock items type' }
+    ]
   }
 
   getFormStructure(): FormStructure {
     return {
       fields: [
         { name: 'name', type: 'text', label: 'Name', required: true },
-        { name: 'children_type', type: 'widget', label: 'Items type' }
+        { name: 'settings.children_type', type: 'widget', label: 'Items type' },
+        {
+          name: 'settings.children_type_locked',
+          type: 'checkbox',
+          label: 'Lock items type',
+          default: false
+        }
       ]
     }
-  }
-
-  updateDocFromForm(form): void {
-    super.updateDocFromForm(form)
-    this.doc.name = form.name
-    this.doc.settings.children_type = form.children_type
   }
 }
