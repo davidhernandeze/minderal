@@ -43,7 +43,7 @@ export class Connection extends EventEmitter {
 
   static async createRemote(config: ConnectionConfig): Promise<Connection | null> {
     const connection = new Connection(config)
-    if (config.auth) {
+    if (config.auth?.password) {
       await connection.login(config.url, config.auth.username, config.auth.password)
     }
     delete connection.config.auth?.password
