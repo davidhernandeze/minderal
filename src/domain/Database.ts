@@ -30,7 +30,16 @@ export class Database extends EventEmitter {
     super()
     this.id = generateId()
     this.name = name
-    this.client = new PouchDB(name, connection.config)
+    if (connection.config.is_remote) {
+      this.client = new PouchDB(
+        `${connection.config.url}/${name}`,
+        {
+
+        }
+      )
+    } else {
+      this.client = new PouchDB(name, connection.config)
+    }
     this.username = connection.config?.auth?.username || 'local'
     this.connection = connection
   }
@@ -87,6 +96,8 @@ export class Database extends EventEmitter {
     doc.updated_at = moment().toISOString()
     const { rev } = await this.client.put(doc)
     doc._rev = rev
+    console.log(doc)
+    console.log(this)
     return doc
   }
 

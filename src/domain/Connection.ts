@@ -25,7 +25,6 @@ export class Connection extends EventEmitter {
   url: string = ''
   is_online: boolean = false
   is_remote: boolean = false
-  session_cookie: string = ''
   dbs: Map<string, Database> = new Map()
   config: ConnectionConfig
 
@@ -35,12 +34,21 @@ export class Connection extends EventEmitter {
     this.name = config.name
     this.url = config.url || ''
     this.is_remote = config.is_remote || false
-    this.session_cookie = config.session_cookie || ''
     this.config = config
 
     for (const databaseConfig of config.dbs || []) {
       this.addDatabase(databaseConfig.name)
     }
+  }
+
+  static async createRemote(config: ConnectionConfig): Promise<Connection | null> {
+    const connection = new Connection(config)
+    if (config.auth) {
+      await connection.login(config.url, config.auth.username, config.auth.password)
+    }
+    delete connection.config.auth?.password
+    await connection.updateDatabaseList()
+    return connection
   }
 
   public addDatabase(name: string) {
@@ -55,11 +63,7 @@ export class Connection extends EventEmitter {
     })
   }
 
-  async testConnection(
-    url: string,
-    username: string,
-    password: string
-  ): Promise<{ ok: boolean; cookie?: string }> {
+  async login(url: string, username: string, password: string): Promise<boolean> {
     try {
       const response = await fetch(`${url}/_session`, {
         method: 'POST',
@@ -69,29 +73,28 @@ export class Connection extends EventEmitter {
       })
 
       if (!response.ok) {
-        return { ok: false }
+        return true
       }
 
       const data = await response.json()
       if (!data.ok) {
-        return { ok: false }
+        return true
       }
 
       // Extract AuthSession cookie from Set-Cookie header (if accessible)
       // In browser context, cookies are handled automatically with credentials: 'include'
-      const cookie = response.headers.get('set-cookie') || ''
-      return { ok: true, cookie }
+      this.config.session_cookie = response.headers.get('set-cookie') || ''
+      return true
     } catch {
-      return { ok: false }
+      return false
     }
   }
 
   async testDbAccess(dbName: string): Promise<boolean> {
     try {
-      const response = await fetch(
-        `${this.url}/${encodeURIComponent(dbName)}`,
-        { credentials: 'include' }
-      )
+      const response = await fetch(`${this.url}/${encodeURIComponent(dbName)}`, {
+        credentials: 'include'
+      })
       return response.ok
     } catch {
       return false
@@ -120,25 +123,7 @@ export class Connection extends EventEmitter {
     }
   }
 
-  async connect(): Promise<boolean> {
-    if (!this.is_remote || !this.url || !this.config.auth) {
-      return false
-    }
-
-    const result = await this.testConnection(
-      this.url,
-      this.config.auth.username,
-      this.config.auth.password
-    )
-    if (!result.ok) {
-      this.setOnline(false)
-      return false
-    }
-
-    if (result.cookie) {
-      this.session_cookie = result.cookie
-    }
-
+  async updateDatabaseList(): Promise<void> {
     const dbNames = await this.fetchRemoteDatabases()
 
     // Remove databases the user no longer has access to
@@ -156,7 +141,6 @@ export class Connection extends EventEmitter {
     }
 
     this.setOnline(true)
-    return true
   }
 
   setOnline(online: boolean) {
@@ -182,10 +166,9 @@ export class Connection extends EventEmitter {
   async getDbSecurity(dbName: string): Promise<DbSecurity | null> {
     if (!this.url) return null
     try {
-      const response = await fetch(
-        `${this.url}/${encodeURIComponent(dbName)}/_security`,
-        { credentials: 'include' }
-      )
+      const response = await fetch(`${this.url}/${encodeURIComponent(dbName)}/_security`, {
+        credentials: 'include'
+      })
       if (!response.ok) return null
       return await response.json()
     } catch {
@@ -196,15 +179,12 @@ export class Connection extends EventEmitter {
   async setDbSecurity(dbName: string, security: DbSecurity): Promise<boolean> {
     if (!this.url) return false
     try {
-      const response = await fetch(
-        `${this.url}/${encodeURIComponent(dbName)}/_security`,
-        {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'include',
-          body: JSON.stringify(security)
-        }
-      )
+      const response = await fetch(`${this.url}/${encodeURIComponent(dbName)}/_security`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify(security)
+      })
       return response.ok
     } catch {
       return false
@@ -301,9 +281,9 @@ export class Connection extends EventEmitter {
       name: this.name,
       url: this.url,
       auth: this.config.auth,
-      is_remote: this.is_remote,
-      is_online: this.is_online,
-      session_cookie: this.session_cookie,
+      is_remote: this.config.is_remote,
+      is_online: this.config.is_online,
+      session_cookie: this.config.session_cookie,
       dbs: this.getDatabaseList().map((db) => db.getConfig())
     }
   }

@@ -104,8 +104,9 @@ async function createDatabase() {
 
   // Seed the root widget document
   const db = props.connection.getDatabase(name)
+  console.log(db)
   if (db) {
-    await db.createWidgetDoc({
+    const log = await db.createWidgetDoc({
       _id: 'widget:root',
       name: 'Home',
       widget: 'folder',
@@ -115,6 +116,7 @@ async function createDatabase() {
       created_by: 'root',
       deleted_at: null
     })
+    console.log(log)
   }
 
   dbLoading.value = false

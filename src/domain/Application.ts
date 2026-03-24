@@ -78,23 +78,17 @@ export class Application extends EventEmitter {
     // Load remote connections from config document
     for (const connectionConfig of this.configDocument.connections || []) {
       if (connectionConfig.id === 'local') continue
-      const connection = new Connection(connectionConfig)
+      const connection = await Connection.createRemote(connectionConfig)
       this.connections.set(connection.id, connection)
 
       connection.on('change', () => {
         this.emit('connections:changed')
       })
-
-      // Try to connect remote connections
-      if (connection.is_remote) {
-        void connection.connect()
-      }
     }
     this.emit('connections:changed')
   }
 
-  async saveConnection(config: ConnectionConfig): Promise<Connection> {
-    const connection = new Connection(config)
+  async saveConnection(connection: Connection): Promise<Connection> {
     this.connections.set(connection.id, connection)
 
     connection.on('change', () => {
@@ -113,8 +107,8 @@ export class Application extends EventEmitter {
     this.emit('connections:changed')
   }
 
-  async updateConnection(config: ConnectionConfig): Promise<Connection> {
-    const existing = this.connections.get(config.id)
+  async updateConnection(connection: Connection): Promise<Connection> {
+    const existing = this.connections.get(connection.id)
     if (existing) {
       // Close existing databases
       for (const db of existing.getDatabaseList()) {
@@ -122,7 +116,6 @@ export class Application extends EventEmitter {
       }
     }
 
-    const connection = new Connection(config)
     this.connections.set(connection.id, connection)
 
     connection.on('change', () => {
@@ -184,6 +177,12 @@ export class Application extends EventEmitter {
     }
     await this.updateConfigDocument()
     this.emit('tabs:changed')
+  }
+
+  async closeAllTabs() {
+    this.tabs.clear()
+    this.activeTabId = null
+    await this.updateConfigDocument()
   }
 
   async updateConfigDocument() {

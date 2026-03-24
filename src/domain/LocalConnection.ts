@@ -14,6 +14,7 @@ export default class LocalConnection extends Connection {
         id: 'local',
         name: 'local',
         is_remote: false,
+        is_online: true,
         dbs: []
       })
     }

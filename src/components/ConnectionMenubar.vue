@@ -10,6 +10,7 @@ import { Connection } from '@/domain/Connection'
 import { Database } from '@/domain/Database'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import { v4 as generateId } from 'uuid'
+import { MenuItem } from 'primevue/menuitem'
 
 const app = inject<Application>('app')
 
@@ -43,7 +44,7 @@ const dbModalDatabase = ref<Database | null>(null)
 function openAddDialog() {
   isEditing.value = false
   editingConnectionId.value = null
-  form.value = { url: '', username: '', password: '' }
+  form.value = { url: 'http://localhost:5984', username: '', password: '' }
   error.value = ''
   showDialog.value = true
 }
@@ -96,29 +97,9 @@ async function submitForm() {
   error.value = ''
   loading.value = true
 
-  const testConnection = new Connection({
-    id: 'test',
-    name: 'test',
-    dbs: []
-  })
-
-  const result = await testConnection.testConnection(
-    form.value.url,
-    form.value.username,
-    form.value.password
-  )
-
-  if (!result.ok) {
-    error.value = 'Failed to connect. Please check your credentials and URL.'
-    loading.value = false
-    return
-  }
-
-  const connectionId = isEditing.value ? editingConnectionId.value : `connection:${generateId()}`
-
   const config = {
-    id: connectionId,
-    name: form.value.username,
+    id: editingConnectionId.value || `${generateId()}`,
+    name: form.value.url.replace(/https?:\/\//, ''),
     url: form.value.url,
     auth: {
       username: form.value.username,
@@ -126,18 +107,22 @@ async function submitForm() {
     },
     is_remote: true,
     is_online: false,
-    session_cookie: result.cookie || '',
     dbs: []
   }
 
-  let connection: Connection
-  if (isEditing.value) {
-    connection = await app.updateConnection(config)
-  } else {
-    connection = await app.saveConnection(config)
+  const newConnection = await Connection.createRemote(config)
+
+  if (!newConnection) {
+    error.value = 'Failed to connect. Please check your credentials and URL.'
+    loading.value = false
+    return
   }
 
-  await connection.connect()
+  if (isEditing.value) {
+    await app.updateConnection(newConnection)
+  } else {
+    await app.saveConnection(newConnection)
+  }
 
   loading.value = false
   showDialog.value = false
@@ -153,6 +138,7 @@ async function deleteConnection() {
 async function openDatabase(connection: Connection, dbName: string) {
   const db = connection.getDatabase(dbName)
   if (db) {
+    await app.closeAllTabs()
     await app.openNewTab(db)
   }
 }
@@ -177,7 +163,7 @@ const menuItems = computed(() => {
   const connectionItems = connections.value.map((connection) => {
     const isLocal = connection.id === 'local'
 
-    const dbChildren: any[] = connection.getDatabaseList().map((db) => ({
+    const dbChildren: MenuItem[] = connection.getDatabaseList().map((db) => ({
       label: db.name,
       icon: 'bi bi-database',
       _db: db,
@@ -256,9 +242,14 @@ const menuItems = computed(() => {
       <div class="flex flex-col gap-6 text-xss">
         <!-- Connection form -->
         <form class="flex flex-col gap-4" @submit.prevent="submitForm">
-          <TextInput v-model="form.url" label="URL" placeholder="http://localhost:5984" />
-          <TextInput v-model="form.username" label="User" />
-          <TextInput v-model="form.password" label="Password" type="password" />
+          <TextInput
+            v-model="form.url"
+            :disabled="isEditing"
+            label="URL"
+            placeholder="http://localhost:5984"
+          />
+          <TextInput v-model="form.username" :disabled="isEditing" label="User" />
+          <TextInput v-if="!isEditing" v-model="form.password" label="Password" type="password" />
 
           <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
 
@@ -279,10 +270,7 @@ const menuItems = computed(() => {
         </form>
 
         <!-- Users CRUD (edit mode only) -->
-        <section
-          v-if="isEditing"
-          class="border-t border-surface-200 dark:border-surface-700 pt-4"
-        >
+        <section v-if="isEditing" class="border-t border-surface-200 dark:border-surface-700 pt-4">
           <h3 class="text-sm font-semibold mb-3">Users</h3>
 
           <div v-if="usersLoading" class="text-sm opacity-60">Loading users...</div>
