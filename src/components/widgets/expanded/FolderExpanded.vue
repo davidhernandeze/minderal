@@ -82,13 +82,13 @@ function onGhostDiscard() {
   <div
     class="px-1 mb-5 flex items-center gap-1 text-sm lg:text-base text-surface-400 dark:text-surface-500"
   >
-    <span>List of</span>
+    <span>{{ widget.widgetTypeDefinition.label }} of</span>
     <button
       v-if="!settings.children_type_locked"
       class="text-surface-500 dark:text-surface-400 hover:text-primary dark:hover:text-primary underline underline-offset-2 decoration-dashed transition-colors"
       @click="openDefaultTypeSelector"
     >
-      {{ defaultTypeLabel }}
+      {{ defaultTypeLabel }}s
     </button>
     <span v-else class="text-surface-500 dark:text-surface-400">{{ defaultTypeLabel }}</span>
     <WidgetTypeSelector
