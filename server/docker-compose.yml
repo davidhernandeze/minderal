@@ -1,6 +1,6 @@
 services:
   couchdb:
-    image: couchdb:latest
+    build: .
     ports:
       - "${COUCHDB_PORT:-5984}:5984"
     environment:

@@ -3,14 +3,15 @@ import { Tab } from './Tab'
 import { Database } from '@/domain/Database'
 import LocalConnection from '@/domain/LocalConnection'
 import { EventEmitter } from 'events'
-import { ConfigDocStructure } from '@/domain/types/config'
+import { ConfigDocStructure, ConnectionConfig } from '@/domain/types/config'
+import { v4 as generateId } from 'uuid'
 
 export class Application extends EventEmitter {
   private connections: Map<string, Connection> = new Map()
   private tabs: Map<string, Tab> = new Map()
   activeTabId: string | null = null
 
-  private configDatabase: Database
+  configDatabase: Database
   private configDocument: ConfigDocStructure
 
   constructor() {
@@ -27,7 +28,7 @@ export class Application extends EventEmitter {
     this.configDocument = await this.configDatabase.getOrCreateConfigDoc()
     console.log(this.configDocument)
 
-    this.setConnectionsFromConfig()
+    await this.loadConnections()
     await this.setTabsFromConfig()
     await this.firstTimeSetup()
 
@@ -36,7 +37,6 @@ export class Application extends EventEmitter {
     this.configDatabase.on(`doc:changed:config`, async (doc) => {
       if (doc?._rev !== this.configDocument._rev) {
         this.configDocument = doc
-        this.setConnectionsFromConfig()
         await this.setTabsFromConfig()
       }
     })
@@ -69,6 +69,69 @@ export class Application extends EventEmitter {
     const localConnection = LocalConnection.getInstance()
     localConnection.addDatabase('local')
     this.connections.set('local', localConnection)
+  }
+
+  async loadConnections() {
+    // Always ensure local connection exists
+    await this.addLocalConnection()
+
+    // Load remote connections from config document
+    for (const connectionConfig of this.configDocument.connections || []) {
+      if (connectionConfig.id === 'local') continue
+      const connection = new Connection(connectionConfig)
+      this.connections.set(connection.id, connection)
+
+      connection.on('change', () => {
+        this.emit('connections:changed')
+      })
+
+      // Try to connect remote connections
+      if (connection.is_remote) {
+        void connection.connect()
+      }
+    }
+    this.emit('connections:changed')
+  }
+
+  async saveConnection(config: ConnectionConfig): Promise<Connection> {
+    const connection = new Connection(config)
+    this.connections.set(connection.id, connection)
+
+    connection.on('change', () => {
+      this.emit('connections:changed')
+    })
+
+    await this.updateConfigDocument()
+    this.emit('connections:changed')
+    return connection
+  }
+
+  async deleteConnection(connectionId: string) {
+    if (connectionId === 'local') return
+    this.connections.delete(connectionId)
+    await this.updateConfigDocument()
+    this.emit('connections:changed')
+  }
+
+  async updateConnection(config: ConnectionConfig): Promise<Connection> {
+    const existing = this.connections.get(config.id)
+    if (existing) {
+      // Close existing databases
+      for (const db of existing.getDatabaseList()) {
+        await db.closeClient()
+      }
+    }
+
+    const connection = new Connection(config)
+    this.connections.set(connection.id, connection)
+
+    connection.on('change', () => {
+      this.emit('connections:changed')
+    })
+
+    await this.updateConfigDocument()
+    this.emit('connections:changed')
+    return connection
   }
 
   setConnectionsFromConfig() {
@@ -139,5 +202,9 @@ export class Application extends EventEmitter {
 
   getConnections() {
     return Array.from(this.connections.values())
+  }
+
+  generateConnectionId(): string {
+    return generateId()
   }
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import WorkspaceV4 from '@/components/workspace/WorkspaceV4.vue'
+import ConnectionMenubar from '@/components/ConnectionMenubar.vue'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import { Application, Tab } from '@/domain'
 import SpaceBackground from '@/components/SpaceBackground.vue'
@@ -26,6 +27,10 @@ const activeTabId = useReactiveObjectProp<Application, string | null>(
 <template>
   <div class="max-h-screen h-screen flex flex-col relative">
     <SpaceBackground :enabled="themeStore.isDarkTheme.value" />
+
+    <div class="relative z-20">
+      <ConnectionMenubar />
+    </div>
 
     <!-- Workspaces (one per tab, only active shown) -->
     <div class="relative z-10 flex-1 min-h-0">
