@@ -1,0 +1,17 @@
+services:
+  couchdb:
+    image: couchdb:latest
+    ports:
+      - "${COUCHDB_PORT:-5984}:5984"
+    environment:
+      - COUCHDB_USER=${COUCHDB_USER:-admin}
+      - COUCHDB_PASSWORD=${COUCHDB_PASSWORD:-password}
+    volumes:
+      - couchdb_data:/opt/couchdb/data
+      - couchdb_config:/opt/couchdb/etc/local.d
+      - ./couchdb.ini:/opt/couchdb/etc/local.d/minderal.ini
+    restart: unless-stopped
+
+volumes:
+  couchdb_data:
+  couchdb_config:

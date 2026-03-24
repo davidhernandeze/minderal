@@ -64,6 +64,27 @@ npx tauri build
 ## Database
 The database uses couchdb document protocol, allowing PouchDB to store local databases as well as sync with remote databases.
 
+### Running CouchDB locally
+
+The `server/` directory contains a Docker Compose setup for running a CouchDB instance pre-configured for Minderal (CORS, cookie auth with `SameSite=None` for cross-origin access).
+
+```bash
+cd server
+
+# Copy and edit credentials
+cp .env.example .env
+# Edit .env to set COUCHDB_USER, COUCHDB_PASSWORD, and COUCHDB_PORT
+
+# Start the database
+docker compose up -d
+
+# CouchDB will be available at http://localhost:5984
+# Admin panel (Fauxton) at http://localhost:5984/_utils
+```
+
+To stop: `docker compose down`
+To stop and delete data: `docker compose down -v`
+
 ## Widgets
 Widgets are stored in the database as documents. Each widget has at least the following fields:
 - _id: unique identifier

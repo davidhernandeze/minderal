@@ -239,3 +239,10 @@ A separate in-progress layout focused on a **list-based UX** and an improved wid
 
 ## PouchDB
 - the documentation for PouchDB is in /docs/PouchDB.html
+
+## CouchDB
+- the documentation for CouchDB is in /docs/CouchDB.pdf
+- Local CouchDB server setup is in `server/` — Docker Compose with `couchdb.ini` for CORS + cookie config.
+- Admin credentials are set via `server/.env` (copy from `.env.example`). Defaults: `admin` / `password`.
+- CouchDB is configured with `SameSite=None` cookies and CORS accepting all origins, so the client can authenticate from any domain.
+- Run with `cd server && docker compose up -d`. Data persists in Docker volumes (`couchdb_data`, `couchdb_config`).
