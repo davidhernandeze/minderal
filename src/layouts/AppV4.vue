@@ -6,6 +6,7 @@ import { Application, Tab } from '@/domain'
 import SpaceBackground from '@/components/SpaceBackground.vue'
 import themeStore from '@/stores/theme.js'
 import { inject, onMounted, onUnmounted } from 'vue'
+import Tabs from '@/components/Tabs.vue'
 
 onMounted(() => {
   document.documentElement.classList.add('v4-layout')
@@ -28,8 +29,11 @@ const activeTabId = useReactiveObjectProp<Application, string | null>(
   <div class="max-h-screen h-screen flex flex-col relative">
     <SpaceBackground :enabled="themeStore.isDarkTheme.value" />
 
-    <div class="relative z-20">
+    <div class="relative z-20 flex items-center p-1">
       <ConnectionMenubar />
+      <div class="flex-1 overflow-x-auto">
+        <Tabs />
+      </div>
     </div>
 
     <!-- Workspaces (one per tab, only active shown) -->

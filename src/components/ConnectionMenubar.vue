@@ -138,7 +138,6 @@ async function deleteConnection() {
 async function openDatabase(connection: Connection, dbName: string) {
   const db = connection.getDatabase(dbName)
   if (db) {
-    await app.closeAllTabs()
     await app.openNewTab(db)
   }
 }
@@ -318,3 +317,8 @@ const menuItems = computed(() => {
     />
   </div>
 </template>
+<style>
+.p-menubar-mobile .p-menubar-root-list {
+  width: auto !important;
+}
+</style>
