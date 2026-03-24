@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, onUnmounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import type { Workspace } from '@/domain'
@@ -10,11 +10,11 @@ import type { AllowedContentTypes } from '@/domain/interfaces/WidgetDocStructure
 import type { TagDocStructure } from '@/domain/interfaces/TagDocStructure'
 import { useWidgetUsage } from '@/composables/useWidgetUsage'
 import { useWidgetRelations } from '@/composables/useWidgetRelations'
-import WidgetTypeSelector from './WidgetTypeSelector.vue'
-import RelationSelector from './RelationSelector.vue'
-import TagSelector from './TagSelector.vue'
-import GeneralFormV4 from './GeneralFormV4.vue'
-import CreateWidgetTypeModal from './CreateWidgetTypeModal.vue'
+import WidgetTypeSelector from '@/components/WidgetTypeSelector.vue'
+import RelationSelector from '@/components/RelationSelector.vue'
+import TagSelector from '@/components/TagSelector.vue'
+import CreateWidgetTypeModal from '@/components/CreateWidgetTypeModal.vue'
+import AbstractForm from '@/components/AbstractForm.vue'
 
 const props = defineProps<{
   workspace: Workspace
@@ -297,7 +297,7 @@ async function onFormSubmit(values: Record<string, unknown>) {
     </div>
 
     <!-- Form -->
-    <GeneralFormV4
+    <AbstractForm
       v-if="formStructure"
       :key="selectedType?.key"
       :form-structure="formStructure"

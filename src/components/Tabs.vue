@@ -4,17 +4,12 @@ import { inject } from 'vue'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 
 const app = inject<Application>('app')
-const tabs = useReactiveObjectProp<Application, Tab[]>(
-  app,
-  (a) => a.getTabs(),
-  'tabs:changed'
-)
+const tabs = useReactiveObjectProp<Application, Tab[]>(app, (a) => a.getTabs(), 'tabs:changed')
 const activeTabId = useReactiveObjectProp<Application, string | null>(
   app,
   (a) => a.activeTabId,
   'tabs:changed'
 )
-
 </script>
 <template>
   <div class="flex px-2 gap-4 justify-between text-xs">

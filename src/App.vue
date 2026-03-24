@@ -5,7 +5,7 @@ import { Application } from '@/domain/Application'
 import { Toast, ConfirmDialog } from 'primevue'
 
 const MainComponent = defineAsyncComponent(() => {
-  return import('@/layouts/AppV4.vue')
+  return import('@/layouts/Default.vue')
 })
 
 const app: Application = new Application()
@@ -20,7 +20,7 @@ onBeforeMount(async () => {
   <Toast />
   <ConfirmDialog />
   <MainComponent />
-  <span class="fixed bottom-0 text-xss m-1">v4.01</span>
+  <span class="fixed bottom-0 text-xss m-1">v4.02</span>
 </template>
 
 <style>

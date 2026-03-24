@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, useTemplateRef } from 'vue'
+import { ref, computed, useTemplateRef, defineAsyncComponent } from 'vue'
 import Button from 'primevue/button'
 import Popover from 'primevue/popover'
 import WidgetListItem from './WidgetListItem.vue'
@@ -100,7 +100,7 @@ function onGhostDiscard() {
 <template>
   <!-- Document title -->
   <div class="flex gap-2 items-center px-1 mb-1">
-    <button @click="parentEditPopover.toggle" >
+    <button @click="parentEditPopover.toggle">
       <i :class="widget.getIcon()" class="mr-2 text-2xl" />
     </button>
     <input

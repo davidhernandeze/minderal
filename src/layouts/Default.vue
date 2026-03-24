@@ -1,26 +1,68 @@
 <script setup lang="ts">
-import Sidebar from '@/components/Sidebar.vue'
+import Workspace from '@/components/Workspace.vue'
+import ConnectionMenubar from '@/components/ConnectionMenubar.vue'
+import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
+import { Application, Tab } from '@/domain'
+import SpaceBackground from '@/components/SpaceBackground.vue'
+import themeStore from '@/stores/theme.js'
+import { inject, onMounted, onUnmounted } from 'vue'
 import Tabs from '@/components/Tabs.vue'
-import WorkspaceManager from '@/components/WorkspaceManager.vue'
-import sidebarStore from '@/stores/sidebar.js'
-import { storeToRefs } from 'pinia'
-import { inject } from 'vue'
-import ConfirmDialog from 'primevue/confirmdialog'
 
-const metadataStore = inject('metadataStore')
-const { tabs } = storeToRefs(metadataStore)
+onMounted(() => {
+  document.documentElement.classList.add('v4-layout')
+})
 
-const { isSidebarVisible } = sidebarStore
+onUnmounted(() => {
+  document.documentElement.classList.remove('v4-layout')
+})
+
+const app = inject<Application>('app')
+const tabs = useReactiveObjectProp<Application, Tab[]>(app, (a) => a.getTabs(), 'tabs:changed')
+const activeTabId = useReactiveObjectProp<Application, string | null>(
+  app,
+  (a) => a.activeTabId,
+  'tabs:changed'
+)
 </script>
+
 <template>
-  <div class="max-h-screen h-screen flex">
-    <ConfirmDialog />
-    <Sidebar class="flex-none" />
-    <div :class="[isSidebarVisible ? 'hidden sm:block' : 'block']" class="w-full pl-2 pr-0 pb-0">
-      <div class="flex flex-col h-full">
-        <Tabs class="pt-1" />
-        <WorkspaceManager v-show="tabs.length > 0" class="flex-1 overflow-y-auto" />
+  <div class="max-h-screen h-screen flex flex-col relative">
+    <SpaceBackground :enabled="themeStore.isDarkTheme.value" />
+
+    <div class="relative z-20 flex items-center p-1">
+      <ConnectionMenubar />
+      <div class="flex-1 overflow-x-auto">
+        <Tabs />
       </div>
+    </div>
+
+    <!-- Workspaces (one per tab, only active shown) -->
+    <div class="relative z-10 flex-1 min-h-0">
+      <Workspace
+        v-for="tab in tabs"
+        v-show="tab.id === activeTabId"
+        :key="tab.id"
+        :workspace="tab.workspace"
+        class="h-full"
+      />
     </div>
   </div>
 </template>
+
+<style>
+html {
+  font-size: 20px;
+}
+
+@media (min-width: 768px) {
+  html {
+    font-size: 22px;
+  }
+}
+
+@media (min-width: 1280px) {
+  html {
+    font-size: 28px;
+  }
+}
+</style>

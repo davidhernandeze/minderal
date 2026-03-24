@@ -106,9 +106,7 @@ export abstract class Widget extends EventEmitter {
   removeListeners() {
     this.db.removeAllListeners(`doc:changed:${this.docId}`)
     this.db.removeAllListeners(`child:changed:${this.docId}`)
-    for (const child of this.children.values()) {
-      child.removeListeners()
-    }
+    this.children.forEach((child) => child.removeListeners())
   }
 
   async remove() {

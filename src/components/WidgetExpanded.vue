@@ -8,6 +8,7 @@ const ExpandedWidgetComponent = defineAsyncComponent(() => {
   return import(`./widgets/expanded/${props.widget.expandedComponent}.vue`)
 })
 </script>
+
 <template>
   <ExpandedWidgetComponent :widget="widget" />
 </template>

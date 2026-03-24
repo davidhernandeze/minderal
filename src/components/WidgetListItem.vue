@@ -4,9 +4,9 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import InvisibleInput from '@/components/InvisibleInput.vue'
 import WidgetMenu from '@/components/WidgetMenu.vue'
-import WidgetInlinePreview from './WidgetInlinePreview.vue'
 import { useReactiveObjectProp } from '@/composables/useReactiveObjectProp'
 import type { Widget } from '@/domain/Widget'
+import WidgetPreview from '@/components/WidgetPreview.vue'
 
 const { widget, isSelected } = defineProps<{ widget: Widget; isSelected?: boolean }>()
 const emit = defineEmits<{ select: []; edit: [] }>()
@@ -124,7 +124,7 @@ function handleNameKeydown(e: KeyboardEvent) {
 
       <!-- Content preview row -->
       <div class="flex justify-start gap-2 min-w-0">
-        <WidgetInlinePreview :widget="widget" />
+        <WidgetPreview :widget="widget" />
       </div>
     </div>
 
