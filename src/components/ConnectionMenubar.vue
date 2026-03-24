@@ -22,10 +22,18 @@ const connections = useReactiveObjectProp<Application, Connection[]>(
 // Connection dialog state
 const showDialog = ref(false)
 const isEditing = ref(false)
+const editingConnection = ref<Connection | null>(null)
 const editingConnectionId = ref<string | null>(null)
 const form = ref({ url: '', username: '', password: '' })
 const error = ref('')
 const loading = ref(false)
+
+// Users CRUD state (connection-level)
+const connectionUsers = ref<{ name: string }[]>([])
+const usersLoading = ref(false)
+const newUserName = ref('')
+const newUserPassword = ref('')
+const userError = ref('')
 
 // Database manage modal state
 const showDbModal = ref(false)
@@ -43,6 +51,7 @@ function openAddDialog() {
 function openEditDialog(connection: Connection) {
   if (connection.id === 'local') return
   isEditing.value = true
+  editingConnection.value = connection
   editingConnectionId.value = connection.id
   form.value = {
     url: connection.url,
@@ -50,7 +59,37 @@ function openEditDialog(connection: Connection) {
     password: ''
   }
   error.value = ''
+  userError.value = ''
   showDialog.value = true
+  void loadConnectionUsers(connection)
+}
+
+async function loadConnectionUsers(connection: Connection) {
+  usersLoading.value = true
+  connectionUsers.value = (await connection.getUsers()).map((u) => ({ name: u.name }))
+  usersLoading.value = false
+}
+
+async function addConnectionUser() {
+  if (!editingConnection.value || !newUserName.value.trim() || !newUserPassword.value.trim()) return
+  userError.value = ''
+  const ok = await editingConnection.value.createUser(
+    newUserName.value.trim(),
+    newUserPassword.value.trim()
+  )
+  if (!ok) {
+    userError.value = 'Failed to create user.'
+    return
+  }
+  newUserName.value = ''
+  newUserPassword.value = ''
+  await loadConnectionUsers(editingConnection.value)
+}
+
+async function deleteConnectionUser(username: string) {
+  if (!editingConnection.value) return
+  await editingConnection.value.deleteUser(username)
+  await loadConnectionUsers(editingConnection.value)
 }
 
 async function submitForm() {
@@ -212,30 +251,74 @@ const menuItems = computed(() => {
       v-model:visible="showDialog"
       :header="isEditing ? 'Edit Connection' : 'Add Connection'"
       modal
-      class="w-[400px]"
+      class="w-full md:w-[500px]"
     >
-      <form class="flex flex-col gap-4 text-xss" @submit.prevent="submitForm">
-        <TextInput v-model="form.url" label="URL" placeholder="http://localhost:5984" />
-        <TextInput v-model="form.username" label="User" />
-        <TextInput v-model="form.password" label="Password" type="password" />
+      <div class="flex flex-col gap-6 text-xss">
+        <!-- Connection form -->
+        <form class="flex flex-col gap-4" @submit.prevent="submitForm">
+          <TextInput v-model="form.url" label="URL" placeholder="http://localhost:5984" />
+          <TextInput v-model="form.username" label="User" />
+          <TextInput v-model="form.password" label="Password" type="password" />
 
-        <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
+          <p v-if="error" class="text-red-500 text-sm">{{ error }}</p>
 
-        <div class="flex gap-2 justify-end">
-          <Button
-            v-if="isEditing"
-            severity="danger"
-            type="button"
-            :disabled="loading"
-            @click="deleteConnection"
-          >
-            Delete
-          </Button>
-          <Button type="submit" :loading="loading">
-            {{ isEditing ? 'Update' : 'Connect' }}
-          </Button>
-        </div>
-      </form>
+          <div class="flex gap-2 justify-end">
+            <Button
+              v-if="isEditing"
+              severity="danger"
+              type="button"
+              :disabled="loading"
+              @click="deleteConnection"
+            >
+              Delete
+            </Button>
+            <Button type="submit" :loading="loading">
+              {{ isEditing ? 'Update' : 'Connect' }}
+            </Button>
+          </div>
+        </form>
+
+        <!-- Users CRUD (edit mode only) -->
+        <section
+          v-if="isEditing"
+          class="border-t border-surface-200 dark:border-surface-700 pt-4"
+        >
+          <h3 class="text-sm font-semibold mb-3">Users</h3>
+
+          <div v-if="usersLoading" class="text-sm opacity-60">Loading users...</div>
+          <ul v-else class="flex flex-col gap-1 mb-3">
+            <li
+              v-for="user in connectionUsers"
+              :key="user.name"
+              class="flex items-center justify-between py-1 px-2 rounded hover:bg-surface-100 dark:hover:bg-surface-700"
+            >
+              <span class="flex items-center gap-2">
+                <i class="bi bi-person" />
+                {{ user.name }}
+              </span>
+              <Button
+                severity="danger"
+                text
+                size="small"
+                icon="bi bi-trash"
+                @click="deleteConnectionUser(user.name)"
+              />
+            </li>
+            <li v-if="connectionUsers.length === 0" class="text-sm opacity-60">
+              No users on this server.
+            </li>
+          </ul>
+
+          <div class="flex flex-col gap-2 pt-2 border-t border-surface-200 dark:border-surface-700">
+            <TextInput v-model="newUserName" label="Username" />
+            <TextInput v-model="newUserPassword" label="Password" type="password" />
+            <p v-if="userError" class="text-red-500 text-sm">{{ userError }}</p>
+            <div class="flex justify-end">
+              <Button size="small" @click="addConnectionUser">Add User</Button>
+            </div>
+          </div>
+        </section>
+      </div>
     </Dialog>
 
     <!-- Database Manage Modal -->

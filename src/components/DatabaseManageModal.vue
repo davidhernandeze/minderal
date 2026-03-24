@@ -2,6 +2,7 @@
 import { ref, watch, computed } from 'vue'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
+import Checkbox from 'primevue/checkbox'
 import TextInput from '@/components/TextInput.vue'
 import { Connection } from '@/domain/Connection'
 import { Database } from '@/domain/Database'
@@ -30,42 +31,57 @@ const dbName = ref('')
 const dbError = ref('')
 const dbLoading = ref(false)
 
-// Users section
-const users = ref<{ name: string; roles: string[] }[]>([])
+// Users access section
+const allUsers = ref<string[]>([])
+const grantedUsers = ref<string[]>([])
 const usersLoading = ref(false)
-const newUsername = ref('')
-const newPassword = ref('')
-const userError = ref('')
 
 watch(
   () => props.visible,
   async (val) => {
     if (!val) return
     dbError.value = ''
-    userError.value = ''
 
     if (props.database) {
       dbName.value = props.database.name
       if (isRemote.value) {
-        await loadUsers()
+        await loadUsersAccess()
       }
     } else {
       dbName.value = ''
-      users.value = []
+      allUsers.value = []
+      grantedUsers.value = []
     }
   }
 )
 
-async function loadUsers() {
+async function loadUsersAccess() {
   if (!props.connection || !props.database) return
   usersLoading.value = true
+
+  // Load all connection users
+  const users = await props.connection.getUsers()
+  allUsers.value = users.map((u) => u.name)
+
+  // Load which users have access to this database
   const security = await props.connection.getDbSecurity(props.database.name)
-  if (security?.members?.names) {
-    users.value = security.members.names.map((name) => ({ name, roles: [] }))
-  } else {
-    users.value = []
-  }
+  grantedUsers.value = security?.members?.names || []
+
   usersLoading.value = false
+}
+
+async function toggleUserAccess(username: string, checked: boolean) {
+  if (!props.connection || !props.database) return
+
+  if (checked) {
+    await props.connection.addUserToDb(props.database.name, username)
+  } else {
+    await props.connection.removeUserFromDb(props.database.name, username)
+  }
+
+  // Update local state
+  const security = await props.connection.getDbSecurity(props.database.name)
+  grantedUsers.value = security?.members?.names || []
 }
 
 async function createDatabase() {
@@ -105,39 +121,6 @@ async function createDatabase() {
   emit('database-created', name)
   emit('update:visible', false)
 }
-
-async function addUser() {
-  if (!props.connection || !props.database || !newUsername.value.trim()) return
-  userError.value = ''
-
-  // First ensure user exists in _users db
-  if (newPassword.value.trim()) {
-    const created = await props.connection.createUser(
-      newUsername.value.trim(),
-      newPassword.value.trim()
-    )
-    if (!created) {
-      userError.value = 'Failed to create user. It may already exist.'
-    }
-  }
-
-  // Add user to this database's security
-  const ok = await props.connection.addUserToDb(props.database.name, newUsername.value.trim())
-  if (!ok) {
-    userError.value = 'Failed to add user to database.'
-    return
-  }
-
-  newUsername.value = ''
-  newPassword.value = ''
-  await loadUsers()
-}
-
-async function removeUser(username: string) {
-  if (!props.connection || !props.database) return
-  await props.connection.removeUserFromDb(props.database.name, username)
-  await loadUsers()
-}
 </script>
 
 <template>
@@ -158,48 +141,35 @@ async function removeUser(username: string) {
         </div>
       </section>
 
-      <!-- Users Section (remote only, existing databases) -->
-      <section v-if="isRemote && !isNew">
-        <h3 class="text-sm font-semibold mb-3">Users</h3>
+      <!-- Users Access Section (remote only, existing databases) -->
+      <section
+        v-if="isRemote && !isNew"
+        class="border-t border-surface-200 dark:border-surface-700 pt-4"
+      >
+        <h3 class="text-sm font-semibold mb-3">User Access</h3>
 
-        <!-- User list -->
         <div v-if="usersLoading" class="text-sm opacity-60">Loading users...</div>
-        <ul v-else class="flex flex-col gap-1 mb-3">
+        <ul v-else class="flex flex-col gap-2">
           <li
-            v-for="user in users"
-            :key="user.name"
-            class="flex items-center justify-between py-1 px-2 rounded hover:bg-surface-100 dark:hover:bg-surface-700"
+            v-for="username in allUsers"
+            :key="username"
+            class="flex items-center gap-3 py-1 px-2 rounded hover:bg-surface-100 dark:hover:bg-surface-700"
           >
-            <span class="flex items-center gap-2">
-              <i class="bi bi-person" />
-              {{ user.name }}
-            </span>
-            <Button
-              severity="danger"
-              text
-              size="small"
-              icon="bi bi-trash"
-              @click="removeUser(user.name)"
+            <Checkbox
+              :model-value="grantedUsers.includes(username)"
+              :binary="true"
+              :input-id="`user-access-${username}`"
+              @update:model-value="(val: boolean) => toggleUserAccess(username, val)"
             />
+            <label :for="`user-access-${username}`" class="flex items-center gap-2 cursor-pointer">
+              <i class="bi bi-person" />
+              {{ username }}
+            </label>
           </li>
-          <li v-if="users.length === 0" class="text-sm opacity-60">
-            No users assigned to this database.
+          <li v-if="allUsers.length === 0" class="text-sm opacity-60">
+            No users on this connection. Add users in the connection settings.
           </li>
         </ul>
-
-        <!-- Add user form -->
-        <div class="flex flex-col gap-2 pt-2 border-t border-surface-200 dark:border-surface-700">
-          <TextInput v-model="newUsername" label="Username" />
-          <TextInput
-            v-model="newPassword"
-            label="Password (for new users)"
-            type="password"
-          />
-          <p v-if="userError" class="text-red-500 text-sm">{{ userError }}</p>
-          <div class="flex justify-end">
-            <Button size="small" @click="addUser">Add User</Button>
-          </div>
-        </div>
       </section>
     </div>
   </Dialog>

@@ -86,6 +86,18 @@ export class Connection extends EventEmitter {
     }
   }
 
+  async testDbAccess(dbName: string): Promise<boolean> {
+    try {
+      const response = await fetch(
+        `${this.url}/${encodeURIComponent(dbName)}`,
+        { credentials: 'include' }
+      )
+      return response.ok
+    } catch {
+      return false
+    }
+  }
+
   async fetchRemoteDatabases(): Promise<string[]> {
     if (!this.url) return []
 
@@ -96,7 +108,13 @@ export class Connection extends EventEmitter {
       if (!response.ok) return []
       const dbs: string[] = await response.json()
       // Filter out internal CouchDB databases
-      return dbs.filter((db) => !db.startsWith('_'))
+      const candidates = dbs.filter((db) => !db.startsWith('_'))
+
+      // Test access to each database in parallel, keep only accessible ones
+      const results = await Promise.all(
+        candidates.map(async (db) => ({ name: db, accessible: await this.testDbAccess(db) }))
+      )
+      return results.filter((r) => r.accessible).map((r) => r.name)
     } catch {
       return []
     }
@@ -122,6 +140,17 @@ export class Connection extends EventEmitter {
     }
 
     const dbNames = await this.fetchRemoteDatabases()
+
+    // Remove databases the user no longer has access to
+    for (const name of Array.from(this.dbs.keys())) {
+      if (!dbNames.includes(name)) {
+        const db = this.dbs.get(name)
+        if (db) await db.closeClient()
+        this.dbs.delete(name)
+      }
+    }
+
+    // Add any new accessible databases
     for (const dbName of dbNames) {
       this.addDatabase(dbName)
     }
@@ -191,7 +220,7 @@ export class Connection extends EventEmitter {
       )
       if (!response.ok) return []
       const data = await response.json()
-      return data.rows.map((row: any) => ({
+      return data.rows.map((row: { doc: { name: string; roles: string[]; type: string } }) => ({
         name: row.doc.name,
         roles: row.doc.roles || [],
         type: row.doc.type
@@ -252,7 +281,8 @@ export class Connection extends EventEmitter {
     const security = await this.getDbSecurity(dbName)
     if (!security) return false
     if (!security.members) security.members = { names: [], roles: [] }
-    if (!security.members?.names.includes(username)) {
+    if (!security.members.names?.includes(username)) {
+      if (!security.members.names) security.members.names = []
       security.members.names.push(username)
     }
     return await this.setDbSecurity(dbName, security)
