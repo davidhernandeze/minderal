@@ -76,7 +76,7 @@ async function moveDoc(parentDoc: string) {
 
   <Dialog v-model:visible="moveToModalOpen" header="Move widget" modal style="width: 35rem">
     <DocSelector
-      :db="widget.db"
+      :workspace="widget.getWorkspace()"
       :parents-only="true"
       :excluded-doc-ids="[widget.doc._id]"
       @select="moveDoc"

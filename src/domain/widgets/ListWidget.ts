@@ -10,7 +10,7 @@ export default class extends Widget {
   saved: boolean = false
   expandable: boolean = true
   readonly parentable: boolean = true
-  expandedComponent: string = 'FolderExpanded'
+  expandedComponent: string = 'ListExpanded'
   previewComponent: string = 'ListPreview'
   standalonePreview: boolean = true
 

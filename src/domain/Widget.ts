@@ -22,7 +22,7 @@ export abstract class Widget extends EventEmitter {
 
   readonly icon: string
   readonly expandable: boolean = false
-  readonly parentable: boolean = false
+  static readonly parentable: boolean = false
   readonly standalonePreview: boolean = false
   readonly expandedComponent?: string
   readonly previewComponent?: string

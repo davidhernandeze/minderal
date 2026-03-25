@@ -55,7 +55,8 @@ export class Workspace extends EventEmitter {
           icon: doc.icon ? `bi bi-${doc.icon}` : primitiveType.icon,
           showNameSelector: primitiveType.showNameSelector,
           isCustom: true,
-          class: primitiveType.class
+          class: primitiveType.class,
+          parentable: primitiveType.parentable
         })
       }
     } catch {

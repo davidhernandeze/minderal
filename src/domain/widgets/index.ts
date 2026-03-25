@@ -7,6 +7,7 @@ export interface WidgetTypeDefinition {
   icon: string
   showNameSelector?: boolean
   isCustom: boolean
+  parentable?: boolean
   class: () => Promise<{
     default: new (db: Database, doc: WidgetDocStructure, widgetFactory: WidgetFactory) => Widget
   }>
@@ -18,12 +19,14 @@ export const staticWidgetTypes: WidgetTypeDefinition[] = [
   {
     key: 'list',
     label: 'List',
+    parentable: true,
     icon: 'bi bi-list-ul',
     class: () => import('./ListWidget')
   },
   {
     key: 'folder',
     label: 'Folder',
+    parentable: true,
     icon: 'bi bi-folder',
     class: () => import('./FolderWidget')
   },

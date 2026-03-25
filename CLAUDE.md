@@ -119,8 +119,8 @@ Current widgets:
 
 | key | class file | preview component | expanded component |
 |---|---|---|---|
-| `list` | `ListWidget.ts` | `FolderPreview.vue` | `FolderExpanded.vue` |
-| `folder` | `FolderWidget.ts` | `FolderPreview.vue` | `FolderExpanded.vue` |
+| `list` | `ListWidget.ts` | `FolderPreview.vue` | `ListExpanded.vue` |
+| `folder` | `FolderWidget.ts` | `FolderPreview.vue` | `ListExpanded.vue` |
 | `text` | `TextWidget.ts` | `TextPreview.vue` | `TextExpanded.vue` |
 | `switch` | `SwitchWidget.ts` | `SwitchPreview.vue` | `SwitchPreview.vue` (same) |
 | `counter` | `CounterWidget.ts` | `Counter.vue` | `Counter.vue` (same) |
@@ -136,7 +136,7 @@ UI is thin — it observes domain objects via events; it does not hold its own s
 
 **`WidgetExpanded.vue`** — resolves `./widgets/expanded/<widget.expandedComponent>.vue` dynamically.
 
-**`FolderExpanded.vue`** — grid of child `WidgetPreview`s with VueDraggable reordering. Observes `children:changed` via `useReactiveObjectProp`.
+**`ListExpanded.vue`** — grid of child `WidgetPreview`s with VueDraggable reordering. Observes `children:changed` via `useReactiveObjectProp`.
 
 **`GeneralForm.vue`** — renders a `FormStructure` returned by `widget.getFormStructure()`. Supported field types: `text`, `textarea`, `number`, `checkbox`. On submit, calls `widget.updateDocFromForm(form)` + `widget.save()`.
 
@@ -231,7 +231,7 @@ A separate in-progress layout focused on a **list-based UX** and an improved wid
 
 ## Notes & Known Gaps
 
-- Drag-and-drop reorder in `FolderExpanded.vue` references a legacy doc ordering API; domain-level reorder persistence is incomplete.
+- Drag-and-drop reorder in `ListExpanded.vue` references a legacy doc ordering API; domain-level reorder persistence is incomplete.
 - `SwitchWidget` sets `expandable: true` but uses the same component for both preview and expanded — acceptable but inconsistent.
 - `WidgetDocStructure.content` is typed as `string | number | boolean | null` but some widgets (e.g. `CountdownWidget`) store objects. Cast with `as unknown as T` where needed.
 - `Database.migrate()` is a no-op stub — left for future migrations.

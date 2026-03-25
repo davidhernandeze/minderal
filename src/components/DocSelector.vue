@@ -2,13 +2,12 @@
 import { onMounted, ref } from 'vue'
 import Tree from 'primevue/tree'
 import Button from 'primevue/button'
-import { getWidgetProps } from '@/enums/widgets.js'
-import { Database } from '@/domain'
+import { Workspace } from '@/domain'
 
 const emit = defineEmits(['select'])
 
-const props = defineProps<{
-  db: Database
+const { workspace, parentsOnly, excludedDocIds } = defineProps<{
+  workspace: Workspace
   parentsOnly?: boolean
   excludedDocIds?: string[]
 }>()
@@ -27,27 +26,30 @@ const selectedKey = ref(null)
 const loading = ref(false)
 
 onMounted(async () => {
-  await getChildDocs('root', nodes.value[0])
+  await getChildDocs('widget:root', nodes.value[0])
 })
 
 async function getChildDocs(parentId, node = null) {
   if (node?.loaded) return
+  const widgetTypes = workspace.getWidgetTypes()
   loading.value = true
   let docs = []
-  if (props.parentsOnly) {
-    docs = await props.db.getDocsByParentId(parentId, 'folder')
-  } else {
-    docs = await props.db.getDocsByParentId(parentId)
-  }
+  docs = await workspace.db.getDocsByParentId(parentId)
+  docs = docs.filter((doc) => {
+    const widgetType = widgetTypes.find((t) => t.key === doc.widget)
+    if (!widgetType) return false
+    return !(parentsOnly && !widgetType.parentable)
+  })
 
   for (const doc of docs) {
-    if (props.excludedDocIds.includes(doc._id)) {
+    if (excludedDocIds.includes(doc._id)) {
       continue
     }
+    const widget = await workspace.widgetFactory.fromDoc(doc)
     const newNode = {
       key: doc._id,
       label: doc.name,
-      icon: getWidgetProps(doc.widget)?.icon,
+      icon: widget.getIcon(),
       leaf: false,
       children: []
     }
