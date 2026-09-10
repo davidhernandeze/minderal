@@ -43,8 +43,8 @@ export class LocalConnection extends Connection {
     return [...names].sort()
   }
 
-  override getDatabase(name: string): Database {
-    return Database.create(
+  protected override createDatabase(name: string): Database {
+    return Database.open(
       name,
       LOCAL_CONNECTION_USER,
       this.adapter === undefined ? {} : { adapter: this.adapter }

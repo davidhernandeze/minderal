@@ -21,9 +21,23 @@ Build what was asked for, not more.
 - **One class per file**, named after the class. Helper functions live with the single
   class that uses them; a helper shared by two classes gets its own module.
 - Abstract bases use a `protected` constructor, not `private` — `private` makes the class
-  unextendable. Concrete classes use a `private` constructor plus a `static create`.
+  unextendable. Concrete classes use a `private` constructor plus a `static create` — or a
+  better verb where `create` would collide with an instance method (`Database.open`).
   Nothing is constructible from outside because subclasses are exported from `index.ts`
   as **types only**.
+- **`async`/`await`, never callbacks or promise chains.** No `.then()`/`.catch()`, and no
+  higher-order helpers that take an async callback to wrap control flow — use `try`/`catch`
+  in the method itself. A helper that needs to decorate an error should *return* the error
+  so the caller writes `throw this.failure(...)`. Array methods (`map`, `filter`, `sort`)
+  are not what this rule is about; a function passed to a third-party API that demands one
+  (PouchDB's `fetch` option) is fine.
+- **PouchDB clients are long-lived.** One client per `Database`, opened lazily and kept
+  for the handle's lifetime; `Connection` caches its `Database` handles by name so one
+  name means one client. Do not go back to a client per operation — `close()` tears down
+  the store shared by every client on that database name, so closing one while another
+  has work in flight deadlocks with no error. Closing is safe and reversible: a closed
+  handle opens a fresh client on next use. There is no rule against `changes()` or
+  `sync()`; the sync system is still to be designed.
 - **A base class must never import its subclasses.** `class X extends Base` runs at
   module-evaluation time, so a base that constructs its own subclasses forms a cycle and
   throws a TDZ `ReferenceError` depending on which module loads first. Put construction
@@ -74,6 +88,8 @@ core/
     RemoteConnection.ts
     Database.ts         one database handle, document operations
     Neuron.ts           abstract base, shared fields and their mapping
+    NeuronError.ts
+    NeuronFactory.ts    document type -> neuron class
     StringNeuron.ts
     types/              ambient declarations for untyped dependencies
   tests/                unit tests, one file per feature
