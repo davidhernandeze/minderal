@@ -1,0 +1,38 @@
+{
+  "name": "@minderal/core",
+  "version": "0.0.0",
+  "description": "Core library for the Minderal data ingest model",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "coverage": "vitest run --coverage",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
+    "couchdb:up": "docker compose up -d --wait",
+    "couchdb:down": "docker compose down -v"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "@types/pouchdb": "^6.4.2",
+    "pouchdb-adapter-memory": "^9.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^2.1.0"
+  },
+  "dependencies": {
+    "pouchdb": "^9.0.0",
+    "pouchdb-all-dbs": "^1.1.1"
+  }
+}
