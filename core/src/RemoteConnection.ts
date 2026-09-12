@@ -112,6 +112,7 @@ async function verifySession(
 }
 
 function readSessionCookie(response: Response): string | null {
+  if (typeof response.headers.getSetCookie !== 'function') return null
   const cookies = response.headers.getSetCookie()
   const authCookie = cookies.find((cookie) => cookie.startsWith('AuthSession='))
   if (authCookie === undefined) return null

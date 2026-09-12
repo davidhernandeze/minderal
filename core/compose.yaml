@@ -6,6 +6,8 @@ services:
     environment:
       COUCHDB_USER: admin
       COUCHDB_PASSWORD: password
+    volumes:
+      - ./couchdb/local.ini:/opt/couchdb/etc/local.d/01-minderal.ini:ro
     tmpfs:
       - /opt/couchdb/data
     healthcheck:

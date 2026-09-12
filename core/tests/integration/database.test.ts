@@ -151,3 +151,83 @@ describe('Database reads against a real CouchDB', () => {
     await database.close()
   })
 })
+
+describe('Soft delete against a real CouchDB', () => {
+  async function connect() {
+    const connection = await ConnectionFactory.createRemoteConnection({
+      url: couchUrl,
+      username,
+      password
+    })
+    return connection.getDatabase(databaseName)
+  }
+
+  it('keeps the document and hides it from reads', async () => {
+    const database = await connect()
+    const parentId = `soft-delete-${Date.now()}`
+    const neuron = await database.create(StringNeuron.create({ value: 'bye', parentId }))
+
+    await database.delete(neuron)
+
+    // CouchDB still holds it; only our reads filter it out.
+    const stored: StringNeuronDocument = await readStoredDocument(neuron.id)
+    expect(stored.deleted_at).toBe(neuron.deletedAt)
+    await expect(database.get(neuron.id)).resolves.toBeNull()
+    await expect(database.listByParentId(parentId)).resolves.toEqual([])
+    await expect(
+      database.listByParentId(parentId, { includeDeleted: true })
+    ).resolves.toHaveLength(1)
+    await database.close()
+  })
+
+})
+
+describe('Recursive soft delete against a real CouchDB', () => {
+  async function connect() {
+    const connection = await ConnectionFactory.createRemoteConnection({
+      url: couchUrl,
+      username,
+      password
+    })
+    return connection.getDatabase(databaseName)
+  }
+
+  it('walks the subtree on the server and flags all of it', async () => {
+    const database = await connect()
+    const root = await database.create(StringNeuron.create({ value: `subtree ${Date.now()}` }))
+    const child = await database.create(
+      StringNeuron.create({ value: 'child', parentId: root.id })
+    )
+    const grandchild = await database.create(
+      StringNeuron.create({ value: 'grandchild', parentId: child.id })
+    )
+
+    await database.delete(root)
+
+    for (const id of [root.id, child.id, grandchild.id]) {
+      const stored: StringNeuronDocument = await readStoredDocument(id)
+      expect(stored.deleted_at).not.toBeNull()
+      await expect(database.get(id)).resolves.toBeNull()
+    }
+    await database.close()
+  })
+
+  it('pages past CouchDB\'s 25 row _find default', async () => {
+    // CouchDB answers _find with 25 rows when given no limit, exactly as
+    // PouchDB does. Without paging most of this subtree would survive.
+    const database = await connect()
+    const parentId = `wide-${Date.now()}`
+    const root = await database.create(StringNeuron.create({ value: parentId }))
+    await Promise.all(
+      Array.from({ length: 40 }, (unused, index) =>
+        database.create(StringNeuron.create({ value: `child ${index}`, parentId: root.id }))
+      )
+    )
+
+    expect(await database.listByParentId(root.id)).toHaveLength(40)
+    await database.delete(root)
+    expect(await database.listByParentId(root.id)).toEqual([])
+    expect(await database.listByParentId(root.id, { includeDeleted: true })).toHaveLength(40)
+    await database.close()
+  })
+})

@@ -15,6 +15,7 @@ describe('StringNeuron.create', () => {
     expect(neuron.createdAt).toBeNull()
     expect(neuron.updatedAt).toBeNull()
     expect(neuron.createdBy).toBeNull()
+    expect(neuron.deletedAt).toBeNull()
   })
 
   it('gives every neuron its own id', () => {
@@ -52,7 +53,8 @@ describe('StringNeuron.toDocument', () => {
       parent_id: 'parent-1',
       created_at: '2026-09-09T10:00:00.000Z',
       updated_at: '2026-09-09T11:00:00.000Z',
-      created_by: 'david'
+      created_by: 'david',
+      deleted_at: null
     })
   })
 
@@ -85,7 +87,8 @@ describe('StringNeuron.parseDocument', () => {
     parent_id: 'parent-1',
     created_at: '2026-09-09T10:00:00.000Z',
     updated_at: '2026-09-09T11:00:00.000Z',
-    created_by: 'david'
+    created_by: 'david',
+    deleted_at: null
   }
 
   it('fills the object from a document', () => {
@@ -109,6 +112,13 @@ describe('StringNeuron.parseDocument', () => {
     const neuron = StringNeuron.fromDocument({ ...storedDocument, name: null })
 
     expect(neuron.name).toBeNull()
+  })
+
+  it('reads a document written before soft delete existed', () => {
+    // deleted_at arrived later; older documents simply do not carry it.
+    const { deleted_at, ...legacyDocument } = storedDocument
+
+    expect(StringNeuron.fromDocument(legacyDocument as StringNeuronDocument).deletedAt).toBeNull()
   })
 
   it('reads a document with no _rev as an unsaved neuron', () => {

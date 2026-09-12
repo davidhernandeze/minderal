@@ -31,6 +31,17 @@ Build what was asked for, not more.
   so the caller writes `throw this.failure(...)`. Array methods (`map`, `filter`, `sort`)
   are not what this rule is about; a function passed to a third-party API that demands one
   (PouchDB's `fetch` option) is fine.
+- **Every `Database` operation awaits `initialize()` first.** It is memoized per handle, so
+  it runs once: it creates the Mango indexes the queries need and applies migrations.
+  New indexes and migrations go there, not inline in the query that needs them.
+- **PouchDB and CouchDB do not agree on Mango `null`.** `{field: null}` matches a *missing*
+  field on PouchDB's adapters but only an explicit `null` on CouchDB. A unit test on the
+  memory adapter will therefore pass while the remote silently returns nothing. Every
+  document a Mango selector filters on must carry the field — `toDocument()` always writes
+  `deleted_at` for exactly this reason — and any new selector needs an integration test.
+- **`find()` returns 25 documents when given no limit** — on PouchDB's adapters and on
+  CouchDB alike. Every Mango query pages explicitly through `findAll`; a bare `find()`
+  silently truncates and the tests pass anyway unless one of them crosses 25 rows.
 - **PouchDB clients are long-lived.** One client per `Database`, opened lazily and kept
   for the handle's lifetime; `Connection` caches its `Database` handles by name so one
   name means one client. Do not go back to a client per operation — `close()` tears down

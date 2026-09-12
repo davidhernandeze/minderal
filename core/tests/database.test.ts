@@ -69,7 +69,8 @@ describe('Database.createNeuron', () => {
       parent_id: 'parent-1',
       created_at: neuron.createdAt,
       updated_at: neuron.updatedAt,
-      created_by: 'local'
+      created_by: 'local',
+      deleted_at: null
     })
   })
 
@@ -256,5 +257,180 @@ describe('Connection.getDatabase', () => {
 
     expect(written).toHaveLength(3)
     await expect(database.list()).resolves.toHaveLength(3)
+  })
+})
+
+describe('Database.delete', () => {
+  it('marks the neuron deleted instead of removing the document', async () => {
+    const database = useDatabase('soft-delete')
+    const neuron = await database.create(StringNeuron.create({ value: 'goodbye' }))
+    const revisionBefore = neuron.revision
+
+    await database.delete(neuron)
+
+    expect(neuron.deletedAt).not.toBeNull()
+    expect(neuron.revision).not.toBe(revisionBefore)
+    // The document is still there, just flagged.
+    const stored = await readStoredDocument('soft-delete', neuron.id)
+    expect(stored.deleted_at).toBe(neuron.deletedAt)
+    expect(stored.value).toBe('goodbye')
+  })
+
+  it('hides the neuron from get', async () => {
+    const database = useDatabase('delete-get')
+    const neuron = await database.create(StringNeuron.create({ value: 'gone' }))
+    await database.delete(neuron)
+
+    await expect(database.get(neuron.id)).resolves.toBeNull()
+  })
+
+  it('still returns it when deleted are asked for', async () => {
+    const database = useDatabase('delete-include')
+    const neuron = await database.create(StringNeuron.create({ value: 'gone' }))
+    await database.delete(neuron)
+
+    const read = await database.get(neuron.id, { includeDeleted: true })
+
+    expect(read?.deletedAt).toBe(neuron.deletedAt)
+  })
+
+  it('hides the neuron from list and listByParentId', async () => {
+    const database = useDatabase('delete-lists')
+    const kept = await database.create(StringNeuron.create({ value: 'kept', parentId: 'p1' }))
+    const removed = await database.create(StringNeuron.create({ value: 'removed', parentId: 'p1' }))
+    await database.delete(removed)
+
+    await expect(database.list()).resolves.toHaveLength(1)
+    const children = await database.listByParentId('p1')
+    expect(children.map((neuron) => neuron.id)).toEqual([kept.id])
+  })
+
+  it('includes deleted in both listings on request', async () => {
+    const database = useDatabase('delete-lists-include')
+    await database.create(StringNeuron.create({ value: 'kept', parentId: 'p1' }))
+    const removed = await database.create(StringNeuron.create({ value: 'removed', parentId: 'p1' }))
+    await database.delete(removed)
+
+    await expect(database.list({ includeDeleted: true })).resolves.toHaveLength(2)
+    await expect(database.listByParentId('p1', { includeDeleted: true })).resolves.toHaveLength(2)
+  })
+})
+
+describe('Database.initialize', () => {
+  it('creates the indexes the queries rely on', async () => {
+    const database = useDatabase('init-indexes')
+    await database.initialize()
+
+    const client = new PouchDB('init-indexes', { adapter: 'memory' })
+    const { indexes } = await client.getIndexes()
+    const fields = indexes.map((index) => index.def.fields.map((f) => Object.keys(f)[0]).join(','))
+
+    expect(fields).toContain('parent_id,deleted_at')
+    expect(fields).toContain('deleted_at')
+  })
+
+  it('runs once however many operations follow', async () => {
+    const database = useDatabase('init-once')
+    await Promise.all([
+      database.create(StringNeuron.create({ value: 'a' })),
+      database.create(StringNeuron.create({ value: 'b' }))
+    ])
+
+    await expect(database.list()).resolves.toHaveLength(2)
+  })
+})
+
+describe('Database.delete recursion', () => {
+  it('soft deletes the whole subtree, not just the neuron', async () => {
+    const database = useDatabase('delete-subtree')
+    const root = await database.create(StringNeuron.create({ value: 'root' }))
+    const child = await database.create(
+      StringNeuron.create({ value: 'child', parentId: root.id })
+    )
+    const grandchild = await database.create(
+      StringNeuron.create({ value: 'grandchild', parentId: child.id })
+    )
+
+    await database.delete(root)
+
+    for (const id of [root.id, child.id, grandchild.id]) {
+      await expect(database.get(id)).resolves.toBeNull()
+      const stored = await readStoredDocument('delete-subtree', id)
+      expect(stored.deleted_at).not.toBeNull()
+    }
+  })
+
+  it('leaves neurons outside the subtree alone', async () => {
+    const database = useDatabase('delete-sibling')
+    const target = await database.create(StringNeuron.create({ value: 'target' }))
+    await database.create(StringNeuron.create({ value: 'child', parentId: target.id }))
+    const bystander = await database.create(StringNeuron.create({ value: 'bystander' }))
+
+    await database.delete(target)
+
+    await expect(database.get(bystander.id)).resolves.not.toBeNull()
+    await expect(database.list()).resolves.toHaveLength(1)
+  })
+
+  it('keeps the original timestamp on an already deleted descendant', async () => {
+    const database = useDatabase('delete-twice')
+    const root = await database.create(StringNeuron.create({ value: 'root' }))
+    const child = await database.create(
+      StringNeuron.create({ value: 'child', parentId: root.id })
+    )
+    await database.delete(child)
+    const firstDeletedAt = child.deletedAt
+
+    await database.delete(root)
+
+    const stored = await readStoredDocument('delete-twice', child.id)
+    expect(stored.deleted_at).toBe(firstDeletedAt)
+  })
+
+  it('deletes past the 25 document find() default', async () => {
+    // find() returns 25 rows when given no limit, on PouchDB and CouchDB
+    // alike. Without paging, a wide subtree is only partly deleted.
+    const database = useDatabase('delete-wide')
+    const root = await database.create(StringNeuron.create({ value: 'root' }))
+    const children = await Promise.all(
+      Array.from({ length: 40 }, (unused, index) =>
+        database.create(StringNeuron.create({ value: `child ${index}`, parentId: root.id }))
+      )
+    )
+
+    await database.delete(root)
+
+    const remaining = await database.listByParentId(root.id)
+    expect(remaining).toEqual([])
+    for (const child of children) {
+      await expect(database.get(child.id)).resolves.toBeNull()
+    }
+  })
+
+  it('terminates on a parent_id cycle', async () => {
+    // Nothing in core stops two neurons pointing at each other.
+    const database = useDatabase('delete-cycle')
+    const first = await database.create(StringNeuron.create({ value: 'first' }))
+    const second = await database.create(
+      StringNeuron.create({ value: 'second', parentId: first.id })
+    )
+    first.parentId = second.id
+    await database.create(first)
+
+    await expect(database.delete(second)).resolves.toBeDefined()
+    await expect(database.list()).resolves.toEqual([])
+  })
+})
+
+describe('Database.listByParentId paging', () => {
+  it('returns every child past the 25 document find() default', async () => {
+    const database = useDatabase('list-wide')
+    await Promise.all(
+      Array.from({ length: 40 }, (unused, index) =>
+        database.create(StringNeuron.create({ value: `child ${index}`, parentId: 'wide' }))
+      )
+    )
+
+    await expect(database.listByParentId('wide')).resolves.toHaveLength(40)
   })
 })

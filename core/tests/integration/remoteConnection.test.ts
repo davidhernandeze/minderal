@@ -17,9 +17,13 @@ async function adminRequest(path: string, method: string): Promise<Response> {
 }
 
 beforeAll(async () => {
-  const reachable = await fetch(`${couchUrl}/_up`).catch(() => null)
-  if (reachable === null || !reachable.ok) {
-    throw new Error(`CouchDB is not reachable at ${couchUrl}. Run: npm run couchdb:up`)
+  try {
+    const reachable = await fetch(`${couchUrl}/_up`)
+    if (!reachable.ok) throw new Error(`responded ${reachable.status}`)
+  } catch (cause) {
+    throw new Error(
+      `CouchDB is not reachable at ${couchUrl}. Run: npm run couchdb:up (${String(cause)})`
+    )
   }
   for (const name of testDatabaseNames) {
     await adminRequest(`/${name}`, 'PUT')
