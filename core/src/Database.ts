@@ -3,15 +3,21 @@ import findPlugin from 'pouchdb-find'
 import { ConnectionError } from './ConnectionError.js'
 import { NeuronError } from './NeuronError.js'
 import { NeuronFactory } from './NeuronFactory.js'
+import { Replication } from './Replication.js'
 import type { Neuron, NeuronDocument } from './Neuron.js'
+import type { NeuronChange, WatchHandlers } from './NeuronChange.js'
+import type { ReplicationOptions } from './Replication.js'
 
 PouchDB.plugin(findPlugin)
 
 // Both PouchDB and CouchDB cap find() at 25 documents when no limit is given,
 // so every query pages explicitly.
 const FIND_PAGE_SIZE = 200
+const FEED_REOPEN_DELAY = 2000
 
 type NeuronClient = PouchDB.Database<NeuronDocument>
+type ChangedDocument = PouchDB.Core.ExistingDocument<NeuronDocument & PouchDB.Core.ChangesMeta>
+type ChangeFeed = PouchDB.Core.Changes<NeuronDocument>
 
 export interface NeuronQueryOptions {
   includeDeleted?: boolean
@@ -23,6 +29,10 @@ export class Database {
   private readonly pouchOptions: PouchDB.Configuration.DatabaseConfiguration
   private client: NeuronClient | null
   private initialization: Promise<void> | null
+  private readonly watchers: Set<WatchHandlers>
+  private feed: ChangeFeed | null
+  private feedReopen: ReturnType<typeof setTimeout> | null
+  private readonly replications: Set<Replication>
 
   private constructor(
     location: string,
@@ -34,6 +44,10 @@ export class Database {
     this.pouchOptions = pouchOptions
     this.client = null
     this.initialization = null
+    this.watchers = new Set()
+    this.feed = null
+    this.feedReopen = null
+    this.replications = new Set()
   }
 
   static open(
@@ -137,12 +151,159 @@ export class Database {
     }
   }
 
+  async watch(handlers: WatchHandlers): Promise<() => void> {
+    await this.initialize()
+    this.watchers.add(handlers)
+    this.openFeed()
+
+    return () => {
+      this.watchers.delete(handlers)
+      if (this.watchers.size === 0) this.closeFeed()
+    }
+  }
+
+  async syncWith(other: Database, options: ReplicationOptions = {}): Promise<Replication> {
+    await this.initialize()
+    await other.initialize()
+
+    const handle = this.openClient().sync(other.openClient(), {
+      live: options.live ?? true,
+      retry: options.retry ?? true
+    })
+    const replication = Replication.start(handle)
+    this.replications.add(replication)
+    return replication
+  }
+
   async close(): Promise<void> {
+    for (const replication of this.replications) replication.stop()
+    this.replications.clear()
+    this.closeFeed()
+    this.watchers.clear()
+
     const client = this.client
     if (client === null) return
     this.client = null
     this.initialization = null
     await client.close()
+  }
+
+  private openFeed(): void {
+    if (this.feed !== null) return
+
+    // include_docs because parent_id is not in a raw changes entry, and
+    // conflicts so a collision can be resolved the moment it is seen.
+    const feed = this.openClient().changes({
+      live: true,
+      since: 'now',
+      include_docs: true,
+      conflicts: true
+    })
+    feed.on('change', (change) => {
+      void this.handleChange(change)
+    })
+    feed.on('error', (cause) => {
+      this.announceError(this.failure('Watching', cause))
+      this.announceLive(false)
+      this.closeFeed()
+      this.scheduleFeedReopen()
+    })
+    this.feed = feed
+  }
+
+  // The retry belongs to a watch the caller started, not to core acting on its
+  // own: with writes no longer driving refetches, a dead feed means a silently
+  // stale reader.
+  private scheduleFeedReopen(): void {
+    if (this.watchers.size === 0 || this.feedReopen !== null) return
+    this.feedReopen = setTimeout(() => {
+      this.feedReopen = null
+      void this.reopenFeed()
+    }, FEED_REOPEN_DELAY)
+  }
+
+  // Probed rather than assumed: reopening a feed against a server that is
+  // still down would report live, fail, and report not-live again every cycle.
+  private async reopenFeed(): Promise<void> {
+    if (this.watchers.size === 0) return
+    try {
+      await this.openClient().info()
+    } catch {
+      this.scheduleFeedReopen()
+      return
+    }
+    this.openFeed()
+    this.announceLive(true)
+  }
+
+  private closeFeed(): void {
+    if (this.feedReopen !== null) {
+      clearTimeout(this.feedReopen)
+      this.feedReopen = null
+    }
+    this.feed?.cancel()
+    this.feed = null
+  }
+
+  private async handleChange(
+    change: PouchDB.Core.ChangesResponseChange<NeuronDocument>
+  ): Promise<void> {
+    const document = change.doc
+    if (document === undefined || change.id.startsWith('_')) return
+
+    let winner: ChangedDocument = document
+    try {
+      winner = await this.resolveConflicts(document)
+    } catch (cause) {
+      this.announceError(this.failure(`Resolving conflicts on ${change.id}`, cause))
+      return
+    }
+
+    this.announce({
+      id: winner._id,
+      parentId: winner.parent_id,
+      previousParentId: winner.previous_parent_id ?? null,
+      deletedAt: winner.deleted_at ?? null,
+      revision: winner._rev,
+      neuron: change.deleted === true ? null : NeuronFactory.fromDocument(winner)
+    })
+  }
+
+  // Last write wins by updated_at. Resolution writes a new revision, which
+  // comes back as another change with no conflicts, so this does not recurse.
+  // Two peers resolving at once converge because the rule is deterministic.
+  private async resolveConflicts(document: ChangedDocument): Promise<ChangedDocument> {
+    const conflictingRevisions = document._conflicts ?? []
+    if (conflictingRevisions.length === 0) return document
+
+    const client = this.openClient()
+    const winningRevision = document._rev
+    const rivals = await Promise.all(
+      conflictingRevisions.map(async (revision) => client.get(document._id, { rev: revision }))
+    )
+    const winner = [document, ...rivals].reduce(pickLatest)
+
+    if (winner._rev !== winningRevision) {
+      await client.put(toPlainDocument(winner, winningRevision))
+    }
+    for (const rival of rivals) {
+      if (rival._rev === winningRevision) continue
+      await client.remove(document._id, rival._rev)
+    }
+
+    return client.get(document._id, { conflicts: true })
+  }
+
+  private announce(change: NeuronChange): void {
+    for (const watcher of this.watchers) watcher.change(change)
+  }
+
+  private announceError(error: Error): void {
+    for (const watcher of this.watchers) watcher.error?.(error)
+  }
+
+  private announceLive(isLive: boolean): void {
+    for (const watcher of this.watchers) watcher.live?.(isLive)
   }
 
   private async setUp(): Promise<void> {
@@ -205,12 +366,31 @@ async function collectDescendants(client: NeuronClient, rootId: string): Promise
   return descendants
 }
 
+// Every field is carried over, not just the ones on NeuronDocument: naming
+// them individually drops whatever the subclass added, so promoting a conflict
+// winner would quietly erase a StringNeuron's value and name.
+function toPlainDocument(document: ChangedDocument, revision: string): NeuronDocument {
+  const { _conflicts, _deleted, ...fields } = document
+  return { ...fields, _rev: revision }
+}
+
+function pickLatest(left: ChangedDocument, right: ChangedDocument): ChangedDocument {
+  const leftStamp = left.updated_at ?? ''
+  const rightStamp = right.updated_at ?? ''
+  if (leftStamp !== rightStamp) return leftStamp > rightStamp ? left : right
+  // Equal timestamps still have to resolve the same way on every peer.
+  return left._rev > right._rev ? left : right
+}
+
 function isWriteSuccess(
   result: PouchDB.Core.Response | PouchDB.Core.Error
 ): result is PouchDB.Core.Response {
   return 'ok' in result && result.ok === true
 }
 
+// Newest first. Sorted here rather than through a Mango sort because findAll
+// already pages the whole result set in, and an indexed sort would need the
+// sort field in the index and the same direction on both engines.
 function toNeurons(
   documents: Array<NeuronDocument | undefined>,
   options: NeuronQueryOptions
@@ -219,8 +399,16 @@ function toNeurons(
     .filter((document): document is NeuronDocument => document !== undefined)
     .filter((document) => !document._id.startsWith('_'))
     .filter((document) => options.includeDeleted === true || !isDeleted(document))
-    .sort((left, right) => left._id.localeCompare(right._id))
+    .sort(byNewestFirst)
     .map((document) => NeuronFactory.fromDocument(document))
+}
+
+function byNewestFirst(left: NeuronDocument, right: NeuronDocument): number {
+  const leftStamp = left.created_at ?? ''
+  const rightStamp = right.created_at ?? ''
+  if (leftStamp !== rightStamp) return leftStamp > rightStamp ? -1 : 1
+  // Two neurons written in the same millisecond still need a stable order.
+  return left._id.localeCompare(right._id)
 }
 
 function isDeleted(document: NeuronDocument): boolean {

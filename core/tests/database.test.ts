@@ -67,6 +67,7 @@ describe('Database.createNeuron', () => {
       value: 'hello',
       name: 'Greeting',
       parent_id: 'parent-1',
+      previous_parent_id: null,
       created_at: neuron.createdAt,
       updated_at: neuron.updatedAt,
       created_by: 'local',
@@ -148,7 +149,7 @@ describe('Database.get', () => {
 })
 
 describe('Database.list', () => {
-  it('returns every neuron, sorted by id', async () => {
+  it('returns every neuron', async () => {
     const database = useDatabase('list-all')
     const first = await database.create(StringNeuron.create({ value: 'a' }))
     const second = await database.create(StringNeuron.create({ value: 'b' }))
@@ -209,7 +210,7 @@ describe('Database.listByParentId', () => {
     await expect(database.listByParentId('nobody')).resolves.toEqual([])
   })
 
-  it('sorts children by id', async () => {
+  it('returns a stable order for children sharing a timestamp', async () => {
     const database = useDatabase('by-parent-sorted')
     const created = await Promise.all([
       database.create(StringNeuron.create({ value: 'a', parentId: 'p1' })),
@@ -432,5 +433,77 @@ describe('Database.listByParentId paging', () => {
     )
 
     await expect(database.listByParentId('wide')).resolves.toHaveLength(40)
+  })
+})
+
+describe('Ordering', () => {
+  // created_at is written by Database.create, so the timestamps are seeded
+  // directly here to make the order deterministic rather than time-dependent.
+  async function seed(databaseName: string, entries: Array<[string, string]>): Promise<void> {
+    const client = new PouchDB<Record<string, unknown>>(databaseName, { adapter: 'memory' })
+    for (const [id, createdAt] of entries) {
+      await client.put({
+        _id: id,
+        type: 'string',
+        value: id,
+        name: null,
+        parent_id: 'p1',
+        previous_parent_id: null,
+        created_at: createdAt,
+        updated_at: createdAt,
+        created_by: 'local',
+        deleted_at: null
+      })
+    }
+  }
+
+  it('lists children newest first', async () => {
+    const database = useDatabase('order-children')
+    await seed('order-children', [
+      ['oldest', '2026-01-01T00:00:00.000Z'],
+      ['newest', '2026-03-01T00:00:00.000Z'],
+      ['middle', '2026-02-01T00:00:00.000Z']
+    ])
+
+    const children = await database.listByParentId('p1')
+
+    expect(children.map((neuron) => neuron.id)).toEqual(['newest', 'middle', 'oldest'])
+  })
+
+  it('lists everything newest first too', async () => {
+    const database = useDatabase('order-all')
+    await seed('order-all', [
+      ['b-older', '2026-01-01T00:00:00.000Z'],
+      ['a-newer', '2026-02-01T00:00:00.000Z']
+    ])
+
+    const all = await database.list()
+
+    // Newest wins over the alphabetically earlier id.
+    expect(all.map((neuron) => neuron.id)).toEqual(['a-newer', 'b-older'])
+  })
+
+  it('falls back to id when timestamps match', async () => {
+    const database = useDatabase('order-tie')
+    await seed('order-tie', [
+      ['zeta', '2026-01-01T00:00:00.000Z'],
+      ['alpha', '2026-01-01T00:00:00.000Z']
+    ])
+
+    const children = await database.listByParentId('p1')
+
+    expect(children.map((neuron) => neuron.id)).toEqual(['alpha', 'zeta'])
+  })
+
+  it('puts a freshly created neuron at the front', async () => {
+    const database = useDatabase('order-fresh')
+    await seed('order-fresh', [['existing', '2026-01-01T00:00:00.000Z']])
+    const created = await database.create(
+      StringNeuron.create({ value: 'brand new', parentId: 'p1' })
+    )
+
+    const children = await database.listByParentId('p1')
+
+    expect(children[0]?.id).toBe(created.id)
   })
 })

@@ -8,10 +8,15 @@ services:
       COUCHDB_PASSWORD: password
     volumes:
       - ./couchdb/local.ini:/opt/couchdb/etc/local.d/01-minderal.ini:ro
-    tmpfs:
-      - /opt/couchdb/data
+      # A named volume, not tmpfs: tmpfs is wiped whenever the container stops,
+      # so `docker compose stop` loses every database. `couchdb:down` still
+      # drops the volume when a clean slate is wanted.
+      - couchdb-data:/opt/couchdb/data
     healthcheck:
       test: ['CMD', 'curl', '-f', 'http://localhost:5984/_up']
       interval: 2s
       timeout: 3s
       retries: 20
+
+volumes:
+  couchdb-data:

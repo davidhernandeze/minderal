@@ -42,6 +42,13 @@ Build what was asked for, not more.
 - **`find()` returns 25 documents when given no limit** — on PouchDB's adapters and on
   CouchDB alike. Every Mango query pages explicitly through `findAll`; a bare `find()`
   silently truncates and the tests pass anyway unless one of them crosses 25 rows.
+- **Nothing core starts runs on its own initiative.** `watch()` and `syncWith()` are
+  explicit: the caller starts them and gets something back to stop them, and `close()`
+  stops everything the handle owns. The feed's reopen timer belongs to a watch the caller
+  started, not to core polling by itself.
+- **Rebuild a document by spreading it, never field by field.** Naming the `NeuronDocument`
+  fields drops whatever the subclass added — promoting a conflict winner that way erased a
+  StringNeuron's value and name, and only a replication test caught it.
 - **PouchDB clients are long-lived.** One client per `Database`, opened lazily and kept
   for the handle's lifetime; `Connection` caches its `Database` handles by name so one
   name means one client. Do not go back to a client per operation — `close()` tears down
@@ -97,7 +104,9 @@ core/
     ConnectionFactory.ts  the only way to construct a connection
     LocalConnection.ts
     RemoteConnection.ts
-    Database.ts         one database handle, document operations
+    Database.ts         one database handle, document operations, watch, sync
+    NeuronChange.ts     what a watcher receives
+    Replication.ts      a live link between two Database handles
     Neuron.ts           abstract base, shared fields and their mapping
     NeuronError.ts
     NeuronFactory.ts    document type -> neuron class

@@ -3,6 +3,7 @@ export interface NeuronDocument {
   _rev?: string
   type: string
   parent_id: string | null
+  previous_parent_id: string | null
   created_at: string | null
   updated_at: string | null
   created_by: string | null
@@ -13,6 +14,7 @@ export abstract class Neuron {
   id: string
   revision: string | null
   parentId: string | null
+  previousParentId: string | null
   createdAt: string | null
   updatedAt: string | null
   createdBy: string | null
@@ -22,6 +24,7 @@ export abstract class Neuron {
     this.id = crypto.randomUUID()
     this.revision = null
     this.parentId = null
+    this.previousParentId = null
     this.createdAt = null
     this.updatedAt = null
     this.createdBy = null
@@ -39,6 +42,7 @@ export abstract class Neuron {
       _id: this.id,
       type: this.type,
       parent_id: this.parentId,
+      previous_parent_id: this.previousParentId,
       created_at: this.createdAt,
       updated_at: this.updatedAt,
       created_by: this.createdBy,
@@ -52,6 +56,7 @@ export abstract class Neuron {
     this.id = document._id
     this.revision = document._rev ?? null
     this.parentId = document.parent_id
+    this.previousParentId = document.previous_parent_id ?? null
     this.createdAt = document.created_at
     this.updatedAt = document.updated_at
     this.createdBy = document.created_by
