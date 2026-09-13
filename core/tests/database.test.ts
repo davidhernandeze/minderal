@@ -1,7 +1,7 @@
 import PouchDB from 'pouchdb'
 import memoryAdapter from 'pouchdb-adapter-memory'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ConnectionFactory, NeuronError, StringNeuron } from '../src/index.js'
+import { ConnectionFactory, NEURON_ID_PREFIX, NeuronError, StringNeuron } from '../src/index.js'
 import type { Database } from '../src/index.js'
 import type { StringNeuronDocument } from '../src/index.js'
 
@@ -153,11 +153,12 @@ describe('Database.list', () => {
     const database = useDatabase('list-all')
     const first = await database.create(StringNeuron.create({ value: 'a' }))
     const second = await database.create(StringNeuron.create({ value: 'b' }))
-    const expectedIds = [first.id, second.id].sort()
 
     const neurons = await database.list()
 
-    expect(neurons.map((neuron) => neuron.id)).toEqual(expectedIds)
+    // Membership only: whether these two share a millisecond decides the
+    // order, and the Ordering suite covers that deliberately.
+    expect(neurons.map((neuron) => neuron.id).sort()).toEqual([first.id, second.id].sort())
   })
 
   it('is empty for a database with nothing in it', async () => {
@@ -443,7 +444,7 @@ describe('Ordering', () => {
     const client = new PouchDB<Record<string, unknown>>(databaseName, { adapter: 'memory' })
     for (const [id, createdAt] of entries) {
       await client.put({
-        _id: id,
+        _id: `${NEURON_ID_PREFIX}${id}`,
         type: 'string',
         value: id,
         name: null,
@@ -467,7 +468,9 @@ describe('Ordering', () => {
 
     const children = await database.listByParentId('p1')
 
-    expect(children.map((neuron) => neuron.id)).toEqual(['newest', 'middle', 'oldest'])
+    expect(children.map((neuron) => neuron.id)).toEqual(
+      ['newest', 'middle', 'oldest'].map((id) => `${NEURON_ID_PREFIX}${id}`)
+    )
   })
 
   it('lists everything newest first too', async () => {
@@ -480,7 +483,9 @@ describe('Ordering', () => {
     const all = await database.list()
 
     // Newest wins over the alphabetically earlier id.
-    expect(all.map((neuron) => neuron.id)).toEqual(['a-newer', 'b-older'])
+    expect(all.map((neuron) => neuron.id)).toEqual(
+      ['a-newer', 'b-older'].map((id) => `${NEURON_ID_PREFIX}${id}`)
+    )
   })
 
   it('falls back to id when timestamps match', async () => {
@@ -492,7 +497,9 @@ describe('Ordering', () => {
 
     const children = await database.listByParentId('p1')
 
-    expect(children.map((neuron) => neuron.id)).toEqual(['alpha', 'zeta'])
+    expect(children.map((neuron) => neuron.id)).toEqual(
+      ['alpha', 'zeta'].map((id) => `${NEURON_ID_PREFIX}${id}`)
+    )
   })
 
   it('puts a freshly created neuron at the front', async () => {
@@ -505,5 +512,146 @@ describe('Ordering', () => {
     const children = await database.listByParentId('p1')
 
     expect(children[0]?.id).toBe(created.id)
+  })
+})
+
+describe('Neuron id prefix', () => {
+  it('selects neurons by key range, ignoring anything stored alongside them', async () => {
+    // The prefix is the index: a foreign document in the same database is not
+    // in the range, so it never reaches the neuron factory.
+    const database = useDatabase('prefix-range')
+    const neuron = await database.create(StringNeuron.create({ name: 'a real neuron' }))
+    const client = new PouchDB<Record<string, unknown>>('prefix-range', { adapter: 'memory' })
+    await client.put({ _id: 'config:app', kind: 'not a neuron' })
+    await client.put({ _id: 'zzz-after-the-range', kind: 'also not a neuron' })
+
+    const all = await database.list()
+
+    expect(all.map((found) => found.id)).toEqual([neuron.id])
+  })
+
+  it('ignores a foreign document on the change feed', async () => {
+    const database = useDatabase('prefix-watch')
+    const seen: string[] = []
+    const stop = await database.watch({ change: (change) => seen.push(change.id) })
+
+    const client = new PouchDB<Record<string, unknown>>('prefix-watch', { adapter: 'memory' })
+    await client.put({ _id: 'config:app', kind: 'not a neuron' })
+    const neuron = await database.create(StringNeuron.create({ name: 'watched' }))
+
+    const deadline = Date.now() + 3000
+    while (!seen.includes(neuron.id) && Date.now() < deadline) {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    }
+
+    expect(seen).toEqual([neuron.id])
+    stop()
+  })
+})
+
+describe('Database.update', () => {
+  it('writes the change back and moves the revision on', async () => {
+    const database = useDatabase('update-write')
+    const neuron = await database.create(StringNeuron.create({ name: 'before' }))
+    const revisionBefore = neuron.revision
+    const updatedAtBefore = neuron.updatedAt ?? ''
+    // Timestamps have millisecond resolution, so give the clock room to move
+    // rather than asserting on two writes that can land in the same tick.
+    await new Promise((resolve) => setTimeout(resolve, 5))
+
+    neuron.value = 'edited content'
+    await database.update(neuron)
+
+    expect(neuron.revision).not.toBe(revisionBefore)
+    expect((neuron.updatedAt ?? '') > updatedAtBefore).toBe(true)
+    const stored = await readStoredDocument('update-write', neuron.id)
+    expect(stored.value).toBe('edited content')
+  })
+
+  it('leaves created_at alone', async () => {
+    const database = useDatabase('update-created')
+    const neuron = await database.create(StringNeuron.create({ name: 'keeps its birthday' }))
+    const createdAt = neuron.createdAt
+
+    neuron.value = 'changed'
+    await database.update(neuron)
+
+    expect(neuron.createdAt).toBe(createdAt)
+  })
+
+  it('refuses a neuron that was never saved', async () => {
+    const database = useDatabase('update-unsaved')
+    const neuron = StringNeuron.create({ name: 'never written' })
+
+    await expect(database.update(neuron)).rejects.toThrow(NeuronError)
+  })
+
+  it('fails loudly on a stale revision rather than forking the document', async () => {
+    const database = useDatabase('update-stale')
+    const neuron = await database.create(StringNeuron.create({ name: 'contested' }))
+    // A second reader edits first, leaving the first holder's revision behind.
+    const other = await database.get(neuron.id)
+    if (other === null) throw new Error('setup failed')
+    other.name = 'won the race'
+    await database.update(other)
+
+    neuron.name = 'lost the race'
+    await expect(database.update(neuron)).rejects.toThrow(/conflict \(409\)/)
+  })
+})
+
+describe('Database.rename', () => {
+  it('changes the name and persists it', async () => {
+    const database = useDatabase('rename-basic')
+    const neuron = await database.create(StringNeuron.create({ name: 'old name' }))
+
+    await database.rename(neuron, 'new name')
+
+    expect(neuron.name).toBe('new name')
+    const stored = await readStoredDocument('rename-basic', neuron.id)
+    expect(stored.name).toBe('new name')
+  })
+
+  it('trims surrounding whitespace', async () => {
+    const database = useDatabase('rename-trim')
+    const neuron = await database.create(StringNeuron.create({ name: 'old' }))
+
+    await database.rename(neuron, '   padded   ')
+
+    expect(neuron.name).toBe('padded')
+  })
+
+  it('treats an empty name as no name', async () => {
+    const database = useDatabase('rename-empty')
+    const neuron = await database.create(StringNeuron.create({ name: 'had one' }))
+
+    await database.rename(neuron, '   ')
+
+    expect(neuron.name).toBeNull()
+    const stored = await readStoredDocument('rename-empty', neuron.id)
+    expect(stored.name).toBeNull()
+  })
+
+  it('leaves the value untouched', async () => {
+    const database = useDatabase('rename-value')
+    const neuron = await database.create(
+      StringNeuron.create({ name: 'a name', value: 'some content' })
+    )
+
+    await database.rename(neuron, 'a different name')
+
+    const reloaded = await database.get(neuron.id)
+    expect(reloaded instanceof StringNeuron ? reloaded.value : null).toBe('some content')
+  })
+
+  it('does not resurrect a deleted neuron', async () => {
+    const database = useDatabase('rename-deleted')
+    const neuron = await database.create(StringNeuron.create({ name: 'gone' }))
+    await database.delete(neuron)
+
+    await database.rename(neuron, 'renamed while deleted')
+
+    // Renaming writes the neuron as it stands, deleted_at included.
+    await expect(database.get(neuron.id)).resolves.toBeNull()
   })
 })

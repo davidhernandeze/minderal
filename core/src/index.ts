@@ -12,7 +12,7 @@ export type {
 } from './Replication.js'
 export { NeuronError } from './NeuronError.js'
 export { NeuronFactory } from './NeuronFactory.js'
-export { Neuron } from './Neuron.js'
+export { Neuron, NEURON_ID_PREFIX, generateNeuronId, isNeuronId } from './Neuron.js'
 export { StringNeuron, STRING_NEURON_TYPE } from './StringNeuron.js'
 export type { NeuronDocument } from './Neuron.js'
 export type { StringNeuronDocument, StringNeuronProperties } from './StringNeuron.js'

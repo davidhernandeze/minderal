@@ -39,9 +39,20 @@ Build what was asked for, not more.
   memory adapter will therefore pass while the remote silently returns nothing. Every
   document a Mango selector filters on must carry the field — `toDocument()` always writes
   `deleted_at` for exactly this reason — and any new selector needs an integration test.
+- **Every neuron document id is `neuron:<uuid>`.** The prefix is an index: `list()` selects
+  them with an `_all_docs` key range, and `isNeuronId` keeps anything else stored in the
+  same database — design documents, config, whatever comes later — out of the neuron
+  factory and off the change feed. Ids come from `generateNeuronId()`, never from PouchDB.
+- **`name` lives on `Neuron`, not on a subclass.** It is a label every kind needs, which is
+  what lets `Database.rename` be typed generally; `value` is `StringNeuron`'s content.
 - **`find()` returns 25 documents when given no limit** — on PouchDB's adapters and on
   CouchDB alike. Every Mango query pages explicitly through `findAll`; a bare `find()`
   silently truncates and the tests pass anyway unless one of them crosses 25 rows.
+- **Browser timings measured through the automation harness are not real.** The tab runs
+  hidden (`document.hidden === true`), and Chrome clamps `setTimeout` to once per second
+  there — which quantises both the app's debounce and any polling loop used to measure it.
+  Use a `MutationObserver` rather than a polling loop, and treat anything near a 1s multiple
+  as the clamp rather than a latency to chase.
 - **Nothing core starts runs on its own initiative.** `watch()` and `syncWith()` are
   explicit: the caller starts them and gets something back to stop them, and `close()`
   stops everything the handle owns. The feed's reopen timer belongs to a watch the caller

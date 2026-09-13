@@ -15,6 +15,5 @@ export class NeuronFactory {
 
 function isStringNeuronDocument(document: NeuronDocument): document is StringNeuronDocument {
   if (document.type !== STRING_NEURON_TYPE) return false
-  if (!('value' in document) || typeof document.value !== 'string') return false
-  return 'name' in document && (typeof document.name === 'string' || document.name === null)
+  return 'value' in document && typeof document.value === 'string'
 }

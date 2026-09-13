@@ -4,6 +4,7 @@ import { ConnectionError } from './ConnectionError.js'
 import { NeuronError } from './NeuronError.js'
 import { NeuronFactory } from './NeuronFactory.js'
 import { Replication } from './Replication.js'
+import { NEURON_ID_PREFIX, isNeuronId } from './Neuron.js'
 import type { Neuron, NeuronDocument } from './Neuron.js'
 import type { NeuronChange, WatchHandlers } from './NeuronChange.js'
 import type { ReplicationOptions } from './Replication.js'
@@ -84,6 +85,34 @@ export class Database {
     }
   }
 
+  // Writes an existing neuron back. The caller mutates the object, this stamps
+  // updated_at and carries the new revision; a stale revision fails loudly
+  // rather than silently forking the document.
+  async update<NeuronType extends Neuron>(neuron: NeuronType): Promise<NeuronType> {
+    await this.initialize()
+    if (neuron.revision === null) {
+      throw new NeuronError(`Neuron ${neuron.id} has never been saved, so it cannot be updated`)
+    }
+    neuron.updatedAt = new Date().toISOString()
+
+    try {
+      const response = await this.openClient().put(neuron.toDocument())
+      neuron.revision = response.rev
+      return neuron
+    } catch (cause) {
+      throw this.failure(`Updating neuron ${neuron.id}`, cause)
+    }
+  }
+
+  async rename<NeuronType extends Neuron>(
+    neuron: NeuronType,
+    name: string | null
+  ): Promise<NeuronType> {
+    const trimmed = name === null ? null : name.trim()
+    neuron.name = trimmed === null || trimmed.length === 0 ? null : trimmed
+    return this.update(neuron)
+  }
+
   async delete<NeuronType extends Neuron>(neuron: NeuronType): Promise<NeuronType> {
     await this.initialize()
     const timestamp = new Date().toISOString()
@@ -125,7 +154,11 @@ export class Database {
   async list(options: NeuronQueryOptions = {}): Promise<Neuron[]> {
     await this.initialize()
     try {
-      const response = await this.openClient().allDocs({ include_docs: true })
+      const response = await this.openClient().allDocs({
+        include_docs: true,
+        startkey: NEURON_ID_PREFIX,
+        endkey: `${NEURON_ID_PREFIX}\uffff`
+      })
       return toNeurons(
         response.rows.map((row) => row.doc),
         options
@@ -249,7 +282,7 @@ export class Database {
     change: PouchDB.Core.ChangesResponseChange<NeuronDocument>
   ): Promise<void> {
     const document = change.doc
-    if (document === undefined || change.id.startsWith('_')) return
+    if (document === undefined || !isNeuronId(change.id)) return
 
     let winner: ChangedDocument = document
     try {
@@ -397,7 +430,7 @@ function toNeurons(
 ): Neuron[] {
   return documents
     .filter((document): document is NeuronDocument => document !== undefined)
-    .filter((document) => !document._id.startsWith('_'))
+    .filter((document) => isNeuronId(document._id))
     .filter((document) => options.includeDeleted === true || !isDeleted(document))
     .sort(byNewestFirst)
     .map((document) => NeuronFactory.fromDocument(document))

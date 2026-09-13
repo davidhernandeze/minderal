@@ -1,12 +1,13 @@
 import { describe, expect, it } from 'vitest'
-import { STRING_NEURON_TYPE, StringNeuron } from '../src/index.js'
+import { NEURON_ID_PREFIX, STRING_NEURON_TYPE, StringNeuron } from '../src/index.js'
 import type { StringNeuronDocument } from '../src/index.js'
 
 describe('StringNeuron.create', () => {
   it('assigns an id and leaves the saved-only fields empty', () => {
     const neuron = StringNeuron.create({ value: 'hello' })
 
-    expect(neuron.id).toMatch(/^[0-9a-f-]{36}$/)
+    // Every neuron id carries the prefix a key range selects on.
+    expect(neuron.id).toMatch(/^neuron:[0-9a-f-]{36}$/)
     expect(neuron.value).toBe('hello')
     expect(neuron.name).toBeNull()
     expect(neuron.type).toBe(STRING_NEURON_TYPE)
@@ -80,7 +81,7 @@ describe('StringNeuron.toDocument', () => {
 
 describe('StringNeuron.parseDocument', () => {
   const storedDocument: StringNeuronDocument = {
-    _id: 'neuron-1',
+    _id: `${NEURON_ID_PREFIX}neuron-1`,
     _rev: '2-def',
     type: 'string',
     value: 'stored',
@@ -96,7 +97,7 @@ describe('StringNeuron.parseDocument', () => {
   it('fills the object from a document', () => {
     const neuron = StringNeuron.fromDocument(storedDocument)
 
-    expect(neuron.id).toBe('neuron-1')
+    expect(neuron.id).toBe(`${NEURON_ID_PREFIX}neuron-1`)
     expect(neuron.revision).toBe('2-def')
     expect(neuron.value).toBe('stored')
     expect(neuron.name).toBe('Stored name')
