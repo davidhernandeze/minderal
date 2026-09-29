@@ -43,6 +43,12 @@ Build what was asked for, not more.
   them with an `_all_docs` key range, and `isNeuronId` keeps anything else stored in the
   same database — design documents, config, whatever comes later — out of the neuron
   factory and off the change feed. Ids come from `generateNeuronId()`, never from PouchDB.
+- **A CouchDB session is dated from the newest cookie, not from login.** Every
+  authenticated response carries a replacement, and the session lives
+  `couch_httpd_auth.timeout` from the most recent one — so a client that replays the
+  login cookie expires at that timeout however busy it is. `RemoteConnection` absorbs the
+  replacement from every response; a browser's cookie jar does this by itself, and
+  `getSetCookie()` is always empty there, so the absorb is a no-op in the browser.
 - **`name` lives on `Neuron`, not on a subclass.** It is a label every kind needs, which is
   what lets `Database.rename` be typed generally; `value` is `StringNeuron`'s content.
 - **`find()` returns 25 documents when given no limit** — on PouchDB's adapters and on
@@ -101,8 +107,18 @@ npm run test:integration
 npm run couchdb:down    # stop it and drop the volume
 ```
 
-CouchDB runs on `localhost:5984` as `admin`/`password`, with its data in tmpfs so every
-`up` starts clean. Override with `COUCHDB_URL`, `COUCHDB_USER`, `COUCHDB_PASSWORD`.
+CouchDB runs on `localhost:5984` as `admin`/`password`, its data in a named volume that
+survives a restart (`couchdb:down` drops it). Override with `COUCHDB_URL`, `COUCHDB_USER`,
+`COUCHDB_PASSWORD`.
+
+Sessions are configured to last 400 days idle — see the reasoning in
+`couchdb/local.ini`. Revocation is by rotating `chttpd_auth.secret`, which invalidates
+every outstanding cookie at once:
+
+```
+curl -u admin:password -X PUT http://localhost:5984/_node/_local/_config/chttpd_auth/secret \
+  -H 'Content-Type: application/json' -d "\"$(openssl rand -hex 16)\""
+```
 
 ## Layout
 

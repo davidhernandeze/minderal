@@ -186,6 +186,59 @@ describe('ConnectionFactory.createRemoteConnection', () => {
   })
 })
 
+describe('Session renewal', () => {
+  function couchCookie(value: string): ResponseInit {
+    return { headers: { 'set-cookie': `AuthSession=${value}; Version=1; Path=/; HttpOnly` } }
+  }
+
+  it('replays the newest cookie the server issued, not the one from login', async () => {
+    // CouchDB re-issues the cookie on every authenticated response and dates
+    // the session from the newest one. Replaying the login cookie forever caps
+    // the connection at couch_httpd_auth.timeout however busy it is.
+    const fetchMock = stubCouchServer({
+      'POST http://couch.test/_session': () => new Response('{"ok":true}', couchCookie('one')),
+      'GET http://couch.test/_session': () =>
+        new Response(JSON.stringify({ ok: true, userCtx: { name: 'david' } }), couchCookie('two')),
+      'GET http://couch.test/_all_dbs': () => new Response('["notes"]', couchCookie('three'))
+    })
+
+    const connection = await ConnectionFactory.createRemoteConnection({
+      url: 'http://couch.test',
+      username: 'david',
+      password: 'secret'
+    })
+    await connection.getDatabaseList()
+    await connection.getDatabaseList()
+
+    const sent = fetchMock.mock.calls.map((call) => {
+      const headers = call[1]?.headers
+      return headers !== undefined && 'Cookie' in headers ? headers.Cookie : null
+    })
+    // login (none) -> verify uses the login cookie -> then each renewal in turn.
+    expect(sent).toEqual([null, 'AuthSession=one', 'AuthSession=two', 'AuthSession=three'])
+  })
+
+  it('keeps the current cookie when a response carries no replacement', async () => {
+    const fetchMock = stubCouchServer({
+      'POST http://couch.test/_session': () => new Response('{"ok":true}', couchCookie('one')),
+      'GET http://couch.test/_session': () =>
+        jsonResponse({ ok: true, userCtx: { name: 'david' } }),
+      'GET http://couch.test/_all_dbs': () => jsonResponse(['notes'])
+    })
+
+    const connection = await ConnectionFactory.createRemoteConnection({
+      url: 'http://couch.test',
+      username: 'david',
+      password: 'secret'
+    })
+    await connection.getDatabaseList()
+
+    expect(fetchMock.mock.calls.at(-1)?.[1]).toMatchObject({
+      headers: { Cookie: 'AuthSession=one' }
+    })
+  })
+})
+
 describe('RemoteConnection.getDatabaseList', () => {
   async function connectTo(routes: Record<string, RouteHandler>): Promise<Connection> {
     stubCouchServer({ 'GET http://couch.test/_session': anonymousSession, ...routes })
