@@ -38,6 +38,10 @@ export class LocalConnection extends Connection {
     return new LocalConnection(options)
   }
 
+  override get user(): string {
+    return LOCAL_CONNECTION_USER
+  }
+
   async getDatabaseList(): Promise<string[]> {
     const names = await this.pouchConstructor.allDbs()
     return [...names].sort()

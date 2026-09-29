@@ -12,6 +12,13 @@ export function isNeuronId(id: string): boolean {
   return id.startsWith(NEURON_ID_PREFIX)
 }
 
+// A 1-to-1 relation: the name lives on the owner, the value and all of its
+// metadata live in the neuron the id points at.
+export interface NeuronAttribute {
+  name: string
+  id: string
+}
+
 export interface NeuronDocument {
   _id: string
   _rev?: string
@@ -19,6 +26,11 @@ export interface NeuronDocument {
   name: string | null
   parent_id: string | null
   previous_parent_id: string | null
+  attributes: NeuronAttribute[]
+  // Set on a neuron that exists to hold an attribute's value. Such a neuron has
+  // no parent_id: it is reached through its owner's attributes array, and is
+  // kept out of the listings so it never reads as a child.
+  attribute_of: string | null
   created_at: string | null
   updated_at: string | null
   created_by: string | null
@@ -31,6 +43,8 @@ export abstract class Neuron {
   name: string | null
   parentId: string | null
   previousParentId: string | null
+  attributes: NeuronAttribute[]
+  attributeOf: string | null
   createdAt: string | null
   updatedAt: string | null
   createdBy: string | null
@@ -42,6 +56,8 @@ export abstract class Neuron {
     this.name = null
     this.parentId = null
     this.previousParentId = null
+    this.attributes = []
+    this.attributeOf = null
     this.createdAt = null
     this.updatedAt = null
     this.createdBy = null
@@ -61,6 +77,8 @@ export abstract class Neuron {
       name: this.name,
       parent_id: this.parentId,
       previous_parent_id: this.previousParentId,
+      attributes: this.attributes,
+      attribute_of: this.attributeOf,
       created_at: this.createdAt,
       updated_at: this.updatedAt,
       created_by: this.createdBy,
@@ -76,6 +94,8 @@ export abstract class Neuron {
     this.name = document.name
     this.parentId = document.parent_id
     this.previousParentId = document.previous_parent_id ?? null
+    this.attributes = document.attributes ?? []
+    this.attributeOf = document.attribute_of ?? null
     this.createdAt = document.created_at
     this.updatedAt = document.updated_at
     this.createdBy = document.created_by

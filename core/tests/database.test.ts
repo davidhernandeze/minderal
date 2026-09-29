@@ -68,6 +68,8 @@ describe('Database.createNeuron', () => {
       name: 'Greeting',
       parent_id: 'parent-1',
       previous_parent_id: null,
+      attributes: [],
+      attribute_of: null,
       created_at: neuron.createdAt,
       updated_at: neuron.updatedAt,
       created_by: 'local',

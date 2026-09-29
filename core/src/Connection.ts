@@ -7,6 +7,9 @@ export abstract class Connection {
     this.databasesByName = new Map()
   }
 
+  /** Who the server answered as; `anonymous` when no session is in play. */
+  abstract get user(): string
+
   abstract getDatabaseList(): Promise<string[]>
 
   getDatabase(name: string): Database {

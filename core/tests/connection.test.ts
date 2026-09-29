@@ -1,7 +1,13 @@
 import PouchDB from 'pouchdb'
 import memoryAdapter from 'pouchdb-adapter-memory'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { Connection, ConnectionError, ConnectionFactory } from '../src/index.js'
+import {
+  ANONYMOUS_REMOTE_USER,
+  Connection,
+  ConnectionError,
+  ConnectionFactory,
+  LOCAL_CONNECTION_USER
+} from '../src/index.js'
 
 PouchDB.plugin(memoryAdapter)
 
@@ -268,5 +274,50 @@ describe('RemoteConnection.getDatabaseList', () => {
     })
 
     await expect(connection.getDatabaseList()).rejects.toThrow(/Unexpected _all_dbs payload/)
+  })
+})
+
+describe('Connection.user', () => {
+  it('reports the authenticated user on a remote connection', async () => {
+    stubCouchServer({
+      'POST http://couch.test/_session': () => jsonResponse({ ok: true, name: 'david' }),
+      'GET http://couch.test/_session': loggedInSession
+    })
+
+    const connection = await ConnectionFactory.createRemoteConnection({
+      url: 'http://couch.test',
+      username: 'david',
+      password: 'secret'
+    })
+
+    expect(connection.user).toBe('david')
+  })
+
+  it('reports anonymous when the server answered without a session', async () => {
+    // This is how a caller tells "already signed in" from "needs a login".
+    stubCouchServer({ 'GET http://couch.test/_session': anonymousSession })
+
+    const connection = await ConnectionFactory.createRemoteConnection({
+      url: 'http://couch.test'
+    })
+
+    expect(connection.user).toBe(ANONYMOUS_REMOTE_USER)
+  })
+
+  it('reports the session user even with no credentials passed', async () => {
+    // A live cookie: the server answers as the real user, so no login is needed.
+    stubCouchServer({ 'GET http://couch.test/_session': loggedInSession })
+
+    const connection = await ConnectionFactory.createRemoteConnection({
+      url: 'http://couch.test'
+    })
+
+    expect(connection.user).toBe('david')
+  })
+
+  it('reports local for a local connection', () => {
+    expect(ConnectionFactory.createLocalConnection({ adapter: 'memory' }).user).toBe(
+      LOCAL_CONNECTION_USER
+    )
   })
 })

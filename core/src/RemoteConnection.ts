@@ -42,6 +42,10 @@ export class RemoteConnection extends Connection {
     )
   }
 
+  override get user(): string {
+    return this.sessionUser
+  }
+
   protected override createDatabase(name: string): Database {
     return Database.open(`${this.baseUrl}/${name}`, this.sessionUser, {
       fetch: this.createSessionFetch()

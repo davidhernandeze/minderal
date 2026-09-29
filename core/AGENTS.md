@@ -49,6 +49,15 @@ Build what was asked for, not more.
   login cookie expires at that timeout however busy it is. `RemoteConnection` absorbs the
   replacement from every response; a browser's cookie jar does this by itself, and
   `getSetCookie()` is always empty there, so the absorb is a no-op in the browser.
+- **Two kinds of relation, and they must stay distinguishable.** 1-to-n is `parent_id`.
+  1-to-1 is an entry in the owner's `attributes` array pointing at a neuron that holds the
+  value — that neuron carries `attribute_of` and no `parent_id`, which is what gives every
+  attribute its own `created_at`, `created_by`, revisions and soft delete. Because it has a
+  null `parent_id` it would otherwise surface at the top level, so the listings exclude it
+  **in memory**: an `attribute_of: null` Mango selector would drop every document written
+  before the field existed, the same trap `deleted_at` had. Deleting a neuron sweeps its
+  attribute values with a second query per level, since the `parent_id` walk cannot reach
+  them.
 - **`name` lives on `Neuron`, not on a subclass.** It is a label every kind needs, which is
   what lets `Database.rename` be typed generally; `value` is `StringNeuron`'s content.
 - **`find()` returns 25 documents when given no limit** — on PouchDB's adapters and on

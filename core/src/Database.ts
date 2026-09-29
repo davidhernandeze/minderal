@@ -5,7 +5,7 @@ import { NeuronError } from './NeuronError.js'
 import { NeuronFactory } from './NeuronFactory.js'
 import { Replication } from './Replication.js'
 import { NEURON_ID_PREFIX, isNeuronId } from './Neuron.js'
-import type { Neuron, NeuronDocument } from './Neuron.js'
+import type { Neuron, NeuronAttribute, NeuronDocument } from './Neuron.js'
 import type { NeuronChange, WatchHandlers } from './NeuronChange.js'
 import type { ReplicationOptions } from './Replication.js'
 
@@ -22,6 +22,13 @@ type ChangeFeed = PouchDB.Core.Changes<NeuronDocument>
 
 export interface NeuronQueryOptions {
   includeDeleted?: boolean
+  /** Attribute value neurons are hidden from listings unless asked for. */
+  includeAttributes?: boolean
+}
+
+export interface ResolvedAttribute {
+  name: string
+  neuron: Neuron
 }
 
 export class Database {
@@ -137,6 +144,89 @@ export class Database {
     } catch (cause) {
       throw this.failure(`Deleting neuron ${neuron.id}`, cause)
     }
+  }
+
+  // Sets a 1-to-1 relation. The value lives in its own neuron, so it carries
+  // its own created_at, created_by, revision history and soft delete; the owner
+  // holds only the name and the id.
+  async setAttribute<NeuronType extends Neuron>(
+    owner: Neuron,
+    name: string,
+    value: NeuronType
+  ): Promise<NeuronType> {
+    await this.initialize()
+    const attributeName = name.trim()
+    if (attributeName.length === 0) {
+      throw new NeuronError('An attribute needs a name')
+    }
+    if (owner.revision === null) {
+      throw new NeuronError(`Neuron ${owner.id} must be saved before it can hold attributes`)
+    }
+
+    value.attributeOf = owner.id
+    value.parentId = null
+    await this.create(value)
+
+    // One value per name: replacing an attribute soft deletes the neuron that
+    // held the old value rather than orphaning it, so the change stays in the
+    // document history.
+    const replaced = owner.attributes.find((attribute) => attribute.name === attributeName)
+    owner.attributes = [
+      ...owner.attributes.filter((attribute) => attribute.name !== attributeName),
+      { name: attributeName, id: value.id }
+    ]
+    await this.update(owner)
+    if (replaced !== undefined) await this.deleteById(replaced.id)
+
+    return value
+  }
+
+  async getAttribute(owner: Neuron, name: string): Promise<Neuron | null> {
+    const attribute = owner.attributes.find((entry) => entry.name === name.trim())
+    if (attribute === undefined) return null
+    return this.get(attribute.id, { includeAttributes: true })
+  }
+
+  async listAttributes(owner: Neuron): Promise<ResolvedAttribute[]> {
+    await this.initialize()
+    if (owner.attributes.length === 0) return []
+
+    try {
+      // One read for the whole set rather than one per attribute.
+      const response = await this.openClient().allDocs({
+        keys: owner.attributes.map((attribute) => attribute.id),
+        include_docs: true
+      })
+      const byId = new Map<string, Neuron>()
+      for (const row of response.rows) {
+        // A key that matches nothing comes back as a row with no doc.
+        const document = 'doc' in row ? (row.doc ?? undefined) : undefined
+        if (document === undefined || isDeleted(document)) continue
+        byId.set(document._id, NeuronFactory.fromDocument(document))
+      }
+      return owner.attributes.flatMap((attribute) => {
+        const neuron = byId.get(attribute.id)
+        return neuron === undefined ? [] : [{ name: attribute.name, neuron }]
+      })
+    } catch (cause) {
+      throw this.failure(`Reading attributes of ${owner.id}`, cause)
+    }
+  }
+
+  async removeAttribute(owner: Neuron, name: string): Promise<boolean> {
+    const attributeName = name.trim()
+    const attribute = owner.attributes.find((entry) => entry.name === attributeName)
+    if (attribute === undefined) return false
+
+    owner.attributes = owner.attributes.filter((entry) => entry.name !== attributeName)
+    await this.update(owner)
+    await this.deleteById(attribute.id)
+    return true
+  }
+
+  private async deleteById(id: string): Promise<void> {
+    const neuron = await this.get(id, { includeAttributes: true })
+    if (neuron !== null) await this.delete(neuron)
   }
 
   async get(id: string, options: NeuronQueryOptions = {}): Promise<Neuron | null> {
@@ -344,6 +434,7 @@ export class Database {
     try {
       await client.createIndex({ index: { fields: ['parent_id', 'deleted_at'] } })
       await client.createIndex({ index: { fields: ['deleted_at'] } })
+      await client.createIndex({ index: { fields: ['attribute_of'] } })
     } catch (cause) {
       throw this.failure('Initializing', cause)
     }
@@ -386,9 +477,12 @@ async function collectDescendants(client: NeuronClient, rootId: string): Promise
   let frontier = [rootId]
 
   while (frontier.length > 0) {
-    const documents = await findAll(client, { parent_id: { $in: frontier }, deleted_at: null })
+    const [children, attributeValues] = await Promise.all([
+      findAll(client, { parent_id: { $in: frontier }, deleted_at: null }),
+      findAll(client, { attribute_of: { $in: frontier }, deleted_at: null })
+    ])
     const nextFrontier: string[] = []
-    for (const document of documents) {
+    for (const document of [...children, ...attributeValues]) {
       if (seen.has(document._id)) continue
       seen.add(document._id)
       descendants.push(NeuronFactory.fromDocument(document))
@@ -432,6 +526,7 @@ function toNeurons(
     .filter((document): document is NeuronDocument => document !== undefined)
     .filter((document) => isNeuronId(document._id))
     .filter((document) => options.includeDeleted === true || !isDeleted(document))
+    .filter((document) => options.includeAttributes === true || !isAttributeValue(document))
     .sort(byNewestFirst)
     .map((document) => NeuronFactory.fromDocument(document))
 }
@@ -446,6 +541,10 @@ function byNewestFirst(left: NeuronDocument, right: NeuronDocument): number {
 
 function isDeleted(document: NeuronDocument): boolean {
   return (document.deleted_at ?? null) !== null
+}
+
+function isAttributeValue(document: NeuronDocument): boolean {
+  return (document.attribute_of ?? null) !== null
 }
 
 function isNotFound(cause: unknown): boolean {
