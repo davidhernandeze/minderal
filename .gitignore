@@ -1,3 +1,26 @@
+# Dependencies & build output
 node_modules
+dist
+coverage
+*.log
+
+# Environment
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
 .idea
+.vscode/*
+!.vscode/extensions.json
+
+# Local tooling (code index, Claude local settings)
 .cocoindex_code
+.claude/settings.local.json
+
+# Local reference material & downloaded binaries — not part of the source
+minderal-app/docs/
+*.pkg
+*.dmg
+*.msi
