@@ -663,6 +663,9 @@ onUnmounted(() => {
     <span class="status" :class="isConnected ? 'ok' : 'off'">
       {{ isConnected ? (isRemote ? 'remote' : 'local') : 'disconnected' }}
     </span>
+    <span class="status">
+      v5.0
+    </span>
     <span v-if="isConnected" class="status" :class="isWatching ? 'ok' : 'stale'">
       {{ isWatching ? 'live' : 'not live' }}
     </span>
