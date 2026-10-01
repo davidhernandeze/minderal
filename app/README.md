@@ -46,6 +46,12 @@ The table shows the children of whatever neuron is open, via `listByParentId`. C
 row's id opens it; the breadcrumb walks back up. The open id lives in the URL as `?id=`, so
 links are shareable and browser back/forward work through `popstate`.
 
+An `?id=` that names nothing in the open database — deleted since the link was made, or
+belonging to a database you have switched away from — is not treated as an error. The page
+drops to the root level and drops the parameter, replacing the history entry so Back does
+not lead straight back to the dead id. `buildTrail` returns `null` for that case, which is
+distinct from the empty trail that means "already at the root".
+
 At the top level the table lists `listByParentId(null)` — the roots — rather than every
 document, so navigation is a tree at every level. The graph draws the top level as a 🧠 node
 reading "start creating from here"; it is synthetic, with no neuron behind it, so it cannot

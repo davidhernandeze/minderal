@@ -153,13 +153,15 @@ function readIdFromUrl(): string | null {
   return new URL(window.location.href).searchParams.get('id')
 }
 
-function writeUrl(id: string | null, mode: ViewMode): void {
+function writeUrl(id: string | null, mode: ViewMode, replace = false): void {
   const next = new URL(window.location.href)
   if (id === null) next.searchParams.delete('id')
   else next.searchParams.set('id', id)
   if (mode === 'table') next.searchParams.delete('view')
   else next.searchParams.set('view', mode)
-  if (next.href !== window.location.href) history.pushState({}, '', next)
+  if (next.href === window.location.href) return
+  if (replace) history.replaceState({}, '', next)
+  else history.pushState({}, '', next)
 }
 
 function readViewFromUrl(): ViewMode {
@@ -280,13 +282,15 @@ async function commitNewDatabase(): Promise<void> {
   if (connection.value !== null) databaseNames.value = await connection.value.getDatabaseList()
 }
 
-async function buildTrail(id: string | null): Promise<Neuron[]> {
+// Null when the id names nothing here, as opposed to an empty trail, which is
+// the root level.
+async function buildTrail(id: string | null): Promise<Neuron[] | null> {
   if (database.value === null || id === null) return []
 
   const chain: Neuron[] = []
   const seen = new Set<string>()
   let cursor = await database.value.get(id)
-  if (cursor === null) throw new Error(`No neuron with id ${id}`)
+  if (cursor === null) return null
 
   // Guarded against a parent_id cycle, which would otherwise spin forever.
   while (cursor !== null && !seen.has(cursor.id) && chain.length < MAX_TRAIL_DEPTH) {
@@ -361,7 +365,19 @@ async function refresh(): Promise<void> {
   busy.value = true
   error.value = ''
   try {
-    trail.value = await buildTrail(currentId.value)
+    const chain = await buildTrail(currentId.value)
+
+    // An id in the URL outlives the neuron it names, and means nothing in
+    // another database — switch databases and the one you were in is gone.
+    // Neither is the user's mistake, so the page drops to the root level
+    // without saying anything, replacing the history entry so Back does not
+    // lead to the same dead id.
+    if (chain === null) {
+      currentId.value = null
+      writeUrl(null, view.value, true)
+    }
+
+    trail.value = chain ?? []
     neurons.value = await database.value.listByParentId(currentId.value)
     const open = trail.value.at(-1) ?? null
     attributes.value = open === null ? [] : await database.value.listAttributes(open)
