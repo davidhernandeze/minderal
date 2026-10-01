@@ -20,6 +20,8 @@ const GRAPH_PADDING = 32
 const DRAFT_NODE_ID = '__draft__'
 const ATTRIBUTE_ROW_HEIGHT = 26
 const ATTRIBUTE_PADDING = 8
+const DEFAULT_DATABASE_NAME = 'neurons'
+const NEW_DATABASE_CHOICE = '\u0000new'
 const ROOT_LABEL = '\u{1F9E0}'
 const ROOT_DETAIL = 'start creating from here'
 
@@ -36,7 +38,31 @@ interface GraphSource {
   children?: GraphSource[]
 }
 
+// What a reload starts from: the server we last reached and the database we
+// last read. A default is fine to put in a field, but not to act on — the
+// probe would sit on a host nobody named until fetch gives up, and a reload
+// would land in a database the user had moved away from.
 const LAST_URL_KEY = 'minderal.last-url'
+const LAST_DATABASE_KEY = 'minderal.last-database'
+
+function readRemembered(key: string): string | null {
+  try {
+    const stored = window.localStorage.getItem(key)
+    return stored === null || stored.length === 0 ? null : stored
+  } catch {
+    return null
+  }
+}
+
+function remember(key: string, value: string | null): void {
+  try {
+    if (value === null) window.localStorage.removeItem(key)
+    else window.localStorage.setItem(key, value)
+  } catch {
+    // Private windows and blocked site data: the fields keep working, the
+    // next visit just starts from the defaults again.
+  }
+}
 
 // A guess, used to fill the field when nothing better is known: on a phone
 // `localhost` is the phone. Taking the hostname from the page also keeps the
@@ -44,34 +70,11 @@ const LAST_URL_KEY = 'minderal.last-url'
 // sent. A different scheme or host would not be.
 const guessedUrl = `${window.location.protocol}//${window.location.hostname}:5984`
 
-// The URL of the last server we actually reached. A guess is fine to type into
-// the field but not to open a connection to: nothing answers on a wrong host,
-// so the probe sits there until fetch gives up and the login form is held back
-// behind a timeout for a server the user never named.
-function readLastUrl(): string | null {
-  try {
-    const stored = window.localStorage.getItem(LAST_URL_KEY)
-    return stored === null || stored.length === 0 ? null : stored
-  } catch {
-    return null
-  }
-}
-
-function rememberLastUrl(value: string | null): void {
-  try {
-    if (value === null) window.localStorage.removeItem(LAST_URL_KEY)
-    else window.localStorage.setItem(LAST_URL_KEY, value)
-  } catch {
-    // Private windows and blocked site data: the field keeps working, the
-    // next visit just starts from the guess again.
-  }
-}
-
-const lastUrl = readLastUrl()
+const lastUrl = readRemembered(LAST_URL_KEY)
 const url = ref(lastUrl ?? guessedUrl)
 const username = ref('admin')
 const password = ref('password')
-const databaseName = ref('neurons')
+const databaseName = ref(readRemembered(LAST_DATABASE_KEY) ?? DEFAULT_DATABASE_NAME)
 
 const connection = shallowRef<Connection | null>(null)
 const database = shallowRef<Database | null>(null)
@@ -107,6 +110,10 @@ const attributeValue = ref('')
 // Deleting asks first, inline, rather than through a modal dialog. Deletion
 // takes the whole subtree, so the prompt has to say when there is one.
 const pendingDelete = shallowRef<{ id: string; hasChildren: boolean } | null>(null)
+
+const namingDatabase = ref(false)
+const newDatabaseName = ref('')
+const newDatabaseInput = ref<HTMLInputElement | null>(null)
 
 const connecting = ref(false)
 // True only while the initial session probe is in flight, so the login form
@@ -216,7 +223,7 @@ async function connect(): Promise<void> {
       : ConnectionFactory.createLocalConnection({ adapter: 'idb' })
 
     databaseNames.value = await connection.value.getDatabaseList()
-    rememberLastUrl(isRemote.value ? url.value.trim() : null)
+    remember(LAST_URL_KEY, isRemote.value ? url.value.trim() : null)
     await openDatabase()
   } catch (cause) {
     connection.value = null
@@ -229,11 +236,48 @@ async function connect(): Promise<void> {
 
 async function openDatabase(): Promise<void> {
   if (connection.value === null) return
-  database.value = connection.value.getDatabase(databaseName.value.trim())
+  const name = databaseName.value.trim()
+  stopWatching()
+  database.value = connection.value.getDatabase(name)
   currentId.value = readIdFromUrl()
   view.value = readViewFromUrl()
   await refresh()
+  remember(LAST_DATABASE_KEY, name)
   await startWatching()
+}
+
+// Every database on the server, whatever is in the field — an `<input list>`
+// narrows its own suggestions as you type, so the one name already there hid
+// all the others. A remembered name the server does not list yet is kept at
+// the front so the picker can still show where we are.
+const databaseChoices = computed(() => {
+  const names = [...databaseNames.value]
+  const current = databaseName.value.trim()
+  if (current.length > 0 && !names.includes(current)) names.unshift(current)
+  return names
+})
+
+async function chooseDatabase(event: Event): Promise<void> {
+  const choice = (event.target as HTMLSelectElement).value
+  if (choice === NEW_DATABASE_CHOICE) {
+    newDatabaseName.value = ''
+    namingDatabase.value = true
+    await nextTick()
+    newDatabaseInput.value?.focus()
+    return
+  }
+  databaseName.value = choice
+  await openDatabase()
+}
+
+// A database comes into being by being opened, so naming one is all it takes.
+async function commitNewDatabase(): Promise<void> {
+  const name = newDatabaseName.value.trim()
+  namingDatabase.value = false
+  if (name.length === 0 || name === databaseName.value.trim()) return
+  databaseName.value = name
+  await openDatabase()
+  if (connection.value !== null) databaseNames.value = await connection.value.getDatabaseList()
 }
 
 async function buildTrail(id: string | null): Promise<Neuron[]> {
@@ -708,10 +752,22 @@ onUnmounted(() => {
     <div class="bar">
       <label>
         database
-        <input v-model="databaseName" list="database-names" size="18" @change="openDatabase" />
-        <datalist id="database-names">
-          <option v-for="candidate in databaseNames" :key="candidate" :value="candidate" />
-        </datalist>
+        <input
+          v-if="namingDatabase"
+          ref="newDatabaseInput"
+          v-model="newDatabaseName"
+          placeholder="new database name"
+          size="18"
+          @keyup.enter="commitNewDatabase"
+          @keyup.esc="namingDatabase = false"
+          @blur="commitNewDatabase"
+        />
+        <select v-else :value="databaseName" @change="chooseDatabase">
+          <option v-for="candidate in databaseChoices" :key="candidate" :value="candidate">
+            {{ candidate }}
+          </option>
+          <option :value="NEW_DATABASE_CHOICE">+ new database…</option>
+        </select>
       </label>
 
       <template v-if="view === 'table'">

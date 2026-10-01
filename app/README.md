@@ -108,6 +108,21 @@ to catch up on whatever the feed missed while it was blind.
 Replication is not wired into the app yet — `local.syncWith(remote)` exists in core and is
 covered by tests, but the app still opens a single connection.
 
+## What a reload starts from
+
+The server URL and the database name are remembered in `localStorage`
+(`minderal.last-url`, `minderal.last-database`), written only once a connection
+has answered and a database has actually been read. A reload resumes the session
+against the remembered URL; with nothing remembered there is no probe at all, so
+the login form paints immediately instead of waiting out a fetch timeout against
+a guessed host. The URL field still prefills with `protocol//hostname:5984` as a
+suggestion — a default is fine to type into a field, not to connect to.
+
+The database picker is a `<select>` listing every database on the server, plus
+`+ new database…`, which swaps in a text field. An `<input list>` narrowed its own
+suggestions against whatever was typed, so the name already in the field hid all
+the others. Opening a database is what creates it, so naming one is all it takes.
+
 ## Attributes
 
 The **open** neuron shows its attributes inside its node, followed by a dashed
