@@ -871,11 +871,7 @@ onUnmounted(() => {
       <thead>
         <tr>
           <th>id</th>
-          <th>value</th>
           <th>name</th>
-          <th>type</th>
-          <th>revision</th>
-          <th>parent</th>
           <th>created by</th>
           <th>created at</th>
           <th>updated at</th>
@@ -889,7 +885,6 @@ onUnmounted(() => {
               {{ shorten(neuron.id) }}
             </button>
           </td>
-          <td class="value">{{ asStringNeuron(neuron)?.value ?? '—' }}</td>
           <td class="name-cell">
             <input
               v-if="isEditing(neuron.id)"
@@ -902,14 +897,6 @@ onUnmounted(() => {
             <button v-else class="name-button" title="Rename" @click="startEditing(neuron)">
               {{ neuron.name ?? '—' }}
             </button>
-          </td>
-          <td><code>{{ neuron.type }}</code></td>
-          <td><code>{{ neuron.revision ?? '—' }}</code></td>
-          <td>
-            <span v-if="neuron.parentId === null" class="root" title="Top level">
-              {{ ROOT_LABEL }}
-            </span>
-            <code v-else>{{ neuron.parentId }}</code>
           </td>
           <td>{{ neuron.createdBy ?? '—' }}</td>
           <td class="time">{{ formatTime(neuron.createdAt) }}</td>
@@ -938,7 +925,7 @@ onUnmounted(() => {
           </td>
         </tr>
         <tr v-if="neurons.length === 0">
-          <td colspan="10" class="empty">
+          <td colspan="6" class="empty">
             <template v-if="currentNeuron">
               <code>{{ labelOf(currentNeuron) }}</code> has no children yet.
             </template>
@@ -1551,7 +1538,6 @@ th {
   letter-spacing: 0.04em;
 }
 
-td.value { white-space: normal; font-weight: 500; }
 td.time { color: var(--muted); font-size: 12px; }
 code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; }
 .empty { color: var(--muted); }
