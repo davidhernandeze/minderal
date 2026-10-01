@@ -36,11 +36,39 @@ interface GraphSource {
   children?: GraphSource[]
 }
 
-// Derived from wherever the page came from, not hardcoded: on a phone
+const LAST_URL_KEY = 'minderal.last-url'
+
+// A guess, used to fill the field when nothing better is known: on a phone
 // `localhost` is the phone. Taking the hostname from the page also keeps the
 // two on the same site — same host, different port — so the session cookie is
 // sent. A different scheme or host would not be.
-const url = ref(`${window.location.protocol}//${window.location.hostname}:5984`)
+const guessedUrl = `${window.location.protocol}//${window.location.hostname}:5984`
+
+// The URL of the last server we actually reached. A guess is fine to type into
+// the field but not to open a connection to: nothing answers on a wrong host,
+// so the probe sits there until fetch gives up and the login form is held back
+// behind a timeout for a server the user never named.
+function readLastUrl(): string | null {
+  try {
+    const stored = window.localStorage.getItem(LAST_URL_KEY)
+    return stored === null || stored.length === 0 ? null : stored
+  } catch {
+    return null
+  }
+}
+
+function rememberLastUrl(value: string | null): void {
+  try {
+    if (value === null) window.localStorage.removeItem(LAST_URL_KEY)
+    else window.localStorage.setItem(LAST_URL_KEY, value)
+  } catch {
+    // Private windows and blocked site data: the field keeps working, the
+    // next visit just starts from the guess again.
+  }
+}
+
+const lastUrl = readLastUrl()
+const url = ref(lastUrl ?? guessedUrl)
 const username = ref('admin')
 const password = ref('password')
 const databaseName = ref('neurons')
@@ -82,8 +110,9 @@ const pendingDelete = shallowRef<{ id: string; hasChildren: boolean } | null>(nu
 
 const connecting = ref(false)
 // True only while the initial session probe is in flight, so the login form
-// does not flash before we know whether it is needed.
-const resuming = ref(true)
+// does not flash before we know whether it is needed. With no remembered
+// server there is no probe, so the form shows straight away.
+const resuming = ref(lastUrl !== null)
 const busy = ref(false)
 const error = ref('')
 
@@ -152,8 +181,9 @@ async function onPopState(): Promise<void> {
 // answer GET /_session as the real user when one is live. Connecting with no
 // credentials is therefore both the check and the connection.
 async function resumeSession(): Promise<void> {
+  if (lastUrl === null) return
   try {
-    const candidate = await ConnectionFactory.createRemoteConnection({ url: url.value.trim() })
+    const candidate = await ConnectionFactory.createRemoteConnection({ url: lastUrl })
     if (candidate.user === ANONYMOUS_REMOTE_USER) {
       await candidate.close()
       return
@@ -186,6 +216,7 @@ async function connect(): Promise<void> {
       : ConnectionFactory.createLocalConnection({ adapter: 'idb' })
 
     databaseNames.value = await connection.value.getDatabaseList()
+    rememberLastUrl(isRemote.value ? url.value.trim() : null)
     await openDatabase()
   } catch (cause) {
     connection.value = null
