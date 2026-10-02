@@ -145,6 +145,55 @@ The sidebar holds everything editable: the neuron's name at the top, then a `typ
 value` table with one row per attribute, an × per row, and `+ Add attribute` below it. New
 attributes are `StringNeuron`s; the type column is there for when they are not.
 
+## Types
+
+`type` names the representation — which class reads the document. `string` holds text,
+`boolean` holds a flag, and `object` holds no value at all: it is a name plus its attributes,
+which is what every neuron in the tree now is. Creating a neuron with a name and no value
+makes an object; typing a value makes a string neuron.
+
+The sidebar's add-attribute row carries a type picker, and the value editor follows it: a
+text input for `string`, a checkbox for `boolean` that writes on every toggle. Existing rows
+render the same way, with the checkbox in place of the editable text and the arrow beside it
+doing the navigating the text does elsewhere.
+
+## Types
+
+The root node carries a menu, because the things in it are about the whole database rather
+than any one neuron: a `neurons` / `types` switch and **Create Type**. Creating one opens a
+draft node in the types tree exactly as creating a neuron does, and lands in its editor.
+
+A type is a `Template`: a name, and the attributes a neuron made from it starts with — each
+with a name, a type and an optional default. Its editor is the same sidebar as a neuron's,
+with `type / name / default` in place of `type / name / value`, and the same add, rename and
+remove. An empty default box means the attribute starts with nothing, which is not the same
+as starting with an empty string.
+
+Types live under a `template:` id, outside the `neuron:` key range every neuron query scans,
+so neither side ever sees the other: switching subject starts at the top, because an id from
+one names nothing on the other. The subject rides in the URL as `&subject=types`.
+
+Both type pickers — the one for a neuron's attributes and the one for a type's — list the
+built-in types followed by every type the user has made, so a type becomes available the
+moment it exists. Templates are loaded on both sides of the switch for that reason, and the
+feed refreshes them whichever side is showing.
+
+Choosing a user-defined type changes what the row asks for. On a neuron it asks for a
+**name** instead of a value, and writes an object that names the type, then fills it in from
+the type's own attributes and their defaults — nested types included, stopping if a type
+reaches itself. On a type it asks for nothing: the default column reads *built then*, because
+there is no one neuron to default to; the attribute is recorded as
+`{ type: 'object', templateId }` and built when a neuron is made.
+
+An attribute whose value is an object shows that neuron's name, and editing the text renames
+it rather than replacing it — everything it holds is still its own.
+
+An attribute's value is a neuron of its own, so the value is a link: clicking it opens that
+neuron, and the pencil beside it edits in place. `buildTrail` climbs `attribute_of` when
+there is no `parent_id`, which is what gives a value an owner to sit under instead of
+looking like a root neuron, and the edge from the owner is labelled with the attribute's
+name. Ordinary parent/child edges carry no label.
+
 Renaming an attribute is a write under the new name followed by a removal of the old one,
 in that order, because the name *is* the key and core has no single call for it. A name
 that another attribute already uses is refused before either write.
@@ -159,6 +208,9 @@ sidebar.
 then an input with a checkmark to finish. Enter commits, Escape abandons, and clicking away
 abandons an untouched editor but keeps one with changes in it. The checkmark takes
 `mousedown` rather than focus so it never loses the race with that blur.
+
+A value that lives somewhere else takes `link`: the text becomes the way to go there
+(`follow`) and a pencil takes over the editing, so one click cannot mean both.
 
 It takes a `value` prop and emits `submit` rather than using `v-model`: every edit ends in a
 database write and the new text comes back through the change feed, so owning a local copy

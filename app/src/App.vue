@@ -1,14 +1,26 @@
 <script setup lang="ts">
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { hierarchy, tree } from 'd3-hierarchy'
-import { ANONYMOUS_REMOTE_USER, ConnectionFactory, StringNeuron } from '@minderal/core'
+import {
+  ANONYMOUS_REMOTE_USER,
+  BOOLEAN_NEURON_TYPE,
+  BooleanNeuron,
+  ConnectionFactory,
+  OBJECT_NEURON_TYPE,
+  ObjectNeuron,
+  STRING_NEURON_TYPE,
+  StringNeuron,
+  Template
+} from '@minderal/core'
 import EditableText from './components/EditableText.vue'
 import type {
   Connection,
   Database,
   Neuron,
   NeuronChange,
-  ResolvedAttribute
+  ResolvedAttribute,
+  TemplateAttribute,
+  TemplateDefault
 } from '@minderal/core'
 
 const MAX_TRAIL_DEPTH = 50
@@ -23,10 +35,25 @@ const ATTRIBUTE_ROW_HEIGHT = 26
 const ATTRIBUTE_PADDING = 8
 const DEFAULT_DATABASE_NAME = 'neurons'
 const NEW_DATABASE_CHOICE = '\u0000new'
+const ROOT_MENU_HEIGHT = 32
 const ROOT_LABEL = '\u{1F9E0}'
 const ROOT_DETAIL = 'start creating from here'
+const ROOT_TYPES_DETAIL = 'the types you have made'
 
 type ViewMode = 'table' | 'graph'
+
+// What the tree is showing. The word in the interface is always "type": a
+// template is what the document is called, not what the user made.
+type Subject = 'neurons' | 'types'
+
+// What the picker offers: the built-in types, then every type the user has
+// made. A choice is identified by the template's id, which is also how an
+// attribute records which type it follows.
+interface TypeChoice {
+  value: string
+  label: string
+  templateId: string | null
+}
 
 interface GraphSource {
   id: string | null
@@ -36,6 +63,10 @@ interface GraphSource {
   isDraft: boolean
   isRoot: boolean
   neuron: Neuron | null
+  template: Template | null
+  // Written on the edge that reaches this node, which is how an attribute says
+  // what it is to its owner. Null on the ordinary parent/child edges.
+  connector: string | null
   children?: GraphSource[]
 }
 
@@ -88,6 +119,16 @@ const trail = shallowRef<Neuron[]>([])
 const currentId = ref<string | null>(null)
 
 const view = ref<ViewMode>('table')
+const subject = ref<Subject>('neurons')
+
+const templates = shallowRef<Template[]>([])
+const currentTemplate = shallowRef<Template | null>(null)
+const templateAttributeDraftOpen = ref(false)
+const templateAttributeName = ref('')
+const templateAttributeType = ref(STRING_NEURON_TYPE)
+const templateAttributeValue = ref('')
+const templateAttributeFlag = ref(false)
+const templateAttributeInput = ref<HTMLInputElement | null>(null)
 
 const value = ref('')
 const name = ref('')
@@ -112,6 +153,8 @@ const sidebarOpen = ref(false)
 const attributeDraftOpen = ref(false)
 const attributeName = ref('')
 const attributeValue = ref('')
+const attributeFlag = ref(false)
+const attributeType = ref(STRING_NEURON_TYPE)
 const attributeNameInput = ref<HTMLInputElement | null>(null)
 
 // Deleting asks first, inline, rather than through a modal dialog. Deletion
@@ -143,29 +186,42 @@ function describe(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause)
 }
 
+// What a neuron is called: its name, or failing that whatever it holds.
 function labelOf(neuron: Neuron): string {
-  if (neuron instanceof StringNeuron) return neuron.name ?? neuron.value
-  return neuron.id
+  if (neuron.name !== null) return neuron.name
+  const value = displayValue(neuron)
+  return value.length > 0 ? value : neuron.id
+}
+
+// A neuron's content as text. An object has none of its own — it is its
+// attributes — so it reads as empty here.
+function displayValue(neuron: Neuron): string {
+  if (neuron instanceof StringNeuron) return neuron.value
+  if (neuron instanceof BooleanNeuron) return neuron.value ? 'true' : 'false'
+  return ''
 }
 
 // The second line carries the neuron's content, not its type: `string` on every
-// node says nothing.
+// node says nothing. A named neuron shows what it holds under its name; an
+// unnamed one is already showing that as its label.
 function detailOf(neuron: Neuron): string {
-  const stringNeuron = asStringNeuron(neuron)
-  if (stringNeuron === null) return ''
-  return stringNeuron.name === null ? '' : stringNeuron.value
+  return neuron.name === null ? '' : displayValue(neuron)
 }
 
 function readIdFromUrl(): string | null {
   return new URL(window.location.href).searchParams.get('id')
 }
 
-function writeUrl(id: string | null, mode: ViewMode, replace = false): void {
+// The view and the subject are read off their refs rather than passed in, so a
+// caller only has to say which id it is moving to.
+function writeUrl(id: string | null, replace = false): void {
   const next = new URL(window.location.href)
   if (id === null) next.searchParams.delete('id')
   else next.searchParams.set('id', id)
-  if (mode === 'table') next.searchParams.delete('view')
-  else next.searchParams.set('view', mode)
+  if (view.value === 'table') next.searchParams.delete('view')
+  else next.searchParams.set('view', view.value)
+  if (subject.value === 'neurons') next.searchParams.delete('subject')
+  else next.searchParams.set('subject', subject.value)
   if (next.href === window.location.href) return
   if (replace) history.replaceState({}, '', next)
   else history.pushState({}, '', next)
@@ -175,15 +231,34 @@ function readViewFromUrl(): ViewMode {
   return new URL(window.location.href).searchParams.get('view') === 'graph' ? 'graph' : 'table'
 }
 
+function readSubjectFromUrl(): Subject {
+  return new URL(window.location.href).searchParams.get('subject') === 'types' ? 'types' : 'neurons'
+}
+
 function setView(mode: ViewMode): void {
   view.value = mode
-  writeUrl(currentId.value, mode)
+  writeUrl(currentId.value)
+}
+
+// Switching subject starts at the top: an id from one side names nothing on
+// the other.
+async function setSubject(next: Subject): Promise<void> {
+  if (subject.value === next) return
+  cancelDraft()
+  cancelAttributeDraft()
+  cancelTemplateAttributeDraft()
+  sidebarOpen.value = false
+  subject.value = next
+  currentId.value = null
+  writeUrl(null)
+  await refresh()
 }
 
 async function open(id: string | null): Promise<void> {
   // A half-typed attribute belongs to the neuron it was started on.
   cancelAttributeDraft()
-  writeUrl(id, view.value)
+  cancelTemplateAttributeDraft()
+  writeUrl(id)
   currentId.value = id
   await refresh()
 }
@@ -192,6 +267,7 @@ async function open(id: string | null): Promise<void> {
 async function onPopState(): Promise<void> {
   currentId.value = readIdFromUrl()
   view.value = readViewFromUrl()
+  subject.value = readSubjectFromUrl()
   await refresh()
 }
 
@@ -252,6 +328,7 @@ async function openDatabase(): Promise<void> {
   database.value = connection.value.getDatabase(name)
   currentId.value = readIdFromUrl()
   view.value = readViewFromUrl()
+  subject.value = readSubjectFromUrl()
   await refresh()
   remember(LAST_DATABASE_KEY, name)
   await startWatching()
@@ -298,14 +375,18 @@ async function buildTrail(id: string | null): Promise<Neuron[] | null> {
 
   const chain: Neuron[] = []
   const seen = new Set<string>()
-  let cursor = await database.value.get(id)
+  let cursor: Neuron | null = await database.value.get(id)
   if (cursor === null) return null
 
   // Guarded against a parent_id cycle, which would otherwise spin forever.
   while (cursor !== null && !seen.has(cursor.id) && chain.length < MAX_TRAIL_DEPTH) {
     seen.add(cursor.id)
     chain.unshift(cursor)
-    cursor = cursor.parentId === null ? null : await database.value.get(cursor.parentId)
+    // An attribute value hangs off its owner instead of a parent, so that is
+    // the way up for it. Without this a value opened from the sidebar would
+    // look like a root neuron with nothing above it.
+    const above: string | null = cursor.parentId ?? cursor.attributeOf
+    cursor = above === null ? null : await database.value.get(above)
   }
   return chain
 }
@@ -338,8 +419,11 @@ async function startWatching(): Promise<void> {
   try {
     unwatch = await database.value.watch({
       change: (change) => {
-        if (affectsCurrentLevel(change)) scheduleRefresh()
+        if (subject.value === 'neurons' && affectsCurrentLevel(change)) scheduleRefresh()
       },
+      // A type can be made while neurons are showing, and the picker has to
+      // know about it either way.
+      template: () => scheduleRefresh(),
       error: (cause) => {
         error.value = `Live updates stopped: ${cause.message}`
       },
@@ -371,9 +455,14 @@ function stopWatching(): void {
 
 async function refresh(): Promise<void> {
   if (database.value === null) return
+  if (subject.value === 'types') return refreshTypes(database.value)
+
   busy.value = true
   error.value = ''
   try {
+    currentTemplate.value = null
+    // The picker offers them even here, so they are loaded on both sides.
+    templates.value = await database.value.listTemplates()
     const chain = await buildTrail(currentId.value)
 
     // An id in the URL outlives the neuron it names, and means nothing in
@@ -383,7 +472,7 @@ async function refresh(): Promise<void> {
     // lead to the same dead id.
     if (chain === null) {
       currentId.value = null
-      writeUrl(null, view.value, true)
+      writeUrl(null, true)
     }
 
     trail.value = chain ?? []
@@ -400,6 +489,75 @@ async function refresh(): Promise<void> {
   }
 }
 
+// Types are a flat list, not a tree: there is no trail to build and nothing
+// below one but its own attributes.
+async function refreshTypes(db: Database): Promise<void> {
+  busy.value = true
+  error.value = ''
+  try {
+    templates.value = await db.listTemplates()
+    const open = currentId.value === null ? null : await db.getTemplate(currentId.value)
+
+    // Same rule as a dead neuron id: fall back to the top without complaining.
+    if (currentId.value !== null && open === null) {
+      currentId.value = null
+      writeUrl(null, true)
+    }
+
+    currentTemplate.value = open
+    trail.value = []
+    neurons.value = []
+    attributes.value = []
+  } catch (cause) {
+    error.value = describe(cause)
+    templates.value = []
+    currentTemplate.value = null
+  } finally {
+    busy.value = false
+  }
+}
+
+const typeChoices = computed<TypeChoice[]>(() => [
+  { value: STRING_NEURON_TYPE, label: STRING_NEURON_TYPE, templateId: null },
+  { value: BOOLEAN_NEURON_TYPE, label: BOOLEAN_NEURON_TYPE, templateId: null },
+  ...templates.value.map((template) => ({
+    value: template.id,
+    label: template.name ?? template.id,
+    templateId: template.id
+  }))
+])
+
+function templateOf(choice: string): Template | null {
+  return templates.value.find((template) => template.id === choice) ?? null
+}
+
+// A type the user made has a name to ask for instead of a value to type.
+function isTemplateChoice(choice: string): boolean {
+  return templateOf(choice) !== null
+}
+
+function typeLabelOf(neuron: Neuron): string {
+  if (!(neuron instanceof ObjectNeuron) || neuron.templateId === null) return neuron.type
+  return templateOf(neuron.templateId)?.name ?? neuron.type
+}
+
+function templateAttributeTypeLabel(attribute: TemplateAttribute): string {
+  if (attribute.templateId === null) return attribute.type
+  return templateOf(attribute.templateId)?.name ?? attribute.type
+}
+
+// An object stands for itself: what there is to show is its name.
+function attributeValueText(neuron: Neuron): string {
+  if (neuron instanceof ObjectNeuron) return neuron.name ?? ''
+  return displayValue(neuron)
+}
+
+function attributeSummary(template: Template): string {
+  const count = template.attributes.length
+  if (count === 0) return 'no attributes yet'
+  return count === 1 ? '1 attribute' : `${count} attributes`
+}
+
 async function createNeuronIn(
   parentId: string | null,
   neuronName: string,
@@ -409,9 +567,13 @@ async function createNeuronIn(
   busy.value = true
   error.value = ''
   try {
-    await database.value.create(
-      StringNeuron.create({ name: neuronName, value: neuronValue, parentId })
-    )
+    // A name with nothing in it is a thing, not a piece of text: the tree is
+    // made of objects, and a string neuron is one that actually holds a value.
+    const neuron =
+      neuronValue.length === 0
+        ? ObjectNeuron.create({ name: neuronName, parentId })
+        : StringNeuron.create({ name: neuronName, value: neuronValue, parentId })
+    await database.value.create(neuron)
     // No refetch here: the change feed drives that. Adding to a neuron other
     // than the open one still opens it, so the new child is visible instead of
     // landing somewhere off-screen.
@@ -451,6 +613,8 @@ function cancelDraft(): void {
 // The open neuron carries its attribute rows, so it is taller than the rest.
 // Nothing else in its column, so nothing has to move.
 function nodeHeightOf(source: GraphSource): number {
+  // The root node carries the menu wherever it is drawn, open or as a parent.
+  if (source.isRoot && !source.isDraft) return NODE_HEIGHT + ROOT_MENU_HEIGHT
   if (!source.isCurrent || source.neuron === null) return NODE_HEIGHT
   if (attributes.value.length === 0) return NODE_HEIGHT
   return NODE_HEIGHT + attributes.value.length * ATTRIBUTE_ROW_HEIGHT + ATTRIBUTE_PADDING
@@ -462,7 +626,7 @@ function nodeHeightOf(source: GraphSource): number {
 async function openDetails(source: GraphSource): Promise<void> {
   if (source.isDraft) return
   if (!source.isCurrent) await open(source.id)
-  if (source.neuron !== null) sidebarOpen.value = true
+  if (source.neuron !== null || source.template !== null) sidebarOpen.value = true
 }
 
 function closeSidebar(): void {
@@ -490,6 +654,8 @@ function openAttributeDraft(): void {
   attributeDraftOpen.value = true
   attributeName.value = ''
   attributeValue.value = ''
+  attributeFlag.value = false
+  attributeType.value = STRING_NEURON_TYPE
   void nextTick(() => attributeNameInput.value?.focus())
 }
 
@@ -497,6 +663,20 @@ function cancelAttributeDraft(): void {
   attributeDraftOpen.value = false
   attributeName.value = ''
   attributeValue.value = ''
+  attributeFlag.value = false
+}
+
+function draftedValue(): Neuron {
+  const template = templateOf(attributeType.value)
+  if (template !== null) {
+    // The typed text is the new neuron's name, not a value: a type says what
+    // the neuron holds, and that is filled in from the type itself.
+    return ObjectNeuron.create({ name: attributeValue.value, templateId: template.id })
+  }
+  if (attributeType.value === BOOLEAN_NEURON_TYPE) {
+    return BooleanNeuron.create({ value: attributeFlag.value })
+  }
+  return StringNeuron.create({ value: attributeValue.value })
 }
 
 async function commitAttributeDraft(): Promise<void> {
@@ -507,11 +687,13 @@ async function commitAttributeDraft(): Promise<void> {
   busy.value = true
   error.value = ''
   try {
-    await database.value.setAttribute(
-      owner,
-      attributeName.value,
-      StringNeuron.create({ value: attributeValue.value })
-    )
+    const value = draftedValue()
+    await database.value.setAttribute(owner, attributeName.value, value)
+
+    // Saved first, so the attributes the type brings with it hang off a neuron
+    // that already exists.
+    const template = templateOf(attributeType.value)
+    if (template !== null) await database.value.applyTemplate(value, template)
     // The owner's own change comes back through the feed and reloads these.
     cancelAttributeDraft()
   } catch (cause) {
@@ -536,8 +718,10 @@ async function removeAttribute(name: string): Promise<void> {
 }
 
 // One value per name, so writing a new value replaces the neuron that held the
-// old one. Core soft deletes it, which keeps the change in the history.
-async function setAttributeValue(attribute: ResolvedAttribute, value: string): Promise<void> {
+// old one. Core soft deletes it, which keeps the change in the history. The
+// replacement is built by the caller, which is what keeps the type from
+// drifting to whatever the editor happened to produce.
+async function setAttributeValue(attribute: ResolvedAttribute, value: Neuron): Promise<void> {
   const owner = currentNeuron.value
   const db = database.value
   if (owner === null || db === null) return
@@ -545,7 +729,7 @@ async function setAttributeValue(attribute: ResolvedAttribute, value: string): P
   busy.value = true
   error.value = ''
   try {
-    await db.setAttribute(owner, attribute.name, StringNeuron.create({ value }))
+    await db.setAttribute(owner, attribute.name, value)
   } catch (cause) {
     error.value = describe(cause)
   } finally {
@@ -553,9 +737,38 @@ async function setAttributeValue(attribute: ResolvedAttribute, value: string): P
   }
 }
 
-// The name is the key, so renaming is a write under the new name followed by a
-// removal of the old one — two writes, in that order, so the value is never
-// only in the deleted half. Core has no single call for it yet.
+function setStringValue(attribute: ResolvedAttribute, value: string): void {
+  void setAttributeValue(attribute, StringNeuron.create({ value }))
+}
+
+// An object is not replaced when its text changes: the text is its name, and
+// everything it holds is still its own.
+async function setObjectName(attribute: ResolvedAttribute, name: string): Promise<void> {
+  const db = database.value
+  if (db === null) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.rename(attribute.neuron, name)
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
+}
+
+function isObject(neuron: Neuron): boolean {
+  return neuron instanceof ObjectNeuron
+}
+
+function setBooleanValue(attribute: ResolvedAttribute, value: boolean): void {
+  void setAttributeValue(attribute, BooleanNeuron.create({ value }))
+}
+
+// Only the owner's entry moves, so the value keeps its id and its type. Core
+// refuses a name that is already taken; the check here exists only to say so in
+// words that name the neuron.
 async function renameAttribute(attribute: ResolvedAttribute, name: string): Promise<void> {
   const owner = currentNeuron.value
   const db = database.value
@@ -571,8 +784,7 @@ async function renameAttribute(attribute: ResolvedAttribute, name: string): Prom
   busy.value = true
   error.value = ''
   try {
-    await db.setAttribute(owner, next, StringNeuron.create({ value: valueOf(attribute.neuron) }))
-    await db.removeAttribute(owner, attribute.name)
+    await db.renameAttribute(owner, attribute.name, next)
   } catch (cause) {
     error.value = describe(cause)
   } finally {
@@ -639,10 +851,19 @@ function isPendingDelete(id: string | null): boolean {
   return id !== null && pendingDelete.value?.id === id
 }
 
+function confirmDelete(source: GraphSource): void {
+  if (source.template !== null) {
+    void deleteTemplate(source.template)
+    return
+  }
+  if (source.neuron !== null) void deleteNeuron(source.neuron)
+}
+
 async function askDelete(id: string): Promise<void> {
   cancelDraft()
   pendingDelete.value = { id, hasChildren: false }
-  if (database.value === null) return
+  // A type owns no tree, so there is nothing to warn about.
+  if (database.value === null || subject.value === 'types') return
   try {
     const children = await database.value.listByParentId(id)
     if (pendingDelete.value?.id === id) {
@@ -677,7 +898,203 @@ async function deleteNeuron(neuron: Neuron): Promise<void> {
 async function commitDraft(): Promise<void> {
   const pending = draft.value
   if (pending === null) return
+  if (subject.value === 'types') {
+    if (await createTemplate(draftValue.value)) cancelDraft()
+    return
+  }
   if (await createNeuronIn(pending.parentId, draftValue.value, '')) cancelDraft()
+}
+
+async function createTemplate(name: string): Promise<boolean> {
+  const db = database.value
+  if (db === null || name.trim().length === 0) return false
+  busy.value = true
+  error.value = ''
+  try {
+    const template = await db.createTemplate(Template.create({ name }))
+    // Straight into the new type, the way creating a neuron opens its parent:
+    // a type with no attributes is not finished.
+    await open(template.id)
+    sidebarOpen.value = true
+    return true
+  } catch (cause) {
+    error.value = describe(cause)
+    return false
+  } finally {
+    busy.value = false
+  }
+}
+
+// "Create Type" is the root node's own create button, so it leaves the types
+// tree showing and puts the draft where a first-level child would go.
+async function createTypeFromBar(): Promise<void> {
+  if (await createTemplate(draftValue.value)) draftValue.value = ''
+}
+
+// Opening a type from the table goes straight to its editor, which is the only
+// thing there is to see of one.
+async function openType(template: Template): Promise<void> {
+  await open(template.id)
+  // The editor lives beside the drawing, so that is where opening one goes.
+  setView('graph')
+  sidebarOpen.value = true
+}
+
+async function startTemplateDraft(): Promise<void> {
+  if (subject.value !== 'types') await setSubject('types')
+  openDraft(null)
+}
+
+async function renameCurrentTemplate(name: string): Promise<void> {
+  const template = currentTemplate.value
+  const db = database.value
+  if (template === null || db === null) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.renameTemplate(template, name)
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
+}
+
+async function deleteTemplate(template: Template): Promise<void> {
+  const db = database.value
+  if (db === null) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.deleteTemplate(template)
+    pendingDelete.value = null
+    if (currentId.value === template.id) await open(null)
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
+}
+
+function openTemplateAttributeDraft(): void {
+  templateAttributeDraftOpen.value = true
+  templateAttributeName.value = ''
+  templateAttributeType.value = STRING_NEURON_TYPE
+  templateAttributeValue.value = ''
+  templateAttributeFlag.value = false
+  void nextTick(() => templateAttributeInput.value?.focus())
+}
+
+function cancelTemplateAttributeDraft(): void {
+  templateAttributeDraftOpen.value = false
+  templateAttributeName.value = ''
+  templateAttributeValue.value = ''
+  templateAttributeFlag.value = false
+}
+
+// The default is optional: an empty text box means the attribute starts with
+// nothing, which is not the same as starting with an empty string.
+function draftedDefault(): TemplateDefault {
+  if (templateAttributeType.value === BOOLEAN_NEURON_TYPE) return templateAttributeFlag.value
+  return templateAttributeValue.value.length === 0 ? null : templateAttributeValue.value
+}
+
+async function writeTemplateAttribute(attribute: TemplateAttribute): Promise<void> {
+  const template = currentTemplate.value
+  const db = database.value
+  if (template === null || db === null) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.setTemplateAttribute(template, attribute)
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
+}
+
+async function commitTemplateAttributeDraft(): Promise<void> {
+  if (templateAttributeName.value.trim().length === 0) return
+  const template = templateOf(templateAttributeType.value)
+
+  // An attribute of a user-defined type is an object that names the type. It
+  // has no default to carry: the neuron is built when one is made.
+  await writeTemplateAttribute(
+    template === null
+      ? {
+          name: templateAttributeName.value,
+          type: templateAttributeType.value,
+          templateId: null,
+          defaultValue: draftedDefault()
+        }
+      : {
+          name: templateAttributeName.value,
+          type: OBJECT_NEURON_TYPE,
+          templateId: template.id,
+          defaultValue: null
+        }
+  )
+  cancelTemplateAttributeDraft()
+}
+
+function setTemplateAttributeDefault(attribute: TemplateAttribute, value: string): void {
+  void writeTemplateAttribute({ ...attribute, defaultValue: value.length === 0 ? null : value })
+}
+
+function onTemplateFlagChange(attribute: TemplateAttribute, event: Event): void {
+  const input = event.target
+  if (!(input instanceof HTMLInputElement)) return
+  void writeTemplateAttribute({ ...attribute, defaultValue: input.checked })
+}
+
+async function renameTemplateAttribute(
+  attribute: TemplateAttribute,
+  name: string
+): Promise<void> {
+  const template = currentTemplate.value
+  const db = database.value
+  if (template === null || db === null) return
+
+  const next = name.trim()
+  if (next.length === 0 || next === attribute.name) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.renameTemplateAttribute(template, attribute.name, next)
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
+}
+
+async function removeTemplateAttribute(name: string): Promise<void> {
+  const template = currentTemplate.value
+  const db = database.value
+  if (template === null || db === null) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.removeTemplateAttribute(template, name)
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
+}
+
+function templateDefaultText(attribute: TemplateAttribute): string {
+  return typeof attribute.defaultValue === 'string' ? attribute.defaultValue : ''
+}
+
+function templateDefaultFlag(attribute: TemplateAttribute): boolean {
+  return attribute.defaultValue === true
 }
 
 // d3-hierarchy only computes positions; Vue renders the SVG, so nodes stay
@@ -695,13 +1112,57 @@ function withDraft(parentId: string | null, children: GraphSource[]): GraphSourc
       isCurrent: false,
       isDraft: true,
       isRoot: false,
-      neuron: null
+      neuron: null,
+      template: null,
+      connector: null
     },
     ...children
   ]
 }
 
+// Types are a flat list under the root, so the whole tree is one level deep.
+function typeGraphSource(): GraphSource {
+  const children: GraphSource[] = templates.value.map((template) => ({
+    id: template.id,
+    label: template.name ?? template.id,
+    detail: attributeSummary(template),
+    isCurrent: template.id === currentId.value,
+    isDraft: false,
+    isRoot: false,
+    neuron: null,
+    template,
+    connector: null,
+    children: []
+  }))
+
+  return {
+    id: null,
+    label: ROOT_LABEL,
+    detail: ROOT_TYPES_DETAIL,
+    isCurrent: currentId.value === null,
+    isDraft: false,
+    isRoot: true,
+    neuron: null,
+    template: null,
+    connector: null,
+    children: withDraft(null, children)
+  }
+}
+
 const graph = computed(() => {
+  // The trail is root-first with the open neuron last, so its parent is the
+  // entry before it; a root neuron falls back to the synthetic root node.
+  const parentNeuron = trail.value.at(-2) ?? null
+  const parentId = parentNeuron?.id ?? null
+
+  // The open neuron reaches its parent either as a child or as one of its
+  // attributes, and only the second has something to say about itself.
+  const openId = currentNeuron.value?.id ?? null
+  const connector =
+    parentNeuron === null || openId === null
+      ? null
+      : (parentNeuron.attributes.find((attribute) => attribute.id === openId)?.name ?? null)
+
   const openSource: GraphSource = {
     id: currentId.value,
     label: currentNeuron.value === null ? ROOT_LABEL : labelOf(currentNeuron.value),
@@ -710,6 +1171,8 @@ const graph = computed(() => {
     isDraft: false,
     isRoot: currentNeuron.value === null,
     neuron: currentNeuron.value,
+    template: null,
+    connector,
     children: withDraft(
       currentId.value,
       neurons.value.map((neuron) => ({
@@ -720,15 +1183,13 @@ const graph = computed(() => {
         isDraft: false,
         isRoot: false,
         neuron,
+        template: null,
+        connector: null,
         children: withDraft(neuron.id, [])
       }))
     )
   }
 
-  // The trail is root-first with the open neuron last, so its parent is the
-  // entry before it; a root neuron falls back to the synthetic root node.
-  const parentNeuron = trail.value.at(-2) ?? null
-  const parentId = parentNeuron?.id ?? null
   const source: GraphSource =
     currentNeuron.value === null
       ? openSource
@@ -740,11 +1201,13 @@ const graph = computed(() => {
           isDraft: false,
           isRoot: parentNeuron === null,
           neuron: parentNeuron,
+          template: null,
+          connector: null,
           children: withDraft(parentId, [openSource])
         }
 
   const layout = tree<GraphSource>().nodeSize([NODE_GAP_VERTICAL, NODE_GAP_HORIZONTAL])
-  const root = layout(hierarchy(source))
+  const root = layout(hierarchy(subject.value === 'types' ? typeGraphSource() : source))
   const nodes = root.descendants()
 
   // d3 puts depth in y and sibling offset in x; swapping them lays the tree
@@ -772,6 +1235,17 @@ const graph = computed(() => {
   }
 })
 
+// The curve is symmetric, so its halfway point is the midpoint of the two ends.
+function linkMidpoint(link: {
+  source: { x: number; y: number }
+  target: { x: number; y: number }
+}): { x: number; y: number } {
+  return {
+    x: (link.source.y + link.target.y) / 2,
+    y: (link.source.x + link.target.x) / 2
+  }
+}
+
 function linkPath(link: { source: { x: number; y: number }; target: { x: number; y: number } }): string {
   const startX = link.source.y + NODE_WIDTH / 2
   const endX = link.target.y - NODE_WIDTH / 2
@@ -783,13 +1257,19 @@ function truncate(text: string, limit: number): string {
   return text.length > limit ? `${text.slice(0, limit - 1)}\u2026` : text
 }
 
-function asStringNeuron(neuron: Neuron): StringNeuron | null {
-  return neuron instanceof StringNeuron ? neuron : null
+function isBoolean(neuron: Neuron): boolean {
+  return neuron instanceof BooleanNeuron
 }
 
-function valueOf(neuron: Neuron): string {
-  const stringNeuron = asStringNeuron(neuron)
-  return stringNeuron === null ? '' : stringNeuron.value
+function flagOf(neuron: Neuron): boolean {
+  return neuron instanceof BooleanNeuron && neuron.value
+}
+
+// The checkbox carries the write, so it reads the new state off the event
+// rather than holding a copy the change feed would have to agree with.
+function onFlagChange(attribute: ResolvedAttribute, event: Event): void {
+  const input = event.target
+  if (input instanceof HTMLInputElement) setBooleanValue(attribute, input.checked)
 }
 
 function shorten(id: string): string {
@@ -870,7 +1350,19 @@ onUnmounted(() => {
         </select>
       </label>
 
-      <template v-if="view === 'table'">
+      <template v-if="view === 'table' && subject === 'types'">
+        <input
+          v-model="draftValue"
+          placeholder="type name"
+          size="26"
+          @keyup.enter="createTypeFromBar"
+        />
+        <button :disabled="busy || draftValue.trim().length === 0" @click="createTypeFromBar">
+          Create Type
+        </button>
+      </template>
+
+      <template v-else-if="view === 'table'">
         <input
           v-model="name"
           :placeholder="currentNeuron ? 'name (child of open neuron)' : 'name'"
@@ -890,10 +1382,32 @@ onUnmounted(() => {
         <button :class="{ active: view === 'graph' }" @click="setView('graph')">Graph</button>
       </span>
 
-      <span class="count">{{ neurons.length }} child{{ neurons.length === 1 ? '' : 'ren' }}</span>
+      <span class="toggle subject">
+        <button :class="{ active: subject === 'neurons' }" @click="setSubject('neurons')">
+          Neurons
+        </button>
+        <button :class="{ active: subject === 'types' }" @click="setSubject('types')">Types</button>
+      </span>
+
+      <span v-if="subject === 'types'" class="count">
+        {{ templates.length }} type{{ templates.length === 1 ? '' : 's' }}
+      </span>
+      <span v-else class="count">
+        {{ neurons.length }} child{{ neurons.length === 1 ? '' : 'ren' }}
+      </span>
     </div>
 
-    <nav class="trail">
+    <nav v-if="subject === 'types'" class="trail">
+      <button class="crumb root" :class="{ current: currentTemplate === null }" @click="open(null)">
+        {{ ROOT_LABEL }}
+      </button>
+      <template v-if="currentTemplate">
+        <span class="sep">/</span>
+        <button class="crumb current">{{ currentTemplate.name ?? currentTemplate.id }}</button>
+      </template>
+    </nav>
+
+    <nav v-else class="trail">
       <button
         class="crumb root"
         :class="{ current: trail.length === 0 }"
@@ -914,7 +1428,7 @@ onUnmounted(() => {
       </template>
     </nav>
 
-    <section v-if="currentNeuron && view === 'table'" class="details">
+    <section v-if="currentNeuron && view === 'table' && subject === 'neurons'" class="details">
       <h2>
         {{ labelOf(currentNeuron) }}
         <span class="kind"><code>{{ currentNeuron.type }}</code></span>
@@ -951,7 +1465,60 @@ onUnmounted(() => {
       </dl>
     </section>
 
-    <table v-if="view === 'table'">
+    <table v-if="view === 'table' && subject === 'types'">
+      <thead>
+        <tr>
+          <th>id</th>
+          <th>name</th>
+          <th>attributes</th>
+          <th>created by</th>
+          <th>created at</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr v-for="template in templates" :key="template.id">
+          <td>
+            <button class="open" :title="`Open ${template.id}`" @click="openType(template)">
+              {{ shorten(template.id) }}
+            </button>
+          </td>
+          <td class="name-cell">{{ template.name ?? '—' }}</td>
+          <td>{{ attributeSummary(template) }}</td>
+          <td>{{ template.createdBy ?? '—' }}</td>
+          <td class="time">{{ formatTime(template.createdAt) }}</td>
+          <td class="actions">
+            <template v-if="isPendingDelete(template.id)">
+              <span class="confirm-label">Delete?</span>
+              <button class="confirm yes" :disabled="busy" @click="deleteTemplate(template)">
+                Yes
+              </button>
+              <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
+            </template>
+            <button
+              v-else
+              class="trash"
+              :disabled="busy"
+              title="Delete type"
+              @click="askDelete(template.id)"
+            >
+              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                <path
+                  d="M2.5 4h11M6 4V2.6a.6.6 0 0 1 .6-.6h2.8a.6.6 0 0 1 .6.6V4M4 4l.55 9.1a1 1 0 0 0 1 .9h4.9a1 1 0 0 0 1-.9L12 4M6.6 6.6v5M9.4 6.6v5"
+                />
+              </svg>
+            </button>
+          </td>
+        </tr>
+        <tr v-if="templates.length === 0">
+          <td colspan="6" class="empty">
+            No types yet. Use <strong>Create Type</strong> to make one.
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <table v-else-if="view === 'table'">
       <thead>
         <tr>
           <th>id</th>
@@ -1029,7 +1596,17 @@ onUnmounted(() => {
           role="img"
           aria-label="Neuron tree"
         >
-          <path v-for="(link, index) in graph.links" :key="index" class="edge" :d="linkPath(link)" />
+          <template v-for="(link, index) in graph.links" :key="index">
+          <path class="edge" :d="linkPath(link)" />
+          <text
+            v-if="link.target.data.connector !== null"
+            class="connector"
+            :x="linkMidpoint(link).x"
+            :y="linkMidpoint(link).y - 5"
+          >
+            {{ truncate(link.target.data.connector, 18) }}
+          </text>
+        </template>
 
           <g
             v-for="node in graph.nodes"
@@ -1068,7 +1645,10 @@ onUnmounted(() => {
             <!-- Confirming covers the node itself. Anywhere beside it collides
                  with the children drawn in that space, which paint over it. -->
             <foreignObject
-              v-else-if="isPendingDelete(node.data.id) && node.data.neuron !== null"
+              v-else-if="
+                isPendingDelete(node.data.id) &&
+                (node.data.neuron !== null || node.data.template !== null)
+              "
               :x="0"
               :y="0"
               :width="NODE_WIDTH"
@@ -1082,7 +1662,7 @@ onUnmounted(() => {
                     and everything inside
                   </span>
                 </span>
-                <button class="confirm yes" :disabled="busy" @click="deleteNeuron(node.data.neuron)">
+                <button class="confirm yes" :disabled="busy" @click="confirmDelete(node.data)">
                   Yes
                 </button>
                 <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
@@ -1103,6 +1683,31 @@ onUnmounted(() => {
               </text>
               <title>{{ node.data.id ?? 'Top level' }}</title>
 
+              <!-- Everything that is about the whole database rather than one
+                   neuron lives here, inside the node that stands for it. -->
+              <foreignObject
+                v-if="node.data.isRoot"
+                :x="0"
+                :y="NODE_HEIGHT - 8"
+                :width="NODE_WIDTH"
+                :height="ROOT_MENU_HEIGHT + 8"
+                @click.stop
+              >
+                <div class="root-menu">
+                  <span class="switch">
+                    <button :class="{ on: subject === 'neurons' }" @click="setSubject('neurons')">
+                      neurons
+                    </button>
+                    <button :class="{ on: subject === 'types' }" @click="setSubject('types')">
+                      types
+                    </button>
+                  </span>
+                  <button class="menu-action" :disabled="busy" @click="startTemplateDraft">
+                    Create Type
+                  </button>
+                </div>
+              </foreignObject>
+
               <foreignObject
                 v-if="node.data.isCurrent && attributes.length > 0"
                 :x="0"
@@ -1114,12 +1719,13 @@ onUnmounted(() => {
                 <div class="attributes" title="Edit attributes">
                   <div v-for="attribute in attributes" :key="attribute.name" class="attribute">
                     <span class="attribute-name-label">{{ attribute.name }}</span>
-                    <span class="attribute-value">{{ valueOf(attribute.neuron) }}</span>
+                    <span class="attribute-value">{{ attributeValueText(attribute.neuron) }}</span>
                   </div>
                 </div>
               </foreignObject>
 
               <g
+                v-if="subject === 'neurons'"
                 class="add"
                 :class="{ disabled: busy }"
                 :transform="`translate(${NODE_WIDTH - 21}, ${NODE_HEIGHT / 2})`"
@@ -1131,7 +1737,7 @@ onUnmounted(() => {
               </g>
 
               <g
-                v-if="node.data.neuron !== null"
+                v-if="node.data.neuron !== null || node.data.template !== null"
                 class="remove"
                 :class="{ disabled: busy }"
                 :transform="`translate(${NODE_WIDTH - 46}, ${NODE_HEIGHT / 2})`"
@@ -1146,14 +1752,149 @@ onUnmounted(() => {
           </g>
         </svg>
 
-        <p v-if="neurons.length === 0" class="empty">
+        <p v-if="subject === 'neurons' && neurons.length === 0" class="empty">
           Nothing below <code>{{ currentNeuron ? labelOf(currentNeuron) : databaseName }}</code> yet.
         </p>
       </div>
 
       <!-- Everything editable about the open neuron lives here, so the node
            itself can stay a label. -->
-      <aside v-if="sidebarOpen && currentNeuron !== null" class="sidebar">
+      <!-- The same editor as a neuron's, over a type's attributes: a name, and
+           rows of name, type and the value a new neuron starts with. -->
+      <aside v-if="sidebarOpen && currentTemplate !== null" class="sidebar">
+        <div class="sidebar-head">
+          <EditableText
+            class="sidebar-name"
+            :value="currentTemplate.name ?? ''"
+            empty="unnamed type"
+            placeholder="type name"
+            title="Rename"
+            :disabled="busy"
+            @submit="renameCurrentTemplate"
+          />
+          <button class="sidebar-close" title="Close" @click="closeSidebar">×</button>
+        </div>
+        <code class="sidebar-id">{{ currentTemplate.id }}</code>
+
+        <table class="sidebar-attributes">
+          <thead>
+            <tr>
+              <th>type</th>
+              <th>name</th>
+              <th>default</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="attribute in currentTemplate.attributes" :key="attribute.name">
+              <td class="type"><code>{{ templateAttributeTypeLabel(attribute) }}</code></td>
+              <td>
+                <EditableText
+                  :value="attribute.name"
+                  placeholder="name"
+                  title="Rename attribute"
+                  :disabled="busy"
+                  @submit="(name) => renameTemplateAttribute(attribute, name)"
+                />
+              </td>
+              <td>
+                <span v-if="attribute.templateId !== null" class="empty">built then</span>
+                <input
+                  v-else-if="attribute.type === BOOLEAN_NEURON_TYPE"
+                  type="checkbox"
+                  :checked="templateDefaultFlag(attribute)"
+                  :disabled="busy"
+                  @change="(event) => onTemplateFlagChange(attribute, event)"
+                />
+                <EditableText
+                  v-else
+                  :value="templateDefaultText(attribute)"
+                  placeholder="default"
+                  empty="none"
+                  title="Edit the default"
+                  :disabled="busy"
+                  @submit="(value) => setTemplateAttributeDefault(attribute, value)"
+                />
+              </td>
+              <td class="actions">
+                <button
+                  class="attribute-remove"
+                  :disabled="busy"
+                  title="Remove attribute"
+                  @click="removeTemplateAttribute(attribute.name)"
+                >
+                  ×
+                </button>
+              </td>
+            </tr>
+
+            <tr v-if="templateAttributeDraftOpen" class="draft">
+              <td class="type">
+                <select v-model="templateAttributeType" class="sidebar-input">
+                  <option v-for="choice in typeChoices" :key="choice.value" :value="choice.value">
+                    {{ choice.label }}
+                  </option>
+                </select>
+              </td>
+              <td>
+                <input
+                  ref="templateAttributeInput"
+                  v-model="templateAttributeName"
+                  class="sidebar-input"
+                  placeholder="name"
+                  @keyup.enter="commitTemplateAttributeDraft"
+                  @keyup.esc="cancelTemplateAttributeDraft"
+                />
+              </td>
+              <td>
+                <!-- A type is built when a neuron is made from it, so there is
+                     nothing here to default to. -->
+                <span v-if="isTemplateChoice(templateAttributeType)" class="empty">built then</span>
+                <input
+                  v-else-if="templateAttributeType === BOOLEAN_NEURON_TYPE"
+                  v-model="templateAttributeFlag"
+                  type="checkbox"
+                  @keyup.enter="commitTemplateAttributeDraft"
+                  @keyup.esc="cancelTemplateAttributeDraft"
+                />
+                <input
+                  v-else
+                  v-model="templateAttributeValue"
+                  class="sidebar-input"
+                  placeholder="default (optional)"
+                  @keyup.enter="commitTemplateAttributeDraft"
+                  @keyup.esc="cancelTemplateAttributeDraft"
+                />
+              </td>
+              <td class="actions">
+                <button
+                  class="attribute-done"
+                  title="Done"
+                  @click="commitTemplateAttributeDraft"
+                >
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M3.2 8.6 L6.4 11.8 L12.8 4.6" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+
+            <tr v-if="currentTemplate.attributes.length === 0 && !templateAttributeDraftOpen">
+              <td colspan="4" class="empty">No attributes yet.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <button
+          class="attribute-add"
+          :disabled="busy || templateAttributeDraftOpen"
+          @click="openTemplateAttributeDraft"
+        >
+          + Add attribute
+        </button>
+      </aside>
+
+      <aside v-else-if="sidebarOpen && currentNeuron !== null" class="sidebar">
         <div class="sidebar-head">
           <EditableText
             class="sidebar-name"
@@ -1179,7 +1920,7 @@ onUnmounted(() => {
           </thead>
           <tbody>
             <tr v-for="attribute in attributes" :key="attribute.name">
-              <td class="type"><code>{{ attribute.neuron.type }}</code></td>
+              <td class="type"><code>{{ typeLabelOf(attribute.neuron) }}</code></td>
               <td>
                 <EditableText
                   :value="attribute.name"
@@ -1190,13 +1931,44 @@ onUnmounted(() => {
                 />
               </td>
               <td>
+                <span v-if="isBoolean(attribute.neuron)" class="attribute-flag">
+                  <input
+                    type="checkbox"
+                    :checked="flagOf(attribute.neuron)"
+                    :disabled="busy"
+                    @change="(event) => onFlagChange(attribute, event)"
+                  />
+                  <button
+                    class="attribute-open"
+                    title="Open this neuron"
+                    @click="open(attribute.neuron.id)"
+                  >
+                    ↗
+                  </button>
+                </span>
+
                 <EditableText
-                  :value="valueOf(attribute.neuron)"
+                  v-else-if="isObject(attribute.neuron)"
+                  :value="attributeValueText(attribute.neuron)"
+                  placeholder="name"
+                  empty="unnamed"
+                  title="Open this neuron"
+                  link
+                  :disabled="busy"
+                  @follow="open(attribute.neuron.id)"
+                  @submit="(name) => setObjectName(attribute, name)"
+                />
+
+                <EditableText
+                  v-else
+                  :value="displayValue(attribute.neuron)"
                   placeholder="value"
                   empty="empty"
-                  title="Edit value"
+                  title="Open this neuron"
+                  link
                   :disabled="busy"
-                  @submit="(value) => setAttributeValue(attribute, value)"
+                  @follow="open(attribute.neuron.id)"
+                  @submit="(value) => setStringValue(attribute, value)"
                 />
               </td>
               <td class="actions">
@@ -1212,7 +1984,13 @@ onUnmounted(() => {
             </tr>
 
             <tr v-if="attributeDraftOpen" class="draft">
-              <td class="type"><code>string</code></td>
+              <td class="type">
+                <select v-model="attributeType" class="sidebar-input">
+                  <option v-for="choice in typeChoices" :key="choice.value" :value="choice.value">
+                    {{ choice.label }}
+                  </option>
+                </select>
+              </td>
               <td>
                 <input
                   ref="attributeNameInput"
@@ -1225,9 +2003,17 @@ onUnmounted(() => {
               </td>
               <td>
                 <input
+                  v-if="attributeType === BOOLEAN_NEURON_TYPE"
+                  v-model="attributeFlag"
+                  type="checkbox"
+                  @keyup.enter="commitAttributeDraft"
+                  @keyup.esc="cancelAttributeDraft"
+                />
+                <input
+                  v-else
                   v-model="attributeValue"
                   class="sidebar-input"
-                  placeholder="value"
+                  :placeholder="isTemplateChoice(attributeType) ? 'name' : 'value'"
                   @keyup.enter="commitAttributeDraft"
                   @keyup.esc="cancelAttributeDraft"
                 />
@@ -1481,7 +2267,65 @@ main { padding: 14px; }
 
 .sidebar-attributes th { font-size: 10px; }
 .sidebar-attributes th:first-child,
-.sidebar-attributes td.type { width: 52px; padding-left: 0; color: var(--muted); }
+.sidebar-attributes td.type { width: 78px; padding-left: 0; color: var(--muted); }
+.sidebar-attributes td.type select { width: 100%; }
+
+/* The menu belongs to the whole database, so it lives in the node that stands
+   for it rather than in the toolbar above the drawing. */
+.root-menu {
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 0 10px;
+  font: 11px ui-sans-serif, system-ui, sans-serif;
+}
+
+.switch {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.switch button {
+  border: none;
+  border-radius: 0;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 9px;
+  font: inherit;
+}
+
+.switch button.on { background: var(--accent); color: #fff; }
+
+.menu-action {
+  margin-left: auto;
+  border: 1px dashed var(--border);
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px 8px;
+  font: inherit;
+}
+
+.menu-action:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+
+.attribute-flag { display: flex; align-items: center; gap: 6px; }
+.attribute-flag input { margin: 0; accent-color: var(--accent); }
+
+.attribute-open {
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  line-height: 1;
+}
 .sidebar-attributes th:last-child,
 .sidebar-attributes td.actions { width: 20px; padding: 5px 0; }
 .sidebar-attributes tr:last-child td { border-bottom: none; }
@@ -1527,6 +2371,18 @@ main { padding: 14px; }
   fill: none;
   stroke: var(--border);
   stroke-width: 1.5;
+}
+
+/* Painted over the curve, so it is stroked with the background first. */
+.connector {
+  fill: var(--muted);
+  font-size: 10px;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  text-anchor: middle;
+  paint-order: stroke;
+  stroke: var(--panel);
+  stroke-width: 3px;
+  stroke-linejoin: round;
 }
 
 .node rect {

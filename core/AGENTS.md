@@ -60,6 +60,38 @@ Build what was asked for, not more.
   them.
 - **`name` lives on `Neuron`, not on a subclass.** It is a label every kind needs, which is
   what lets `Database.rename` be typed generally; `value` is `StringNeuron`'s content.
+- **`type` is a representation, a template is a shape.** `type` names which class reads the
+  document — a closed set shipped as code: `string`, `boolean`, `object`, and whatever comes
+  next. A **template** is the user's own description of what a neuron should hold, created at
+  runtime, so it can never be a class. The value neuron says what it *is*; the template says
+  what it *should be*. The two never share a field. Say "template", never "schema".
+  A type is referred to as:
+
+  ```ts
+  { type: 'list', itemType: { type: 'object', templateId: 'template:…' } }
+  ```
+
+  Nesting, not a grammar: a type is never parsed out of a string like `list<date>`.
+- **Making a neuron from a type fills it in, it does not point at a shape.** `createFromTemplate`
+  writes one attribute per attribute the template defines, from its default, and recurses into
+  nested types with the path it has already taken so a ring of types cannot fill forever. An
+  attribute type the code does not know is skipped, never guessed at.
+- **The interface says "type", the code says "template".** The user creates *types*; the
+  document that records one is a `Template` under a `template:` id. Never show the word
+  template in the interface, and never use the word type in the code for a user-defined one.
+- **The factory keys on `type` first; the shape of `value` is only a guard.** A date would be
+  stored as a string too, so structure alone could never tell two types apart. The chain of
+  type guards in `NeuronFactory` stays a chain rather than a lookup table, because a lookup
+  needs a cast to get from `NeuronDocument` to the subclass's document type.
+- **A collection is a neuron whose items are its children**, not a JSON array in a value.
+  Items stay addressable, navigable and individually editable; two devices inserting at once
+  give you both items instead of one array overwriting the other. This costs nothing: a
+  container reached as an attribute has `attribute_of` set and so stays out of the listings,
+  while its items are ordinary children that `listByParentId` and the delete sweep already
+  handle.
+- **Renaming an attribute moves the owner's entry and nothing else.** `Database.renameAttribute`
+  is one write that keeps the value's id, and so its type and its own attributes. Composing it
+  out of `setAttribute` + `removeAttribute` rebuilds the value, which silently retypes it.
 - **`find()` returns 25 documents when given no limit** — on PouchDB's adapters and on
   CouchDB alike. Every Mango query pages explicitly through `findAll`; a bare `find()`
   silently truncates and the tests pass anyway unless one of them crosses 25 rows.
@@ -141,12 +173,15 @@ core/
     LocalConnection.ts
     RemoteConnection.ts
     Database.ts         one database handle, document operations, watch, sync
-    NeuronChange.ts     what a watcher receives
+    NeuronChange.ts     what a watcher receives, for both neurons and templates
     Replication.ts      a live link between two Database handles
     Neuron.ts           abstract base, shared fields and their mapping
     NeuronError.ts
     NeuronFactory.ts    document type -> neuron class
-    StringNeuron.ts
+    Template.ts         a user-defined type: a name and the attributes it starts with
+    StringNeuron.ts     holds text
+    BooleanNeuron.ts    holds a flag
+    ObjectNeuron.ts     holds no value of its own: a name and its attributes
     types/              ambient declarations for untyped dependencies
   tests/                unit tests, one file per feature
     integration/        tests that need the real CouchDB

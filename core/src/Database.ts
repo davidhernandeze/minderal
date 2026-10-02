@@ -4,9 +4,14 @@ import { ConnectionError } from './ConnectionError.js'
 import { NeuronError } from './NeuronError.js'
 import { NeuronFactory } from './NeuronFactory.js'
 import { Replication } from './Replication.js'
+import { BOOLEAN_NEURON_TYPE, BooleanNeuron } from './BooleanNeuron.js'
+import { OBJECT_NEURON_TYPE, ObjectNeuron } from './ObjectNeuron.js'
+import { STRING_NEURON_TYPE, StringNeuron } from './StringNeuron.js'
 import { NEURON_ID_PREFIX, isNeuronId } from './Neuron.js'
+import { TEMPLATE_ID_PREFIX, Template, isTemplateId } from './Template.js'
 import type { Neuron, NeuronAttribute, NeuronDocument } from './Neuron.js'
-import type { NeuronChange, WatchHandlers } from './NeuronChange.js'
+import type { NeuronChange, TemplateChange, WatchHandlers } from './NeuronChange.js'
+import type { TemplateAttribute, TemplateDocument } from './Template.js'
 import type { ReplicationOptions } from './Replication.js'
 
 PouchDB.plugin(findPlugin)
@@ -213,6 +218,31 @@ export class Database {
     }
   }
 
+  // Only the owner's entry moves: the value neuron, and so its type and its own
+  // attributes, stays exactly where it is. Rebuilding the value instead would
+  // quietly turn a boolean into whatever the caller happened to rebuild it as.
+  async renameAttribute(owner: Neuron, name: string, newName: string): Promise<boolean> {
+    await this.initialize()
+    const from = name.trim()
+    const to = newName.trim()
+    if (to.length === 0) {
+      throw new NeuronError('An attribute needs a name')
+    }
+
+    const attribute = owner.attributes.find((entry) => entry.name === from)
+    if (attribute === undefined) return false
+    if (from === to) return true
+    if (owner.attributes.some((entry) => entry.name === to)) {
+      throw new NeuronError(`Neuron ${owner.id} already has an attribute named ${to}`)
+    }
+
+    owner.attributes = owner.attributes.map((entry) =>
+      entry.name === from ? { name: to, id: entry.id } : entry
+    )
+    await this.update(owner)
+    return true
+  }
+
   async removeAttribute(owner: Neuron, name: string): Promise<boolean> {
     const attributeName = name.trim()
     const attribute = owner.attributes.find((entry) => entry.name === attributeName)
@@ -271,6 +301,189 @@ export class Database {
       return toNeurons(await findAll(this.openClient(), selector), options)
     } catch (cause) {
       throw this.failure(`Listing neurons under parent ${String(parentId)}`, cause)
+    }
+  }
+
+  async createTemplate(template: Template): Promise<Template> {
+    await this.initialize()
+    const timestamp = new Date().toISOString()
+    template.createdAt = timestamp
+    template.updatedAt = timestamp
+    template.createdBy = this.username
+
+    try {
+      const response = await this.openClient().put(template.toDocument())
+      template.revision = response.rev
+      return template
+    } catch (cause) {
+      throw this.failure(`Creating template ${template.id}`, cause)
+    }
+  }
+
+  async updateTemplate(template: Template): Promise<Template> {
+    await this.initialize()
+    if (template.revision === null) {
+      throw new NeuronError(`Template ${template.id} has never been saved, so it cannot be updated`)
+    }
+    template.updatedAt = new Date().toISOString()
+
+    try {
+      const response = await this.openClient().put(template.toDocument())
+      template.revision = response.rev
+      return template
+    } catch (cause) {
+      throw this.failure(`Updating template ${template.id}`, cause)
+    }
+  }
+
+  async getTemplate(id: string, options: NeuronQueryOptions = {}): Promise<Template | null> {
+    await this.initialize()
+    if (!isTemplateId(id)) return null
+    try {
+      const document = await this.openClient().get(id)
+      if (!isTemplateDocument(document)) return null
+      if (isDeleted(document) && options.includeDeleted !== true) return null
+      return Template.fromDocument(document)
+    } catch (cause) {
+      if (isNotFound(cause)) return null
+      throw this.failure(`Reading template ${id}`, cause)
+    }
+  }
+
+  async listTemplates(options: NeuronQueryOptions = {}): Promise<Template[]> {
+    await this.initialize()
+    try {
+      const response = await this.openClient().allDocs({
+        include_docs: true,
+        startkey: TEMPLATE_ID_PREFIX,
+        endkey: `${TEMPLATE_ID_PREFIX}\uffff`
+      })
+      const templates: Template[] = []
+      for (const row of response.rows) {
+        const document = row.doc
+        if (document === undefined || document === null) continue
+        if (!isTemplateDocument(document)) continue
+        if (options.includeDeleted !== true && isDeleted(document)) continue
+        templates.push(Template.fromDocument(document))
+      }
+      return templates.sort(byName)
+    } catch (cause) {
+      throw this.failure('Listing templates', cause)
+    }
+  }
+
+  async renameTemplate(template: Template, name: string | null): Promise<Template> {
+    const trimmed = name === null ? null : name.trim()
+    template.name = trimmed === null || trimmed.length === 0 ? null : trimmed
+    return this.updateTemplate(template)
+  }
+
+  // Soft deleted like a neuron, and alone: a template owns nothing, and the
+  // neurons that follow it keep working from the attributes they already have.
+  async deleteTemplate(template: Template): Promise<Template> {
+    template.deletedAt = new Date().toISOString()
+    return this.updateTemplate(template)
+  }
+
+  // One entry per name, so writing an attribute that is already there replaces
+  // it in place rather than adding a second.
+  async setTemplateAttribute(
+    template: Template,
+    attribute: TemplateAttribute
+  ): Promise<Template> {
+    const name = attribute.name.trim()
+    if (name.length === 0) {
+      throw new NeuronError('A template attribute needs a name')
+    }
+
+    const next = { ...attribute, name }
+    const existing = template.attributes.findIndex((entry) => entry.name === name)
+    template.attributes =
+      existing === -1
+        ? [...template.attributes, next]
+        : template.attributes.map((entry, index) => (index === existing ? next : entry))
+    return this.updateTemplate(template)
+  }
+
+  async renameTemplateAttribute(
+    template: Template,
+    name: string,
+    newName: string
+  ): Promise<boolean> {
+    const from = name.trim()
+    const to = newName.trim()
+    if (to.length === 0) {
+      throw new NeuronError('A template attribute needs a name')
+    }
+
+    const attribute = template.attributes.find((entry) => entry.name === from)
+    if (attribute === undefined) return false
+    if (from === to) return true
+    if (template.attributes.some((entry) => entry.name === to)) {
+      throw new NeuronError(`Template ${template.id} already has an attribute named ${to}`)
+    }
+
+    template.attributes = template.attributes.map((entry) =>
+      entry.name === from ? { ...entry, name: to } : entry
+    )
+    await this.updateTemplate(template)
+    return true
+  }
+
+  async removeTemplateAttribute(template: Template, name: string): Promise<boolean> {
+    const target = name.trim()
+    if (!template.attributes.some((entry) => entry.name === target)) return false
+
+    template.attributes = template.attributes.filter((entry) => entry.name !== target)
+    await this.updateTemplate(template)
+    return true
+  }
+
+  // A neuron made from a type: an object that names the template it follows,
+  // carrying one attribute per attribute the template defines.
+  async createFromTemplate(
+    template: Template,
+    properties: { name?: string | null; parentId?: string | null } = {}
+  ): Promise<ObjectNeuron> {
+    const neuron = ObjectNeuron.create({
+      name: properties.name ?? null,
+      parentId: properties.parentId ?? null,
+      templateId: template.id
+    })
+    await this.create(neuron)
+    await this.applyTemplate(neuron, template)
+    return neuron
+  }
+
+  // Attributes the neuron already has are left alone, so applying a template to
+  // something that has been filled in adds what is missing and changes nothing.
+  async applyTemplate<NeuronType extends Neuron>(
+    neuron: NeuronType,
+    template: Template
+  ): Promise<NeuronType> {
+    await this.initialize()
+    await this.fillFromTemplate(neuron, template, new Set([template.id]))
+    return neuron
+  }
+
+  private async fillFromTemplate(
+    neuron: Neuron,
+    template: Template,
+    seen: Set<string>
+  ): Promise<void> {
+    for (const attribute of template.attributes) {
+      if (neuron.attributes.some((entry) => entry.name === attribute.name)) continue
+
+      const value = neuronForTemplateAttribute(attribute)
+      if (value === null) continue
+      await this.setAttribute(neuron, attribute.name, value)
+
+      // A type that reaches itself, directly or round a ring of others, stops
+      // here: the neuron is still made, it just is not filled in again.
+      if (attribute.templateId === null || seen.has(attribute.templateId)) continue
+      const nested = await this.getTemplate(attribute.templateId)
+      if (nested === null) continue
+      await this.fillFromTemplate(value, nested, new Set([...seen, attribute.templateId]))
     }
   }
 
@@ -372,13 +585,25 @@ export class Database {
     change: PouchDB.Core.ChangesResponseChange<NeuronDocument>
   ): Promise<void> {
     const document = change.doc
-    if (document === undefined || !isNeuronId(change.id)) return
+    if (document === undefined) return
+    if (!isNeuronId(change.id) && !isTemplateId(change.id)) return
 
     let winner: ChangedDocument = document
     try {
       winner = await this.resolveConflicts(document)
     } catch (cause) {
       this.announceError(this.failure(`Resolving conflicts on ${change.id}`, cause))
+      return
+    }
+
+    if (isTemplateId(winner._id)) {
+      if (!isTemplateDocument(winner)) return
+      this.announceTemplate({
+        id: winner._id,
+        deletedAt: winner.deleted_at ?? null,
+        revision: winner._rev,
+        template: change.deleted === true ? null : Template.fromDocument(winner)
+      })
       return
     }
 
@@ -419,6 +644,10 @@ export class Database {
 
   private announce(change: NeuronChange): void {
     for (const watcher of this.watchers) watcher.change(change)
+  }
+
+  private announceTemplate(change: TemplateChange): void {
+    for (const watcher of this.watchers) watcher.template?.(change)
   }
 
   private announceError(error: Error): void {
@@ -537,6 +766,39 @@ function byNewestFirst(left: NeuronDocument, right: NeuronDocument): number {
   if (leftStamp !== rightStamp) return leftStamp > rightStamp ? -1 : 1
   // Two neurons written in the same millisecond still need a stable order.
   return left._id.localeCompare(right._id)
+}
+
+// A template is the only thing under the template prefix, so the prefix is what
+// identifies it; the extra field is checked so a half-written document cannot
+// be read as a template with no attributes.
+function isTemplateDocument(document: NeuronDocument): document is TemplateDocument {
+  if (!isTemplateId(document._id)) return false
+  return 'template_attributes' in document && Array.isArray(document.template_attributes)
+}
+
+// What a neuron made from a template starts as. An unknown type is skipped
+// rather than guessed at, so a template written by a newer version of the app
+// leaves a gap instead of the wrong kind of neuron.
+function neuronForTemplateAttribute(attribute: TemplateAttribute): Neuron | null {
+  switch (attribute.type) {
+    case OBJECT_NEURON_TYPE:
+      return ObjectNeuron.create({ templateId: attribute.templateId })
+    case BOOLEAN_NEURON_TYPE:
+      return BooleanNeuron.create({ value: attribute.defaultValue === true })
+    case STRING_NEURON_TYPE:
+      return StringNeuron.create({
+        value: typeof attribute.defaultValue === 'string' ? attribute.defaultValue : ''
+      })
+    default:
+      return null
+  }
+}
+
+function byName(first: Template, second: Template): number {
+  const left = first.name ?? ''
+  const right = second.name ?? ''
+  if (left === right) return first.id.localeCompare(second.id)
+  return left.localeCompare(right)
 }
 
 function isDeleted(document: NeuronDocument): boolean {

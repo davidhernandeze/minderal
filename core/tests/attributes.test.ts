@@ -1,7 +1,7 @@
 import PouchDB from 'pouchdb'
 import memoryAdapter from 'pouchdb-adapter-memory'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ConnectionFactory, NeuronError, StringNeuron } from '../src/index.js'
+import { BooleanNeuron, ConnectionFactory, NeuronError, StringNeuron } from '../src/index.js'
 import type { Database } from '../src/index.js'
 
 PouchDB.plugin(memoryAdapter)
@@ -248,5 +248,54 @@ describe('Deleting an owner', () => {
     await expect(
       database.get(childAttribute.id, { includeAttributes: true })
     ).resolves.toBeNull()
+  })
+})
+
+describe('Database.renameAttribute', () => {
+  it('moves the entry without touching the neuron that holds the value', async () => {
+    const database = useDatabase('attr-rename-keeps')
+    const david = await database.create(StringNeuron.create({ name: 'David' }))
+    const value = await database.setAttribute(david, 'city', StringNeuron.create({ value: 'Madrid' }))
+
+    expect(await database.renameAttribute(david, 'city', 'town')).toBe(true)
+
+    const attributes = await database.listAttributes(david)
+    expect(attributes.map((attribute) => attribute.name)).toEqual(['town'])
+    // The same document, so whatever type it was it still is.
+    expect(attributes[0]?.neuron.id).toBe(value.id)
+    expect(await database.get(value.id)).not.toBeNull()
+  })
+
+  it('keeps the value readable as its own type', async () => {
+    const database = useDatabase('attr-rename-type')
+    const david = await database.create(StringNeuron.create({ name: 'David' }))
+    await database.setAttribute(david, 'alive', BooleanNeuron.create({ value: true }))
+
+    await database.renameAttribute(david, 'alive', 'breathing')
+
+    const [attribute] = await database.listAttributes(david)
+    expect(attribute?.neuron).toBeInstanceOf(BooleanNeuron)
+    expect(attribute?.name).toBe('breathing')
+  })
+
+  it('refuses a name another attribute already uses', async () => {
+    const database = useDatabase('attr-rename-clash')
+    const david = await database.create(StringNeuron.create({ name: 'David' }))
+    await database.setAttribute(david, 'city', StringNeuron.create({ value: 'Madrid' }))
+    await database.setAttribute(david, 'town', StringNeuron.create({ value: 'Leon' }))
+
+    await expect(database.renameAttribute(david, 'city', 'town')).rejects.toThrow(NeuronError)
+    // Nothing moved, so both are still reachable under their own names.
+    const attributes = await database.listAttributes(david)
+    expect(attributes.map((attribute) => attribute.name).sort()).toEqual(['city', 'town'])
+  })
+
+  it('refuses an empty name and reports an attribute that is not there', async () => {
+    const database = useDatabase('attr-rename-guards')
+    const david = await database.create(StringNeuron.create({ name: 'David' }))
+    await database.setAttribute(david, 'city', StringNeuron.create({ value: 'Madrid' }))
+
+    await expect(database.renameAttribute(david, 'city', '  ')).rejects.toThrow(NeuronError)
+    expect(await database.renameAttribute(david, 'missing', 'town')).toBe(false)
   })
 })

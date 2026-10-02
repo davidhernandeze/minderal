@@ -1,8 +1,8 @@
 import PouchDB from 'pouchdb'
 import memoryAdapter from 'pouchdb-adapter-memory'
 import { afterEach, describe, expect, it } from 'vitest'
-import { ConnectionFactory, StringNeuron } from '../src/index.js'
-import type { Database, NeuronChange } from '../src/index.js'
+import { ConnectionFactory, StringNeuron, Template } from '../src/index.js'
+import type { Database, NeuronChange, TemplateChange } from '../src/index.js'
 
 PouchDB.plugin(memoryAdapter)
 
@@ -149,3 +149,56 @@ describe('Database.watch', () => {
     await watcher.stop()
   })
 })
+
+describe('Database.watch on templates', () => {
+  it('sends template changes to the template handler and nowhere else', async () => {
+    const database = useDatabase('watch-templates')
+    const neuronChanges: NeuronChange[] = []
+    const templateChanges: TemplateChange[] = []
+    const stop = await database.watch({
+      change: (change) => neuronChanges.push(change),
+      template: (change) => templateChanges.push(change)
+    })
+
+    const template = await database.createTemplate(Template.create({ name: 'person' }))
+    await waitUntil(() => templateChanges.length >= 1)
+
+    expect(templateChanges[0]?.id).toBe(template.id)
+    expect(templateChanges[0]?.template?.name).toBe('person')
+    // A template is not a neuron, so the neuron watcher never hears about it.
+    expect(neuronChanges).toEqual([])
+
+    await database.create(StringNeuron.create({ name: 'David' }))
+    await waitUntil(() => neuronChanges.length >= 1)
+    expect(templateChanges).toHaveLength(1)
+
+    stop()
+  })
+
+  it('reaches a watcher that asked only for neurons without failing', async () => {
+    const database = useDatabase('watch-templates-optional')
+    const neuronChanges: NeuronChange[] = []
+    const errors: Error[] = []
+    const stop = await database.watch({
+      change: (change) => neuronChanges.push(change),
+      error: (error) => errors.push(error)
+    })
+
+    await database.createTemplate(Template.create({ name: 'person' }))
+    await database.create(StringNeuron.create({ name: 'David' }))
+    await waitUntil(() => neuronChanges.length >= 1)
+
+    expect(errors).toEqual([])
+    expect(neuronChanges).toHaveLength(1)
+
+    stop()
+  })
+})
+
+async function waitUntil(done: () => boolean, timeoutMs = 3000): Promise<void> {
+  const deadline = Date.now() + timeoutMs
+  while (!done()) {
+    if (Date.now() > deadline) throw new Error('timed out waiting for a change')
+    await new Promise((resolve) => setTimeout(resolve, 15))
+  }
+}

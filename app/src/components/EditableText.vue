@@ -8,6 +8,8 @@ import { nextTick, ref } from 'vue'
 // The value is a prop and the result is an event, not `v-model`: every edit
 // here ends in a database write, and the new text comes back through the change
 // feed. Owning a local copy would mean showing an edit that had not landed yet.
+// `link` is for a value that is somewhere else as well as something to read: the
+// text becomes the way to go there, and editing moves to the pencil beside it.
 const props = withDefaults(
   defineProps<{
     value: string
@@ -15,11 +17,12 @@ const props = withDefaults(
     empty?: string
     title?: string
     disabled?: boolean
+    link?: boolean
   }>(),
-  { placeholder: '', empty: '—', title: 'Click to edit', disabled: false }
+  { placeholder: '', empty: '—', title: 'Click to edit', disabled: false, link: false }
 )
 
-const emit = defineEmits<{ submit: [value: string] }>()
+const emit = defineEmits<{ submit: [value: string]; follow: [] }>()
 
 const editing = ref(false)
 const draft = ref('')
@@ -76,6 +79,17 @@ function onBlur(): void {
       </button>
     </template>
 
+    <template v-else-if="link">
+      <button class="editable-text link" :title="title" @click="emit('follow')">
+        {{ value.length === 0 ? empty : value }}
+      </button>
+      <button class="editable-edit" title="Edit" :disabled="disabled" @click="startEditing">
+        <svg viewBox="0 0 16 16" aria-hidden="true">
+          <path d="M11.3 2.6 13.4 4.7 5.6 12.5 2.8 13.2 3.5 10.4 Z" />
+        </svg>
+      </button>
+    </template>
+
     <button
       v-else
       class="editable-text"
@@ -126,6 +140,31 @@ function onBlur(): void {
 .editable-text:focus-visible { outline: 1px solid var(--accent); }
 .editable-text:disabled { cursor: default; background: transparent; opacity: 1; }
 .editable-text.blank { color: var(--muted); font-style: italic; }
+
+.editable-text.link { color: var(--accent); cursor: pointer; }
+.editable-text.link:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+.editable-edit {
+  flex: 0 0 auto;
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.editable-edit svg {
+  width: 0.9em;
+  height: 0.9em;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.editable-edit:hover { color: var(--accent); }
 
 .editable-input {
   flex: 1 1 auto;

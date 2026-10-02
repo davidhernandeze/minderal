@@ -1,6 +1,16 @@
 import { describe, expect, it } from 'vitest'
-import { NEURON_ID_PREFIX, STRING_NEURON_TYPE, StringNeuron } from '../src/index.js'
-import type { StringNeuronDocument } from '../src/index.js'
+import {
+  BOOLEAN_NEURON_TYPE,
+  BooleanNeuron,
+  NEURON_ID_PREFIX,
+  NeuronError,
+  NeuronFactory,
+  OBJECT_NEURON_TYPE,
+  ObjectNeuron,
+  STRING_NEURON_TYPE,
+  StringNeuron
+} from '../src/index.js'
+import type { ObjectNeuronDocument, StringNeuronDocument } from '../src/index.js'
 
 describe('StringNeuron.create', () => {
   it('assigns an id and leaves the saved-only fields empty', () => {
@@ -132,5 +142,85 @@ describe('StringNeuron.parseDocument', () => {
     const { _rev, ...withoutRevision } = storedDocument
 
     expect(StringNeuron.fromDocument(withoutRevision).revision).toBeNull()
+  })
+})
+
+describe('BooleanNeuron', () => {
+  it('defaults to false and keeps the value it is given', () => {
+    expect(BooleanNeuron.create().value).toBe(false)
+    expect(BooleanNeuron.create({ value: true }).value).toBe(true)
+    expect(BooleanNeuron.create({ value: true }).type).toBe(BOOLEAN_NEURON_TYPE)
+  })
+
+  it('writes false as a value rather than dropping the field', () => {
+    const document = BooleanNeuron.create({ value: false, name: 'Alive' }).toDocument()
+
+    expect(document.value).toBe(false)
+    expect(document.type).toBe(BOOLEAN_NEURON_TYPE)
+  })
+
+  it('round-trips a document unchanged', () => {
+    const neuron = BooleanNeuron.create({ value: true, name: 'Alive', parentId: 'neuron:p' })
+    neuron.createdAt = '2026-10-02T10:00:00.000Z'
+    neuron.revision = '2-abc'
+
+    expect(BooleanNeuron.fromDocument(neuron.toDocument()).toDocument()).toEqual(neuron.toDocument())
+  })
+})
+
+describe('ObjectNeuron', () => {
+  it('has no value of its own, only a name and its attributes', () => {
+    const neuron = ObjectNeuron.create({ name: 'David' })
+
+    expect(neuron.type).toBe(OBJECT_NEURON_TYPE)
+    expect(neuron.name).toBe('David')
+    expect(neuron.attributes).toEqual([])
+    expect('value' in neuron).toBe(false)
+  })
+
+  it('defaults templateId to null and keeps one when given', () => {
+    expect(ObjectNeuron.create().templateId).toBeNull()
+    expect(ObjectNeuron.create({ templateId: 'template:person' }).templateId).toBe('template:person')
+  })
+
+  it('round-trips a document unchanged', () => {
+    const neuron = ObjectNeuron.create({ name: 'David', templateId: 'template:person' })
+    neuron.createdAt = '2026-10-02T10:00:00.000Z'
+
+    expect(ObjectNeuron.fromDocument(neuron.toDocument()).toDocument()).toEqual(neuron.toDocument())
+  })
+
+  it('reads a document written without a template', () => {
+    // A neuron that follows no template still has to be readable.
+    const { template_id, ...withoutTemplate } = ObjectNeuron.create({ name: 'David' }).toDocument()
+
+    expect(ObjectNeuron.fromDocument(withoutTemplate as ObjectNeuronDocument).templateId).toBeNull()
+  })
+})
+
+describe('NeuronFactory.fromDocument', () => {
+  it('reads each type back as its own class', () => {
+    const text = NeuronFactory.fromDocument(StringNeuron.create({ value: 'hello' }).toDocument())
+    const flag = NeuronFactory.fromDocument(BooleanNeuron.create({ value: true }).toDocument())
+    const thing = NeuronFactory.fromDocument(ObjectNeuron.create({ name: 'David' }).toDocument())
+
+    expect(text).toBeInstanceOf(StringNeuron)
+    expect(flag).toBeInstanceOf(BooleanNeuron)
+    expect(thing).toBeInstanceOf(ObjectNeuron)
+  })
+
+  // The type picks the class; the value's shape only has to agree with it. A
+  // boolean sitting in a document that calls itself a string is not readable.
+  it('refuses a document whose value does not match its type', () => {
+    const { value, ...base } = StringNeuron.create({ value: 'hello' }).toDocument()
+    const mismatched = { ...base, value: true }
+
+    expect(() => NeuronFactory.fromDocument(mismatched)).toThrow(NeuronError)
+  })
+
+  it('refuses a type it has never heard of', () => {
+    const document = { ...StringNeuron.create({ value: 'hello' }).toDocument(), type: 'colour' }
+
+    expect(() => NeuronFactory.fromDocument(document)).toThrow(NeuronError)
   })
 })
