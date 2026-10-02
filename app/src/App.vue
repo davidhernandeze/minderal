@@ -2,6 +2,7 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, shallowRef } from 'vue'
 import { hierarchy, tree } from 'd3-hierarchy'
 import { ANONYMOUS_REMOTE_USER, ConnectionFactory, StringNeuron } from '@minderal/core'
+import EditableText from './components/EditableText.vue'
 import type {
   Connection,
   Database,
@@ -96,16 +97,22 @@ const name = ref('')
 const draft = shallowRef<{ parentId: string | null } | null>(null)
 const draftValue = ref('')
 
-// Renaming happens in place on the name itself, in either view.
+// The table renames in place, on the name cell itself. The graph does it in the
+// sidebar instead, so the node can stay a label.
 const editing = shallowRef<{ neuron: Neuron } | null>(null)
 const editValue = ref('')
 
 // Attributes of the open neuron only: it is alone in its column, so it can grow
 // without pushing anything else around.
 const attributes = shallowRef<ResolvedAttribute[]>([])
+
+// Editing the open neuron happens in the sidebar, never on the node: the node
+// shows the name and the attributes, and a click on either opens the sidebar.
+const sidebarOpen = ref(false)
 const attributeDraftOpen = ref(false)
 const attributeName = ref('')
 const attributeValue = ref('')
+const attributeNameInput = ref<HTMLInputElement | null>(null)
 
 // Deleting asks first, inline, rather than through a modal dialog. Deletion
 // takes the whole subtree, so the prompt has to say when there is one.
@@ -174,6 +181,8 @@ function setView(mode: ViewMode): void {
 }
 
 async function open(id: string | null): Promise<void> {
+  // A half-typed attribute belongs to the neuron it was started on.
+  cancelAttributeDraft()
   writeUrl(id, view.value)
   currentId.value = id
   await refresh()
@@ -439,19 +448,49 @@ function cancelDraft(): void {
   draftValue.value = ''
 }
 
-// The open neuron carries its attribute rows plus the add row, so it is taller
-// than the rest. Nothing else in its column, so nothing has to move.
+// The open neuron carries its attribute rows, so it is taller than the rest.
+// Nothing else in its column, so nothing has to move.
 function nodeHeightOf(source: GraphSource): number {
   if (!source.isCurrent || source.neuron === null) return NODE_HEIGHT
-  const rows = attributes.value.length + 1
-  return NODE_HEIGHT + rows * ATTRIBUTE_ROW_HEIGHT + ATTRIBUTE_PADDING
+  if (attributes.value.length === 0) return NODE_HEIGHT
+  return NODE_HEIGHT + attributes.value.length * ATTRIBUTE_ROW_HEIGHT + ATTRIBUTE_PADDING
+}
+
+// Clicking a node's name or its attributes opens the sidebar on it, selecting
+// the node first when it was not the open one. The top level has no neuron
+// behind it, so there is nothing to show.
+async function openDetails(source: GraphSource): Promise<void> {
+  if (source.isDraft) return
+  if (!source.isCurrent) await open(source.id)
+  if (source.neuron !== null) sidebarOpen.value = true
+}
+
+function closeSidebar(): void {
+  sidebarOpen.value = false
+  cancelAttributeDraft()
+}
+
+async function renameCurrentNeuron(name: string): Promise<void> {
+  const owner = currentNeuron.value
+  const db = database.value
+  if (owner === null || db === null) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.rename(owner, name)
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
 }
 
 function openAttributeDraft(): void {
   attributeDraftOpen.value = true
   attributeName.value = ''
   attributeValue.value = ''
-  void nextTick(() => document.querySelector<HTMLInputElement>('.attribute-name')?.focus())
+  void nextTick(() => attributeNameInput.value?.focus())
 }
 
 function cancelAttributeDraft(): void {
@@ -489,6 +528,51 @@ async function removeAttribute(name: string): Promise<void> {
   error.value = ''
   try {
     await database.value.removeAttribute(owner, name)
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
+}
+
+// One value per name, so writing a new value replaces the neuron that held the
+// old one. Core soft deletes it, which keeps the change in the history.
+async function setAttributeValue(attribute: ResolvedAttribute, value: string): Promise<void> {
+  const owner = currentNeuron.value
+  const db = database.value
+  if (owner === null || db === null) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.setAttribute(owner, attribute.name, StringNeuron.create({ value }))
+  } catch (cause) {
+    error.value = describe(cause)
+  } finally {
+    busy.value = false
+  }
+}
+
+// The name is the key, so renaming is a write under the new name followed by a
+// removal of the old one — two writes, in that order, so the value is never
+// only in the deleted half. Core has no single call for it yet.
+async function renameAttribute(attribute: ResolvedAttribute, name: string): Promise<void> {
+  const owner = currentNeuron.value
+  const db = database.value
+  if (owner === null || db === null) return
+
+  const next = name.trim()
+  if (next.length === 0 || next === attribute.name) return
+  if (attributes.value.some((entry) => entry.name === next)) {
+    error.value = `${labelOf(owner)} already has an attribute named ${next}`
+    return
+  }
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.setAttribute(owner, next, StringNeuron.create({ value: valueOf(attribute.neuron) }))
+    await db.removeAttribute(owner, attribute.name)
   } catch (cause) {
     error.value = describe(cause)
   } finally {
@@ -937,187 +1021,240 @@ onUnmounted(() => {
       </tbody>
     </table>
     <div v-else class="graph">
-      <svg
-        :viewBox="graph.viewBox"
-        :width="graph.width"
-        :height="graph.height"
-        role="img"
-        aria-label="Neuron tree"
-      >
-        <path v-for="(link, index) in graph.links" :key="index" class="edge" :d="linkPath(link)" />
-
-        <g
-          v-for="node in graph.nodes"
-          :key="node.data.id ?? 'root'"
-          class="node"
-          :class="{
-            current: node.data.isCurrent,
-            draft: node.data.isDraft,
-            editing: isEditing(node.data.id),
-            clickable: !node.data.isCurrent && !node.data.isDraft && !isEditing(node.data.id)
-          }"
-          :transform="`translate(${node.y - NODE_WIDTH / 2}, ${node.x - nodeHeightOf(node.data) / 2})`"
-          @click="
-            node.data.isCurrent || node.data.isDraft || isEditing(node.data.id)
-              ? undefined
-              : open(node.data.id)
-          "
+      <div class="canvas">
+        <svg
+          :viewBox="graph.viewBox"
+          :width="graph.width"
+          :height="graph.height"
+          role="img"
+          aria-label="Neuron tree"
         >
-          <rect :width="NODE_WIDTH" :height="nodeHeightOf(node.data)" rx="7" />
+          <path v-for="(link, index) in graph.links" :key="index" class="edge" :d="linkPath(link)" />
 
-          <foreignObject
-            v-if="node.data.isDraft"
-            :x="0"
-            :y="0"
-            :width="NODE_WIDTH"
-            :height="NODE_HEIGHT"
-            @click.stop
+          <g
+            v-for="node in graph.nodes"
+            :key="node.data.id ?? 'root'"
+            class="node"
+            :class="{
+              current: node.data.isCurrent,
+              draft: node.data.isDraft,
+              clickable: !node.data.isCurrent && !node.data.isDraft
+            }"
+            :transform="`translate(${node.y - NODE_WIDTH / 2}, ${node.x - nodeHeightOf(node.data) / 2})`"
+            @click="node.data.isCurrent || node.data.isDraft ? undefined : open(node.data.id)"
           >
-            <div class="node-draft">
-              <input
-                v-model="draftValue"
-                class="draft-input"
-                placeholder="name, Enter to create"
-                @keyup.enter="commitDraft"
-                @keyup.esc="cancelDraft"
-                @blur="cancelEmptyDraft"
-              />
-            </div>
-          </foreignObject>
-
-          <!-- Confirming covers the node itself. Anywhere beside it collides
-               with the children drawn in that space, which paint over it. -->
-          <foreignObject
-            v-else-if="isPendingDelete(node.data.id) && node.data.neuron !== null"
-            :x="0"
-            :y="0"
-            :width="NODE_WIDTH"
-            :height="NODE_HEIGHT"
-            @click.stop
-          >
-            <div class="node-confirm">
-              <span class="node-confirm-label">
-                <span class="node-confirm-title">Delete {{ truncate(node.data.label, 14) }}?</span>
-                <span v-if="pendingDelete?.hasChildren" class="node-confirm-note">
-                  and everything inside
-                </span>
-              </span>
-              <button class="confirm yes" :disabled="busy" @click="deleteNeuron(node.data.neuron)">
-                Yes
-              </button>
-              <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
-            </div>
-          </foreignObject>
-
-          <foreignObject
-            v-else-if="isEditing(node.data.id)"
-            :x="0"
-            :y="0"
-            :width="NODE_WIDTH"
-            :height="NODE_HEIGHT"
-            @click.stop
-          >
-            <div class="node-draft">
-              <input
-                v-model="editValue"
-                class="draft-input edit-input"
-                placeholder="name, Enter to save"
-                @keyup.enter="commitEditing"
-                @keyup.esc="cancelEditing"
-                @blur="cancelUnchangedEditing"
-              />
-            </div>
-          </foreignObject>
-
-          <template v-else-if="!node.data.isDraft">
-            <text
-              :class="node.data.isRoot ? 'root-mark' : 'name'"
-              :x="14"
-              :y="node.data.detail === '' ? 29 : 20"
-              @click.stop="node.data.neuron && startEditing(node.data.neuron)"
-            >
-              {{ truncate(node.data.label, 22) }}
-            </text>
-            <text v-if="node.data.detail !== ''" :x="14" :y="36" class="detail">
-              {{ truncate(node.data.detail, 26) }}
-            </text>
-            <title>{{ node.data.id ?? 'Top level' }}</title>
+            <rect :width="NODE_WIDTH" :height="nodeHeightOf(node.data)" rx="7" />
 
             <foreignObject
-              v-if="node.data.isCurrent && node.data.neuron !== null"
+              v-if="node.data.isDraft"
               :x="0"
-              :y="NODE_HEIGHT - 6"
+              :y="0"
               :width="NODE_WIDTH"
-              :height="nodeHeightOf(node.data) - NODE_HEIGHT + 6"
+              :height="NODE_HEIGHT"
               @click.stop
             >
-              <div class="attributes">
-                <div v-for="attribute in attributes" :key="attribute.name" class="attribute">
-                  <span class="attribute-name-label">{{ attribute.name }}</span>
-                  <span class="attribute-value">{{ valueOf(attribute.neuron) }}</span>
-                  <button
-                    class="attribute-remove"
-                    :disabled="busy"
-                    title="Remove attribute"
-                    @click="removeAttribute(attribute.name)"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div v-if="attributeDraftOpen" class="attribute draft">
-                  <input
-                    v-model="attributeName"
-                    class="attribute-name"
-                    placeholder="name"
-                    @keyup.enter="commitAttributeDraft"
-                    @keyup.esc="cancelAttributeDraft"
-                  />
-                  <input
-                    v-model="attributeValue"
-                    class="attribute-input"
-                    placeholder="value"
-                    @keyup.enter="commitAttributeDraft"
-                    @keyup.esc="cancelAttributeDraft"
-                  />
-                </div>
-
-                <button v-else class="attribute-add" :disabled="busy" @click="openAttributeDraft">
-                  + Add attribute
-                </button>
+              <div class="node-draft">
+                <input
+                  v-model="draftValue"
+                  class="draft-input"
+                  placeholder="name, Enter to create"
+                  @keyup.enter="commitDraft"
+                  @keyup.esc="cancelDraft"
+                  @blur="cancelEmptyDraft"
+                />
               </div>
             </foreignObject>
 
-            <g
-              class="add"
-              :class="{ disabled: busy }"
-              :transform="`translate(${NODE_WIDTH - 21}, ${NODE_HEIGHT / 2})`"
-              @click.stop="openDraft(node.data.id)"
+            <!-- Confirming covers the node itself. Anywhere beside it collides
+                 with the children drawn in that space, which paint over it. -->
+            <foreignObject
+              v-else-if="isPendingDelete(node.data.id) && node.data.neuron !== null"
+              :x="0"
+              :y="0"
+              :width="NODE_WIDTH"
+              :height="NODE_HEIGHT"
+              @click.stop
             >
-              <circle r="10" />
-              <path d="M-4.5,0 H4.5 M0,-4.5 V4.5" />
-              <title>Create inside {{ node.data.label }}</title>
-            </g>
+              <div class="node-confirm">
+                <span class="node-confirm-label">
+                  <span class="node-confirm-title">Delete {{ truncate(node.data.label, 14) }}?</span>
+                  <span v-if="pendingDelete?.hasChildren" class="node-confirm-note">
+                    and everything inside
+                  </span>
+                </span>
+                <button class="confirm yes" :disabled="busy" @click="deleteNeuron(node.data.neuron)">
+                  Yes
+                </button>
+                <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
+              </div>
+            </foreignObject>
 
-            <g
-              v-if="node.data.neuron !== null"
-              class="remove"
-              :class="{ disabled: busy }"
-              :transform="`translate(${NODE_WIDTH - 46}, ${NODE_HEIGHT / 2})`"
-              @click.stop="askDelete(node.data.id!)"
-            >
-              <circle r="10" />
-              <path d="M-3.5,-3.5 L3.5,3.5 M3.5,-3.5 L-3.5,3.5" />
-              <title>Delete {{ node.data.label }}</title>
-            </g>
-          </template>
+            <template v-else-if="!node.data.isDraft">
+              <text
+                :class="[node.data.isRoot ? 'root-mark' : 'name', { linked: node.data.neuron !== null }]"
+                :x="14"
+                :y="node.data.detail === '' ? 29 : 20"
+                @click.stop="openDetails(node.data)"
+              >
+                {{ truncate(node.data.label, 22) }}
+              </text>
+              <text v-if="node.data.detail !== ''" :x="14" :y="36" class="detail">
+                {{ truncate(node.data.detail, 26) }}
+              </text>
+              <title>{{ node.data.id ?? 'Top level' }}</title>
 
-        </g>
-      </svg>
+              <foreignObject
+                v-if="node.data.isCurrent && attributes.length > 0"
+                :x="0"
+                :y="NODE_HEIGHT - 6"
+                :width="NODE_WIDTH"
+                :height="nodeHeightOf(node.data) - NODE_HEIGHT + 6"
+                @click.stop="openDetails(node.data)"
+              >
+                <div class="attributes" title="Edit attributes">
+                  <div v-for="attribute in attributes" :key="attribute.name" class="attribute">
+                    <span class="attribute-name-label">{{ attribute.name }}</span>
+                    <span class="attribute-value">{{ valueOf(attribute.neuron) }}</span>
+                  </div>
+                </div>
+              </foreignObject>
 
-      <p v-if="neurons.length === 0" class="empty">
-        Nothing below <code>{{ currentNeuron ? labelOf(currentNeuron) : databaseName }}</code> yet.
-      </p>
+              <g
+                class="add"
+                :class="{ disabled: busy }"
+                :transform="`translate(${NODE_WIDTH - 21}, ${NODE_HEIGHT / 2})`"
+                @click.stop="openDraft(node.data.id)"
+              >
+                <circle r="10" />
+                <path d="M-4.5,0 H4.5 M0,-4.5 V4.5" />
+                <title>Create inside {{ node.data.label }}</title>
+              </g>
+
+              <g
+                v-if="node.data.neuron !== null"
+                class="remove"
+                :class="{ disabled: busy }"
+                :transform="`translate(${NODE_WIDTH - 46}, ${NODE_HEIGHT / 2})`"
+                @click.stop="askDelete(node.data.id!)"
+              >
+                <circle r="10" />
+                <path d="M-3.5,-3.5 L3.5,3.5 M3.5,-3.5 L-3.5,3.5" />
+                <title>Delete {{ node.data.label }}</title>
+              </g>
+            </template>
+
+          </g>
+        </svg>
+
+        <p v-if="neurons.length === 0" class="empty">
+          Nothing below <code>{{ currentNeuron ? labelOf(currentNeuron) : databaseName }}</code> yet.
+        </p>
+      </div>
+
+      <!-- Everything editable about the open neuron lives here, so the node
+           itself can stay a label. -->
+      <aside v-if="sidebarOpen && currentNeuron !== null" class="sidebar">
+        <div class="sidebar-head">
+          <EditableText
+            class="sidebar-name"
+            :value="currentNeuron.name ?? ''"
+            empty="unnamed"
+            placeholder="name"
+            title="Rename"
+            :disabled="busy"
+            @submit="renameCurrentNeuron"
+          />
+          <button class="sidebar-close" title="Close" @click="closeSidebar">×</button>
+        </div>
+        <code class="sidebar-id">{{ currentNeuron.id }}</code>
+
+        <table class="sidebar-attributes">
+          <thead>
+            <tr>
+              <th>type</th>
+              <th>name</th>
+              <th>value</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="attribute in attributes" :key="attribute.name">
+              <td class="type"><code>{{ attribute.neuron.type }}</code></td>
+              <td>
+                <EditableText
+                  :value="attribute.name"
+                  placeholder="name"
+                  title="Rename attribute"
+                  :disabled="busy"
+                  @submit="(name) => renameAttribute(attribute, name)"
+                />
+              </td>
+              <td>
+                <EditableText
+                  :value="valueOf(attribute.neuron)"
+                  placeholder="value"
+                  empty="empty"
+                  title="Edit value"
+                  :disabled="busy"
+                  @submit="(value) => setAttributeValue(attribute, value)"
+                />
+              </td>
+              <td class="actions">
+                <button
+                  class="attribute-remove"
+                  :disabled="busy"
+                  title="Remove attribute"
+                  @click="removeAttribute(attribute.name)"
+                >
+                  ×
+                </button>
+              </td>
+            </tr>
+
+            <tr v-if="attributeDraftOpen" class="draft">
+              <td class="type"><code>string</code></td>
+              <td>
+                <input
+                  ref="attributeNameInput"
+                  v-model="attributeName"
+                  class="sidebar-input"
+                  placeholder="name"
+                  @keyup.enter="commitAttributeDraft"
+                  @keyup.esc="cancelAttributeDraft"
+                />
+              </td>
+              <td>
+                <input
+                  v-model="attributeValue"
+                  class="sidebar-input"
+                  placeholder="value"
+                  @keyup.enter="commitAttributeDraft"
+                  @keyup.esc="cancelAttributeDraft"
+                />
+              </td>
+              <td class="actions">
+                <button class="attribute-done" title="Done" @click="commitAttributeDraft">
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M3.2 8.6 L6.4 11.8 L12.8 4.6" />
+                  </svg>
+                </button>
+              </td>
+            </tr>
+
+            <tr v-if="attributes.length === 0 && !attributeDraftOpen">
+              <td colspan="4" class="empty">No attributes yet.</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <button
+          class="attribute-add"
+          :disabled="busy || attributeDraftOpen"
+          @click="openAttributeDraft"
+        >
+          + Add attribute
+        </button>
+      </aside>
     </div>
   </main>
 
@@ -1272,17 +1409,117 @@ main { padding: 14px; }
 
 .graph {
   display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: stretch;
+  gap: 12px;
   border: 1px solid var(--border);
   border-radius: 8px;
   background: var(--panel);
   padding: 12px;
-  overflow: auto;
+  overflow: hidden;
   min-height: 260px;
   max-height: 70vh;
 }
+
+/* The tree scrolls on its own so the sidebar stays put beside it. */
+.canvas {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: auto;
+}
+
+.sidebar {
+  flex: 0 0 320px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-start;
+  max-height: 100%;
+  overflow: auto;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--bg);
+}
+
+.sidebar-head { display: flex; align-items: center; gap: 6px; }
+
+.sidebar-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.sidebar-close {
+  flex: 0 0 auto;
+  padding: 0 4px;
+  border: none;
+  background: transparent;
+  color: var(--muted);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sidebar-close:hover { color: var(--text); }
+.sidebar-id { color: var(--muted); word-break: break-all; }
+
+/* Fixed layout, so a long value takes an ellipsis instead of squeezing the
+   other two columns down to a letter each. */
+.sidebar-attributes { table-layout: fixed; }
+
+.sidebar-attributes th,
+.sidebar-attributes td {
+  padding: 5px 6px;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.sidebar-attributes th { font-size: 10px; }
+.sidebar-attributes th:first-child,
+.sidebar-attributes td.type { width: 52px; padding-left: 0; color: var(--muted); }
+.sidebar-attributes th:last-child,
+.sidebar-attributes td.actions { width: 20px; padding: 5px 0; }
+.sidebar-attributes tr:last-child td { border-bottom: none; }
+.sidebar-attributes .empty { text-align: center; }
+
+.sidebar-input {
+  width: 100%;
+  min-width: 0;
+  padding: 2px 4px;
+  border: none;
+  border-bottom: 1px solid var(--accent);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+  font-size: 12px;
+}
+
+.attribute-done {
+  display: inline-flex;
+  padding: 0;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.attribute-done svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.attribute-done:hover { color: var(--ok); }
 
 .graph svg { display: block; max-width: 100%; height: auto; }
 
@@ -1304,9 +1541,11 @@ main { padding: 14px; }
 }
 
 .node text.detail { fill: var(--muted); font-size: 11px; }
-.node text.name { cursor: text; }
 .node text.root-mark { font-size: 17px; }
-.node text.name:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* A name with a neuron behind it opens the sidebar; the top level has none. */
+.node text.linked { cursor: pointer; }
+.node text.linked:hover { text-decoration: underline; text-underline-offset: 2px; }
 
 .node.current rect { stroke: var(--accent); stroke-width: 2; }
 
@@ -1421,10 +1660,10 @@ td.name-cell { padding: 3px 10px; }
 
 /* The editor sits inside the node with a borderless input, so the node itself
    has to show that it is being edited. */
-.node.editing rect { stroke: var(--accent); stroke-width: 2; }
 
 .attributes {
   box-sizing: border-box;
+  cursor: pointer;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1459,43 +1698,26 @@ td.name-cell { padding: 3px 10px; }
 }
 
 .attribute-remove {
-  flex: 0 0 auto;
   background: transparent;
   border: none;
   color: var(--muted);
   cursor: pointer;
   padding: 0 2px;
   line-height: 1;
-  opacity: 0;
 }
 
-.attribute:hover .attribute-remove { opacity: 1; }
 .attribute-remove:hover { color: var(--danger); }
 
-.attribute-name,
-.attribute-input {
-  min-width: 0;
-  border: 1px solid var(--accent);
-  border-radius: 4px;
-  background: var(--bg);
-  color: var(--text);
-  padding: 2px 6px;
-  font: inherit;
-}
-
-.attribute-name { flex: 0 0 40%; }
-.attribute-input { flex: 1 1 auto; }
-
 .attribute-add {
+  align-self: flex-start;
   background: transparent;
   border: 1px dashed var(--border);
   border-radius: 5px;
   color: var(--muted);
   cursor: pointer;
-  height: 22px;
-  padding: 0 8px;
+  padding: 3px 8px;
   text-align: left;
-  font: inherit;
+  font-size: 12px;
 }
 
 .attribute-add:hover { border-color: var(--accent); color: var(--accent); }

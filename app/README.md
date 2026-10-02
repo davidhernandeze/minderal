@@ -129,19 +129,46 @@ The database picker is a `<select>` listing every database on the server, plus
 suggestions against whatever was typed, so the name already in the field hid all
 the others. Opening a database is what creates it, so naming one is all it takes.
 
-## Attributes
+## Attributes and the sidebar
 
-The **open** neuron shows its attributes inside its node, followed by a dashed
-`+ Add attribute` placeholder; clicking it swaps in a name and a value input, Enter writes,
-Escape abandons. Hovering a row reveals an × that removes it.
+The **open** neuron shows its attributes inside its node, one `name value` row each. The
+node is a label: clicking its name or its attributes opens a sidebar instead of editing
+anything in place. Clicking the name of a node that is not open selects it first, so the
+sidebar always describes the open neuron.
 
-Only the focused node does this, and it grows to fit. `d3-hierarchy` lays siblings out on a
+Only the open node carries rows, and it grows to fit. `d3-hierarchy` lays siblings out on a
 fixed `nodeSize`, so a variable-height node would overlap its neighbours — but the open
 neuron is alone in its column, so nothing has to move. The viewBox measures each node by
 its own height rather than assuming a uniform one.
 
-Nothing refetches on write here either: `setAttribute` updates the owner document, and that
-change arrives through the feed like any other.
+The sidebar holds everything editable: the neuron's name at the top, then a `type / name /
+value` table with one row per attribute, an × per row, and `+ Add attribute` below it. New
+attributes are `StringNeuron`s; the type column is there for when they are not.
+
+Renaming an attribute is a write under the new name followed by a removal of the old one,
+in that order, because the name *is* the key and core has no single call for it. A name
+that another attribute already uses is refused before either write.
+
+Nothing refetches on write: `setAttribute` and `rename` update the owner document, and that
+change arrives through the feed like any other, which is what redraws both the node and the
+sidebar.
+
+### EditableText
+
+`src/components/EditableText.vue` is the name and every attribute cell: text until clicked,
+then an input with a checkmark to finish. Enter commits, Escape abandons, and clicking away
+abandons an untouched editor but keeps one with changes in it. The checkmark takes
+`mousedown` rather than focus so it never loses the race with that blur.
+
+It takes a `value` prop and emits `submit` rather than using `v-model`: every edit ends in a
+database write and the new text comes back through the change feed, so owning a local copy
+would mean showing an edit that had not landed yet.
+
+Font, colour and width all come from whatever contains it — the sidebar heading sets a
+larger `font-size` on the same component the table cells use. It is a block flex box, not
+inline: shrink-to-fit sized the box to the text, and the negative margin that keeps the text
+aligned with its neighbours then pulled it a fraction under, so every value picked up an
+ellipsis it did not need.
 
 ## Views
 
