@@ -60,6 +60,13 @@ Build what was asked for, not more.
   them.
 - **`name` lives on `Neuron`, not on a subclass.** It is a label every kind needs, which is
   what lets `Database.rename` be typed generally; `value` is `StringNeuron`'s content.
+- **The tree hangs off `neuron:root`, so `parent_id` means one thing.** It is created with
+  the database, by whoever opens it first, and cannot be deleted. A neuron under the root is
+  in the tree; `parent_id: null` is one that is not — an attribute's value, which reaches its
+  owner through `attribute_of`, or one that has not been filed anywhere. Before the root
+  existed, null meant both at once and `setAttribute` relied on the second, which is why
+  every listing had to filter on `attribute_of` in memory as well. `Database.create` files
+  nothing by itself: a caller that wants a neuron in the tree passes a parent.
 - **`type` is a representation, a template is a shape.** `type` names which class reads the
   document — a closed set shipped as code: `string`, `boolean`, `object`, and whatever comes
   next. A **template** is the user's own description of what a neuron should hold, created at
@@ -76,6 +83,17 @@ Build what was asked for, not more.
   writes one attribute per attribute the template defines, from its default, and recurses into
   nested types with the path it has already taken so a ring of types cannot fill forever. An
   attribute type the code does not know is skipped, never guessed at.
+- **A type extends at most one other, and inheritance is read, never copied.** The chain is
+  resolved on demand — `resolveTemplateAttributes` walks it root first, so the nearest
+  definition of a name wins while keeping the position its ancestor gave it. Nothing is
+  written into the subtype, so changing a parent changes every type under it. Both walks, up
+  the chain and down to the subtypes, stop on a template already on the path: a loop can
+  arrive by replication even though `setTemplateExtends` refuses to create one.
+- **Querying by type is exact unless asked otherwise.** `listByTemplateId` matches the one
+  type; `includeSubtypes` collects the descendants from the full template list, held in
+  memory because there are always few of them, and issues one `$in` against the index that
+  already exists. The resolved ancestry is never written onto a document, which would go
+  stale the moment the hierarchy changed.
 - **The interface says "type", the code says "template".** The user creates *types*; the
   document that records one is a `Template` under a `template:` id. Never show the word
   template in the interface, and never use the word type in the code for a user-defined one.
@@ -175,7 +193,7 @@ core/
     Database.ts         one database handle, document operations, watch, sync
     NeuronChange.ts     what a watcher receives, for both neurons and templates
     Replication.ts      a live link between two Database handles
-    Neuron.ts           abstract base, shared fields and their mapping
+    Neuron.ts           abstract base, shared fields, and NEURON_ROOT_ID
     NeuronError.ts
     NeuronFactory.ts    document type -> neuron class
     Template.ts         a user-defined type: a name and the attributes it starts with

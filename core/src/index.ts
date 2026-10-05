@@ -5,7 +5,12 @@ export { ConnectionError } from './ConnectionError.js'
 export { ConnectionFactory } from './ConnectionFactory.js'
 export { Database } from './Database.js'
 export { Replication } from './Replication.js'
-export type { NeuronQueryOptions, ResolvedAttribute } from './Database.js'
+export type {
+  InheritedAttribute,
+  NeuronQueryOptions,
+  ResolvedAttribute,
+  TemplateQueryOptions
+} from './Database.js'
 export type {
   NeuronChange,
   NeuronChangeListener,
@@ -28,7 +33,7 @@ export type {
 export { NeuronError } from './NeuronError.js'
 export { Template, TEMPLATE_ID_PREFIX, TEMPLATE_TYPE, generateTemplateId, isTemplateId } from './Template.js'
 export { NeuronFactory } from './NeuronFactory.js'
-export { Neuron, NEURON_ID_PREFIX, generateNeuronId, isNeuronId } from './Neuron.js'
+export { Neuron, NEURON_ID_PREFIX, NEURON_ROOT_ID, generateNeuronId, isNeuronId } from './Neuron.js'
 export { StringNeuron, STRING_NEURON_TYPE } from './StringNeuron.js'
 export { BooleanNeuron, BOOLEAN_NEURON_TYPE } from './BooleanNeuron.js'
 export { ObjectNeuron, OBJECT_NEURON_TYPE } from './ObjectNeuron.js'

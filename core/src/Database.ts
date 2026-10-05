@@ -7,7 +7,7 @@ import { Replication } from './Replication.js'
 import { BOOLEAN_NEURON_TYPE, BooleanNeuron } from './BooleanNeuron.js'
 import { OBJECT_NEURON_TYPE, ObjectNeuron } from './ObjectNeuron.js'
 import { STRING_NEURON_TYPE, StringNeuron } from './StringNeuron.js'
-import { NEURON_ID_PREFIX, isNeuronId } from './Neuron.js'
+import { NEURON_ID_PREFIX, NEURON_ROOT_ID, isNeuronId } from './Neuron.js'
 import { TEMPLATE_ID_PREFIX, Template, isTemplateId } from './Template.js'
 import type { Neuron, NeuronAttribute, NeuronDocument } from './Neuron.js'
 import type { NeuronChange, TemplateChange, WatchHandlers } from './NeuronChange.js'
@@ -29,6 +29,20 @@ export interface NeuronQueryOptions {
   includeDeleted?: boolean
   /** Attribute value neurons are hidden from listings unless asked for. */
   includeAttributes?: boolean
+}
+
+// A template attribute as the type that was asked about sees it: either its
+// own, or one it takes from a type it extends. An inherited one is read where
+// it is defined, never copied, so changing the parent changes every subtype.
+export interface InheritedAttribute {
+  attribute: TemplateAttribute
+  definedBy: string
+  inherited: boolean
+}
+
+export interface TemplateQueryOptions extends NeuronQueryOptions {
+  /** Count documents of the types that extend this one as well. */
+  includeSubtypes?: boolean
 }
 
 export interface ResolvedAttribute {
@@ -127,6 +141,9 @@ export class Database {
 
   async delete<NeuronType extends Neuron>(neuron: NeuronType): Promise<NeuronType> {
     await this.initialize()
+    if (neuron.id === NEURON_ROOT_ID) {
+      throw new NeuronError('The root neuron cannot be deleted')
+    }
     const timestamp = new Date().toISOString()
 
     try {
@@ -372,6 +389,106 @@ export class Database {
     }
   }
 
+  // Every neuron made from a type, wherever it sits: a child in the tree and an
+  // attribute value are both documents of that type, so both are counted.
+  async listByTemplateId(templateId: string, options: TemplateQueryOptions = {}): Promise<Neuron[]> {
+    await this.initialize()
+    try {
+      const ids =
+        options.includeSubtypes === true ? await this.subtypeIds(templateId) : [templateId]
+      const selector =
+        options.includeDeleted === true
+          ? { template_id: { $in: ids } }
+          : { template_id: { $in: ids }, deleted_at: null }
+      return toNeurons(await findAll(this.openClient(), selector), {
+        includeAttributes: true,
+        ...options
+      })
+    } catch (cause) {
+      throw this.failure(`Listing neurons of template ${templateId}`, cause)
+    }
+  }
+
+  // Root first, so a later entry narrows an earlier one. Stops on a type that
+  // is already on the path, which is the only way the walk could not end.
+  private async templateChain(template: Template): Promise<Template[]> {
+    const chain = [template]
+    const seen = new Set([template.id])
+    let cursor = template
+
+    while (cursor.extendsId !== null && !seen.has(cursor.extendsId)) {
+      const parent = await this.getTemplate(cursor.extendsId)
+      if (parent === null) break
+      seen.add(parent.id)
+      chain.unshift(parent)
+      cursor = parent
+    }
+
+    return chain
+  }
+
+  // Every attribute a neuron of this type gets, inherited ones included. A
+  // subtype that names an attribute its parent already names replaces it, in
+  // the position the parent gave it, so the shape stays recognisable.
+  async resolveTemplateAttributes(template: Template): Promise<InheritedAttribute[]> {
+    await this.initialize()
+    const resolved = new Map<string, InheritedAttribute>()
+
+    for (const link of await this.templateChain(template)) {
+      for (const attribute of link.attributes) {
+        resolved.set(attribute.name, {
+          attribute,
+          definedBy: link.id,
+          inherited: link.id !== template.id
+        })
+      }
+    }
+
+    return [...resolved.values()]
+  }
+
+  // A type cannot extend itself, or anything that already extends it, because
+  // either way the chain would have no end.
+  async setTemplateExtends(template: Template, extendsId: string | null): Promise<Template> {
+    await this.initialize()
+    if (extendsId === null) {
+      template.extendsId = null
+      return this.updateTemplate(template)
+    }
+
+    if (extendsId === template.id) {
+      throw new NeuronError(`Template ${template.id} cannot extend itself`)
+    }
+    if (await this.getTemplate(extendsId) === null) {
+      throw new NeuronError(`There is no template ${extendsId} to extend`)
+    }
+    if ((await this.subtypeIds(template.id)).includes(extendsId)) {
+      throw new NeuronError(`Template ${extendsId} already extends ${template.id}`)
+    }
+
+    template.extendsId = extendsId
+    return this.updateTemplate(template)
+  }
+
+  // The type itself and everything that extends it, however deep. Templates are
+  // few and come back in one read, so the walk happens here rather than as a
+  // query per level.
+  private async subtypeIds(id: string): Promise<string[]> {
+    const all = await this.listTemplates()
+    const found = [id]
+
+    for (let index = 0; index < found.length; index += 1) {
+      const current = found[index]
+      for (const template of all) {
+        if (template.extendsId === current && !found.includes(template.id)) {
+          found.push(template.id)
+        }
+      }
+    }
+
+    return found
+  }
+
   async renameTemplate(template: Template, name: string | null): Promise<Template> {
     const trimmed = name === null ? null : name.trim()
     template.name = trimmed === null || trimmed.length === 0 ? null : trimmed
@@ -471,7 +588,8 @@ export class Database {
     template: Template,
     seen: Set<string>
   ): Promise<void> {
-    for (const attribute of template.attributes) {
+    const resolved = await this.resolveTemplateAttributes(template)
+    for (const { attribute } of resolved) {
       if (neuron.attributes.some((entry) => entry.name === attribute.name)) continue
 
       const value = neuronForTemplateAttribute(attribute)
@@ -664,9 +782,47 @@ export class Database {
       await client.createIndex({ index: { fields: ['parent_id', 'deleted_at'] } })
       await client.createIndex({ index: { fields: ['deleted_at'] } })
       await client.createIndex({ index: { fields: ['attribute_of'] } })
+      await client.createIndex({ index: { fields: ['template_id', 'deleted_at'] } })
+      await this.ensureRoot(client)
     } catch (cause) {
       throw this.failure('Initializing', cause)
     }
+  }
+
+  // Created once, by whoever opens the database first. Two peers opening a new
+  // database at the same time both write it; the id is the same, so that is one
+  // conflict on one document, settled by the same last-write-wins rule as any
+  // other.
+  private async ensureRoot(client: NeuronClient): Promise<void> {
+    try {
+      await client.get(NEURON_ROOT_ID)
+      return
+    } catch (cause) {
+      if (!isNotFound(cause)) throw cause
+    }
+
+    const timestamp = new Date().toISOString()
+    const root = ObjectNeuron.create()
+    root.id = NEURON_ROOT_ID
+    root.createdAt = timestamp
+    root.updatedAt = timestamp
+    root.createdBy = this.username
+
+    try {
+      await client.put(root.toDocument())
+    } catch (cause) {
+      // Another peer, or another handle, got there first. Theirs is as good.
+      if (!isConflict(cause)) throw cause
+    }
+  }
+
+  // The root is a document like any other, so it can carry a name and
+  // attributes of its own — about the database rather than anything in it.
+  async getRoot(): Promise<Neuron> {
+    await this.initialize()
+    const root = await this.get(NEURON_ROOT_ID)
+    if (root === null) throw new NeuronError('The database has no root neuron')
+    return root
   }
 
   private openClient(): NeuronClient {
@@ -754,6 +910,8 @@ function toNeurons(
   return documents
     .filter((document): document is NeuronDocument => document !== undefined)
     .filter((document) => isNeuronId(document._id))
+    // The root is what the tree hangs off, not something in it.
+    .filter((document) => document._id !== NEURON_ROOT_ID)
     .filter((document) => options.includeDeleted === true || !isDeleted(document))
     .filter((document) => options.includeAttributes === true || !isAttributeValue(document))
     .sort(byNewestFirst)
@@ -807,6 +965,10 @@ function isDeleted(document: NeuronDocument): boolean {
 
 function isAttributeValue(document: NeuronDocument): boolean {
   return (document.attribute_of ?? null) !== null
+}
+
+function isConflict(cause: unknown): boolean {
+  return typeof cause === 'object' && cause !== null && 'status' in cause && cause.status === 409
 }
 
 function isNotFound(cause: unknown): boolean {

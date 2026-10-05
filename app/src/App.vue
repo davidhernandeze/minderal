@@ -6,6 +6,7 @@ import {
   BOOLEAN_NEURON_TYPE,
   BooleanNeuron,
   ConnectionFactory,
+  NEURON_ROOT_ID,
   OBJECT_NEURON_TYPE,
   ObjectNeuron,
   STRING_NEURON_TYPE,
@@ -18,6 +19,7 @@ import type {
   Database,
   Neuron,
   NeuronChange,
+  InheritedAttribute,
   ResolvedAttribute,
   TemplateAttribute,
   TemplateDefault
@@ -25,17 +27,20 @@ import type {
 
 const MAX_TRAIL_DEPTH = 50
 const REFRESH_DEBOUNCE_MS = 200
-const NODE_WIDTH = 230
-const NODE_HEIGHT = 48
-const NODE_GAP_VERTICAL = 68
-const NODE_GAP_HORIZONTAL = 310
+const NODE_WIDTH = 290
+const NODE_HEIGHT = 62
+const NODE_GAP_VERTICAL = 88
+const NODE_GAP_HORIZONTAL = 390
 const GRAPH_PADDING = 32
 const DRAFT_NODE_ID = '__draft__'
-const ATTRIBUTE_ROW_HEIGHT = 26
-const ATTRIBUTE_PADDING = 8
+const ATTRIBUTE_ROW_HEIGHT = 30
+const ATTRIBUTE_PADDING = 10
 const DEFAULT_DATABASE_NAME = 'neurons'
 const NEW_DATABASE_CHOICE = '\u0000new'
-const ROOT_MENU_HEIGHT = 32
+const ROOT_MENU_HEIGHT = 36
+const NODE_DETAIL_BASELINE = 46
+// Below the round buttons rather than behind them, and still inside the box.
+const NODE_TAG_BASELINE = NODE_HEIGHT - 9
 const ROOT_LABEL = '\u{1F9E0}'
 const ROOT_DETAIL = 'start creating from here'
 const ROOT_TYPES_DETAIL = 'the types you have made'
@@ -118,11 +123,21 @@ const neurons = shallowRef<Neuron[]>([])
 const trail = shallowRef<Neuron[]>([])
 const currentId = ref<string | null>(null)
 
+// The URL leaves the root out, so no id means the top of the tree. Everything
+// that reads or writes parent_id resolves it here: a neuron under the root is
+// in the tree, and parent_id null is one that is not — an attribute's value, or
+// one that has not been filed anywhere.
+const openParentId = computed(() => currentId.value ?? NEURON_ROOT_ID)
+
 const view = ref<ViewMode>('table')
 const subject = ref<Subject>('neurons')
 
 const templates = shallowRef<Template[]>([])
 const currentTemplate = shallowRef<Template | null>(null)
+// Its own attributes and the ones it takes from the type it extends. Inherited
+// ones are shown where they are defined, never copied, so they are read-only
+// here: changing one belongs to the type that declares it.
+const templateAttributes = shallowRef<InheritedAttribute[]>([])
 const templateAttributeDraftOpen = ref(false)
 const templateAttributeName = ref('')
 const templateAttributeType = ref(STRING_NEURON_TYPE)
@@ -137,6 +152,9 @@ const name = ref('')
 // node is accepting input.
 const draft = shallowRef<{ parentId: string | null } | null>(null)
 const draftValue = ref('')
+// What the neuron will be. Chosen once, when it is made: a neuron's type is
+// what it is, and nothing changes it afterwards.
+const draftType = ref(OBJECT_NEURON_TYPE)
 
 // The table renames in place, on the name cell itself. The graph does it in the
 // sidebar instead, so the node can stay a label.
@@ -179,6 +197,16 @@ let unwatch: (() => void) | null = null
 let refreshTimer: ReturnType<typeof setTimeout> | null = null
 
 const isConnected = computed(() => connection.value !== null)
+
+// Open only while there is something to change. A connection that works is one
+// line of text, not four fields.
+const connectionOpen = ref(false)
+
+const connectionSummary = computed(() => {
+  if (!isRemote.value) return 'local database'
+  const who = connection.value?.user ?? username.value
+  return `${who} @ ${url.value.trim().replace(/^https?:\/\//, '')}`
+})
 const isRemote = computed(() => url.value.trim().length > 0)
 const currentNeuron = computed(() => trail.value.at(-1) ?? null)
 
@@ -187,6 +215,12 @@ function describe(cause: unknown): string {
 }
 
 // What a neuron is called: its name, or failing that whatever it holds.
+// The root is where the tree stops, and the URL says that by leaving the id
+// out, so it never appears as an ancestor or a parent link.
+function parentIdInUrl(neuron: Neuron): string | null {
+  return neuron.parentId === NEURON_ROOT_ID ? null : neuron.parentId
+}
+
 function labelOf(neuron: Neuron): string {
   if (neuron.name !== null) return neuron.name
   const value = displayValue(neuron)
@@ -311,6 +345,8 @@ async function connect(): Promise<void> {
 
     databaseNames.value = await connection.value.getDatabaseList()
     remember(LAST_URL_KEY, isRemote.value ? url.value.trim() : null)
+    // It worked, so there is nothing left to fill in.
+    connectionOpen.value = false
     await openDatabase()
   } catch (cause) {
     connection.value = null
@@ -384,9 +420,10 @@ async function buildTrail(id: string | null): Promise<Neuron[] | null> {
     chain.unshift(cursor)
     // An attribute value hangs off its owner instead of a parent, so that is
     // the way up for it. Without this a value opened from the sidebar would
-    // look like a root neuron with nothing above it.
+    // look like a root neuron with nothing above it. The climb stops at the
+    // root, which the breadcrumb draws as 🧠 rather than as an ancestor.
     const above: string | null = cursor.parentId ?? cursor.attributeOf
-    cursor = above === null ? null : await database.value.get(above)
+    cursor = above === null || above === NEURON_ROOT_ID ? null : await database.value.get(above)
   }
   return chain
 }
@@ -406,8 +443,8 @@ function affectsCurrentLevel(change: NeuronChange): boolean {
   // The level a neuron left has to refetch too, or it keeps showing a child
   // that moved away.
   return (
-    change.parentId === currentId.value ||
-    change.previousParentId === currentId.value ||
+    change.parentId === openParentId.value ||
+    change.previousParentId === openParentId.value ||
     change.id === currentId.value ||
     trail.value.some((ancestor) => ancestor.id === change.id)
   )
@@ -476,7 +513,7 @@ async function refresh(): Promise<void> {
     }
 
     trail.value = chain ?? []
-    neurons.value = await database.value.listByParentId(currentId.value)
+    neurons.value = await database.value.listByParentId(openParentId.value)
     const open = trail.value.at(-1) ?? null
     attributes.value = open === null ? [] : await database.value.listAttributes(open)
   } catch (cause) {
@@ -505,13 +542,17 @@ async function refreshTypes(db: Database): Promise<void> {
     }
 
     currentTemplate.value = open
+    templateAttributes.value = open === null ? [] : await db.resolveTemplateAttributes(open)
+    // A type's children are the documents made from it.
+    neurons.value = open === null ? [] : await db.listByTemplateId(open.id)
     trail.value = []
-    neurons.value = []
     attributes.value = []
   } catch (cause) {
     error.value = describe(cause)
     templates.value = []
     currentTemplate.value = null
+    templateAttributes.value = []
+    neurons.value = []
   } finally {
     busy.value = false
   }
@@ -528,12 +569,21 @@ const typeChoices = computed<TypeChoice[]>(() => [
 ])
 
 function templateOf(choice: string): Template | null {
+  if (choice.length === 0) return null
   return templates.value.find((template) => template.id === choice) ?? null
 }
 
 // A type the user made has a name to ask for instead of a value to type.
 function isTemplateChoice(choice: string): boolean {
   return templateOf(choice) !== null
+}
+
+// What a node says it is. Nothing for the top level, for a draft, or for a
+// plain object — an object is what a neuron is when it is nothing more.
+function typeTagOf(source: GraphSource): string {
+  if (source.neuron === null) return ''
+  const label = typeLabelOf(source.neuron)
+  return label === OBJECT_NEURON_TYPE ? '' : label
 }
 
 function typeLabelOf(neuron: Neuron): string {
@@ -554,26 +604,68 @@ function attributeValueText(neuron: Neuron): string {
 
 function attributeSummary(template: Template): string {
   const count = template.attributes.length
-  if (count === 0) return 'no attributes yet'
-  return count === 1 ? '1 attribute' : `${count} attributes`
+  const extended = template.extendsId === null ? '' : ` · extends ${extendsLabel(template)}`
+  if (count === 0) return `no attributes of its own${extended}`
+  return `${count === 1 ? '1 attribute' : `${count} attributes`}${extended}`
+}
+
+function extendsLabel(template: Template): string {
+  if (template.extendsId === null) return ''
+  return templateOf(template.extendsId)?.name ?? template.extendsId
+}
+
+// A type can extend anything but itself. Core refuses one that already extends
+// it; this list only keeps the obvious case out of the menu.
+const extendsChoices = computed(() =>
+  templates.value.filter((template) => template.id !== currentTemplate.value?.id)
+)
+
+async function setTemplateExtends(event: Event): Promise<void> {
+  const select = event.target
+  const template = currentTemplate.value
+  const db = database.value
+  if (!(select instanceof HTMLSelectElement) || template === null || db === null) return
+
+  busy.value = true
+  error.value = ''
+  try {
+    await db.setTemplateExtends(template, select.value.length === 0 ? null : select.value)
+    await refresh()
+  } catch (cause) {
+    error.value = describe(cause)
+    await refresh()
+  } finally {
+    busy.value = false
+  }
 }
 
 async function createNeuronIn(
   parentId: string | null,
   neuronName: string,
-  neuronValue: string
+  neuronValue: string,
+  type: string = OBJECT_NEURON_TYPE
 ): Promise<boolean> {
-  if (database.value === null || neuronName.trim().length === 0) return false
+  const db = database.value
+  if (db === null || neuronName.trim().length === 0) return false
   busy.value = true
   error.value = ''
   try {
     // A name with nothing in it is a thing, not a piece of text: the tree is
     // made of objects, and a string neuron is one that actually holds a value.
-    const neuron =
-      neuronValue.length === 0
-        ? ObjectNeuron.create({ name: neuronName, parentId })
-        : StringNeuron.create({ name: neuronName, value: neuronValue, parentId })
-    await database.value.create(neuron)
+    // Creating here always files the neuron somewhere, so no parent means the
+    // top of the tree rather than nowhere.
+    const parent = parentId ?? NEURON_ROOT_ID
+    const template = templateOf(type)
+
+    if (template !== null) {
+      await db.createFromTemplate(template, { name: neuronName, parentId: parent })
+    } else {
+      const neuron =
+        neuronValue.length === 0
+          ? ObjectNeuron.create({ name: neuronName, parentId: parent })
+          : StringNeuron.create({ name: neuronName, value: neuronValue, parentId: parent })
+      await db.create(neuron)
+    }
     // No refetch here: the change feed drives that. Adding to a neuron other
     // than the open one still opens it, so the new child is visible instead of
     // landing somewhere off-screen.
@@ -598,6 +690,7 @@ async function openDraft(parentId: string | null): Promise<void> {
   pendingDelete.value = null
   draft.value = { parentId }
   draftValue.value = ''
+  draftType.value = OBJECT_NEURON_TYPE
   // Only ever one draft input exists, and it has to be in the document before
   // it can take focus.
   await nextTick()
@@ -625,7 +718,7 @@ function nodeHeightOf(source: GraphSource): number {
 // behind it, so there is nothing to show.
 async function openDetails(source: GraphSource): Promise<void> {
   if (source.isDraft) return
-  if (!source.isCurrent) await open(source.id)
+  if (!source.isCurrent) await openNode(source)
   if (source.neuron !== null || source.template !== null) sidebarOpen.value = true
 }
 
@@ -843,7 +936,11 @@ async function commitEditing(): Promise<void> {
 
 // Clicking away from an untouched draft discards it; one with text typed into
 // it stays, because losing what someone wrote is worse than a stray node.
-function cancelEmptyDraft(): void {
+// Clicking the type picker moves focus out of the name, which must not be read
+// as clicking away from an empty draft.
+function cancelEmptyDraft(event: FocusEvent): void {
+  const next = event.relatedTarget
+  if (next instanceof HTMLElement && next.closest('.node-draft') !== null) return
   if (draftValue.value.trim().length === 0) cancelDraft()
 }
 
@@ -887,7 +984,7 @@ async function deleteNeuron(neuron: Neuron): Promise<void> {
     pendingDelete.value = null
     // Deleting the neuron you are inside leaves nowhere to stand, so step up to
     // its parent. Anything else is picked up by the change feed.
-    if (neuron.id === currentId.value) await open(neuron.parentId)
+    if (neuron.id === currentId.value) await open(parentIdInUrl(neuron))
   } catch (cause) {
     error.value = describe(cause)
   } finally {
@@ -902,7 +999,7 @@ async function commitDraft(): Promise<void> {
     if (await createTemplate(draftValue.value)) cancelDraft()
     return
   }
-  if (await createNeuronIn(pending.parentId, draftValue.value, '')) cancelDraft()
+  if (await createNeuronIn(pending.parentId, draftValue.value, '', draftType.value)) cancelDraft()
 }
 
 async function createTemplate(name: string): Promise<boolean> {
@@ -933,6 +1030,32 @@ async function createTypeFromBar(): Promise<void> {
 
 // Opening a type from the table goes straight to its editor, which is the only
 // thing there is to see of one.
+// A document listed under its type is a neuron, so following one crosses back
+// rather than pretending a neuron lives on the types side.
+async function openNeuron(id: string | null): Promise<void> {
+  if (subject.value !== 'types') {
+    await open(id)
+    return
+  }
+  cancelDraft()
+  cancelAttributeDraft()
+  cancelTemplateAttributeDraft()
+  sidebarOpen.value = false
+  subject.value = 'neurons'
+  currentId.value = id
+  writeUrl(id)
+  await refresh()
+}
+
+async function openNode(source: GraphSource): Promise<void> {
+  if (source.isCurrent || source.isDraft) return
+  if (source.neuron !== null) {
+    await openNeuron(source.id)
+    return
+  }
+  await open(source.id)
+}
+
 async function openType(template: Template): Promise<void> {
   await open(template.id)
   // The editor lives beside the drawing, so that is where opening one goes.
@@ -1097,6 +1220,10 @@ function templateDefaultFlag(attribute: TemplateAttribute): boolean {
   return attribute.defaultValue === true
 }
 
+function definedByLabel(entry: InheritedAttribute): string {
+  return templateOf(entry.definedBy)?.name ?? entry.definedBy
+}
+
 // d3-hierarchy only computes positions; Vue renders the SVG, so nodes stay
 // ordinary elements with normal click handlers and theme tokens.
 // The neuron being typed is laid out as the first child of its parent, so d3
@@ -1120,32 +1247,69 @@ function withDraft(parentId: string | null, children: GraphSource[]): GraphSourc
   ]
 }
 
-// Types are a flat list under the root, so the whole tree is one level deep.
+// At the top the types sit under the root; open one and it takes the middle,
+// with the documents made from it below — the same shape the neuron tree has.
 function typeGraphSource(): GraphSource {
-  const children: GraphSource[] = templates.value.map((template) => ({
-    id: template.id,
-    label: template.name ?? template.id,
-    detail: attributeSummary(template),
-    isCurrent: template.id === currentId.value,
-    isDraft: false,
-    isRoot: false,
-    neuron: null,
-    template,
-    connector: null,
-    children: []
-  }))
+  const open = currentTemplate.value
+  const children: GraphSource[] =
+    open === null
+      ? templates.value.map((template) => typeSource(template, false, []))
+      : [
+          typeSource(
+            open,
+            true,
+            neurons.value.map((neuron) => ({
+              id: neuron.id,
+              label: labelOf(neuron),
+              detail: detailOf(neuron),
+              isCurrent: false,
+              isDraft: false,
+              isRoot: false,
+              neuron,
+              template: null,
+              connector: null,
+              children: []
+            }))
+          )
+        ]
+
+  // What a type extends is drawn where a parent is drawn, so the slot the tree
+  // already has carries the hierarchy and the documents stay the children.
+  const extended = open === null ? null : (templateOf(open.extendsId ?? '') ?? null)
+  if (extended !== null) {
+    return typeSource(extended, false, children)
+  }
 
   return {
     id: null,
     label: ROOT_LABEL,
     detail: ROOT_TYPES_DETAIL,
-    isCurrent: currentId.value === null,
+    isCurrent: open === null && currentId.value === null,
     isDraft: false,
     isRoot: true,
     neuron: null,
     template: null,
     connector: null,
     children: withDraft(null, children)
+  }
+}
+
+function typeSource(
+  template: Template,
+  isCurrent: boolean,
+  children: GraphSource[]
+): GraphSource {
+  return {
+    id: template.id,
+    label: template.name ?? template.id,
+    detail: attributeSummary(template),
+    isCurrent,
+    isDraft: false,
+    isRoot: false,
+    neuron: null,
+    template,
+    connector: null,
+    children
   }
 }
 
@@ -1300,26 +1464,41 @@ onUnmounted(() => {
     </template>
 
     <template v-else>
-      <input v-model="url" placeholder="CouchDB URL (blank = local)" size="30" />
-      <input v-model="username" placeholder="user" size="10" :disabled="!isRemote" />
-      <input
-        v-model="password"
-        type="password"
-        :placeholder="isConnected ? 'signed in' : 'password'"
-        size="12"
-        :disabled="!isRemote"
-      />
-
-      <button :disabled="connecting" @click="connect">
-        {{ connecting ? 'Connecting…' : isConnected ? 'Reconnect' : 'Connect' }}
+      <!-- Once it is connected the form has nothing left to say, so it folds
+           into what it connected to. Disconnected, there is nothing to fold. -->
+      <button
+        v-if="isConnected"
+        class="connection-toggle"
+        :class="{ on: connectionOpen }"
+        :title="connectionOpen ? 'Hide the connection' : 'Change the connection'"
+        @click="connectionOpen = !connectionOpen"
+      >
+        {{ connectionSummary }}
+        <span class="caret">{{ connectionOpen ? '\u25B4' : '\u25BE' }}</span>
       </button>
+
+      <template v-if="connectionOpen || !isConnected">
+        <input v-model="url" placeholder="CouchDB URL (blank = local)" size="30" />
+        <input v-model="username" placeholder="user" size="10" :disabled="!isRemote" />
+        <input
+          v-model="password"
+          type="password"
+          :placeholder="isConnected ? 'signed in' : 'password'"
+          size="12"
+          :disabled="!isRemote"
+        />
+
+        <button :disabled="connecting" @click="connect">
+          {{ connecting ? 'Connecting…' : isConnected ? 'Reconnect' : 'Connect' }}
+        </button>
+      </template>
     </template>
 
     <span class="status" :class="isConnected ? 'ok' : 'off'">
       {{ isConnected ? (isRemote ? 'remote' : 'local') : 'disconnected' }}
     </span>
     <span class="status">
-      v5.0
+      v5.1
     </span>
     <span v-if="isConnected" class="status" :class="isWatching ? 'ok' : 'stale'">
       {{ isWatching ? 'live' : 'not live' }}
@@ -1350,7 +1529,7 @@ onUnmounted(() => {
         </select>
       </label>
 
-      <template v-if="view === 'table' && subject === 'types'">
+      <template v-if="view === 'table' && subject === 'types' && currentTemplate === null">
         <input
           v-model="draftValue"
           placeholder="type name"
@@ -1362,7 +1541,9 @@ onUnmounted(() => {
         </button>
       </template>
 
-      <template v-else-if="view === 'table'">
+      <!-- Creating a neuron here would hang it off whatever is open, and on the
+           types side that is a type, not a parent. -->
+      <template v-else-if="view === 'table' && subject === 'neurons'">
         <input
           v-model="name"
           :placeholder="currentNeuron ? 'name (child of open neuron)' : 'name'"
@@ -1389,7 +1570,10 @@ onUnmounted(() => {
         <button :class="{ active: subject === 'types' }" @click="setSubject('types')">Types</button>
       </span>
 
-      <span v-if="subject === 'types'" class="count">
+      <span v-if="subject === 'types' && currentTemplate" class="count">
+        {{ neurons.length }} document{{ neurons.length === 1 ? '' : 's' }}
+      </span>
+      <span v-else-if="subject === 'types'" class="count">
         {{ templates.length }} type{{ templates.length === 1 ? '' : 's' }}
       </span>
       <span v-else class="count">
@@ -1443,11 +1627,11 @@ onUnmounted(() => {
           <dt>parent</dt>
           <dd>
             <button
-              v-if="currentNeuron.parentId !== null"
+              v-if="parentIdInUrl(currentNeuron) !== null"
               class="open"
-              @click="open(currentNeuron.parentId)"
+              @click="open(parentIdInUrl(currentNeuron))"
             >
-              {{ currentNeuron.parentId }}
+              {{ parentIdInUrl(currentNeuron) }}
             </button>
             <button v-else class="open root" title="Top level" @click="open(null)">
               {{ ROOT_LABEL }}
@@ -1465,128 +1649,139 @@ onUnmounted(() => {
       </dl>
     </section>
 
-    <table v-if="view === 'table' && subject === 'types'">
-      <thead>
-        <tr>
-          <th>id</th>
-          <th>name</th>
-          <th>attributes</th>
-          <th>created by</th>
-          <th>created at</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="template in templates" :key="template.id">
-          <td>
-            <button class="open" :title="`Open ${template.id}`" @click="openType(template)">
-              {{ shorten(template.id) }}
-            </button>
-          </td>
-          <td class="name-cell">{{ template.name ?? '—' }}</td>
-          <td>{{ attributeSummary(template) }}</td>
-          <td>{{ template.createdBy ?? '—' }}</td>
-          <td class="time">{{ formatTime(template.createdAt) }}</td>
-          <td class="actions">
-            <template v-if="isPendingDelete(template.id)">
-              <span class="confirm-label">Delete?</span>
-              <button class="confirm yes" :disabled="busy" @click="deleteTemplate(template)">
-                Yes
+    <div
+      v-if="view === 'table' && subject === 'types' && currentTemplate === null"
+      class="table-scroll"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>id</th>
+            <th>name</th>
+            <th>attributes</th>
+            <th>created by</th>
+            <th>created at</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="template in templates" :key="template.id">
+            <td>
+              <button class="open" :title="`Open ${template.id}`" @click="openType(template)">
+                {{ shorten(template.id) }}
               </button>
-              <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
-            </template>
-            <button
-              v-else
-              class="trash"
-              :disabled="busy"
-              title="Delete type"
-              @click="askDelete(template.id)"
-            >
-              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-                <path
-                  d="M2.5 4h11M6 4V2.6a.6.6 0 0 1 .6-.6h2.8a.6.6 0 0 1 .6.6V4M4 4l.55 9.1a1 1 0 0 0 1 .9h4.9a1 1 0 0 0 1-.9L12 4M6.6 6.6v5M9.4 6.6v5"
-                />
-              </svg>
-            </button>
-          </td>
-        </tr>
-        <tr v-if="templates.length === 0">
-          <td colspan="6" class="empty">
-            No types yet. Use <strong>Create Type</strong> to make one.
-          </td>
-        </tr>
-      </tbody>
-    </table>
+            </td>
+            <td class="name-cell">{{ template.name ?? '—' }}</td>
+            <td>{{ attributeSummary(template) }}</td>
+            <td>{{ template.createdBy ?? '—' }}</td>
+            <td class="time">{{ formatTime(template.createdAt) }}</td>
+            <td class="actions">
+              <template v-if="isPendingDelete(template.id)">
+                <span class="confirm-label">Delete?</span>
+                <button class="confirm yes" :disabled="busy" @click="deleteTemplate(template)">
+                  Yes
+                </button>
+                <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
+              </template>
+              <button
+                v-else
+                class="trash"
+                :disabled="busy"
+                title="Delete type"
+                @click="askDelete(template.id)"
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                  <path
+                    d="M2.5 4h11M6 4V2.6a.6.6 0 0 1 .6-.6h2.8a.6.6 0 0 1 .6.6V4M4 4l.55 9.1a1 1 0 0 0 1 .9h4.9a1 1 0 0 0 1-.9L12 4M6.6 6.6v5M9.4 6.6v5"
+                  />
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr v-if="templates.length === 0">
+            <td colspan="6" class="empty">
+              No types yet. Use <strong>Create Type</strong> to make one.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
 
-    <table v-else-if="view === 'table'">
-      <thead>
-        <tr>
-          <th>id</th>
-          <th>name</th>
-          <th>created by</th>
-          <th>created at</th>
-          <th>updated at</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="neuron in neurons" :key="neuron.id">
-          <td>
-            <button class="open" :title="`Open ${neuron.id}`" @click="open(neuron.id)">
-              {{ shorten(neuron.id) }}
-            </button>
-          </td>
-          <td class="name-cell">
-            <input
-              v-if="isEditing(neuron.id)"
-              v-model="editValue"
-              class="edit-input inline"
-              @keyup.enter="commitEditing"
-              @keyup.esc="cancelEditing"
-              @blur="cancelUnchangedEditing"
-            />
-            <button v-else class="name-button" title="Rename" @click="startEditing(neuron)">
-              {{ neuron.name ?? '—' }}
-            </button>
-          </td>
-          <td>{{ neuron.createdBy ?? '—' }}</td>
-          <td class="time">{{ formatTime(neuron.createdAt) }}</td>
-          <td class="time">{{ formatTime(neuron.updatedAt) }}</td>
-          <td class="actions">
-            <template v-if="isPendingDelete(neuron.id)">
-              <span class="confirm-label">
-                {{ pendingDelete?.hasChildren ? 'Delete, and everything inside?' : 'Delete?' }}
-              </span>
-              <button class="confirm yes" :disabled="busy" @click="deleteNeuron(neuron)">Yes</button>
-              <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
-            </template>
-            <button
-              v-else
-              class="trash"
-              :disabled="busy"
-              title="Delete neuron"
-              @click="askDelete(neuron.id)"
-            >
-              <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
-                <path
-                  d="M2.5 4h11M6 4V2.6a.6.6 0 0 1 .6-.6h2.8a.6.6 0 0 1 .6.6V4M4 4l.55 9.1a1 1 0 0 0 1 .9h4.9a1 1 0 0 0 1-.9L12 4M6.6 6.6v5M9.4 6.6v5"
-                />
-              </svg>
-            </button>
-          </td>
-        </tr>
-        <tr v-if="neurons.length === 0">
-          <td colspan="6" class="empty">
-            <template v-if="currentNeuron">
-              <code>{{ labelOf(currentNeuron) }}</code> has no children yet.
-            </template>
-            <template v-else>
-              No neurons in <code>{{ databaseName }}</code> yet.
-            </template>
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div v-else-if="view === 'table'" class="table-scroll">
+      <table>
+        <thead>
+          <tr>
+            <th>id</th>
+            <th>name</th>
+            <th>created by</th>
+            <th>created at</th>
+            <th>updated at</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="neuron in neurons" :key="neuron.id">
+            <td>
+              <button class="open" :title="`Open ${neuron.id}`" @click="openNeuron(neuron.id)">
+                {{ shorten(neuron.id) }}
+              </button>
+            </td>
+            <td class="name-cell">
+              <input
+                v-if="isEditing(neuron.id)"
+                v-model="editValue"
+                class="edit-input inline"
+                @keyup.enter="commitEditing"
+                @keyup.esc="cancelEditing"
+                @blur="cancelUnchangedEditing"
+              />
+              <button v-else class="name-button" title="Rename" @click="startEditing(neuron)">
+                {{ neuron.name ?? '—' }}
+              </button>
+            </td>
+            <td>{{ neuron.createdBy ?? '—' }}</td>
+            <td class="time">{{ formatTime(neuron.createdAt) }}</td>
+            <td class="time">{{ formatTime(neuron.updatedAt) }}</td>
+            <td class="actions">
+              <template v-if="isPendingDelete(neuron.id)">
+                <span class="confirm-label">
+                  {{ pendingDelete?.hasChildren ? 'Delete, and everything inside?' : 'Delete?' }}
+                </span>
+                <button class="confirm yes" :disabled="busy" @click="deleteNeuron(neuron)">Yes</button>
+                <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
+              </template>
+              <button
+                v-else
+                class="trash"
+                :disabled="busy"
+                title="Delete neuron"
+                @click="askDelete(neuron.id)"
+              >
+                <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true">
+                  <path
+                    d="M2.5 4h11M6 4V2.6a.6.6 0 0 1 .6-.6h2.8a.6.6 0 0 1 .6.6V4M4 4l.55 9.1a1 1 0 0 0 1 .9h4.9a1 1 0 0 0 1-.9L12 4M6.6 6.6v5M9.4 6.6v5"
+                  />
+                </svg>
+              </button>
+            </td>
+          </tr>
+          <tr v-if="neurons.length === 0">
+            <td colspan="6" class="empty">
+              <template v-if="currentTemplate">
+                Nothing has been made from
+                <code>{{ currentTemplate.name ?? currentTemplate.id }}</code> yet.
+              </template>
+              <template v-else-if="currentNeuron">
+                <code>{{ labelOf(currentNeuron) }}</code> has no children yet.
+              </template>
+              <template v-else>
+                No neurons in <code>{{ databaseName }}</code> yet.
+              </template>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
     <div v-else class="graph">
       <div class="canvas">
         <svg
@@ -1618,7 +1813,7 @@ onUnmounted(() => {
               clickable: !node.data.isCurrent && !node.data.isDraft
             }"
             :transform="`translate(${node.y - NODE_WIDTH / 2}, ${node.x - nodeHeightOf(node.data) / 2})`"
-            @click="node.data.isCurrent || node.data.isDraft ? undefined : open(node.data.id)"
+            @click="openNode(node.data)"
           >
             <rect :width="NODE_WIDTH" :height="nodeHeightOf(node.data)" rx="7" />
 
@@ -1634,11 +1829,41 @@ onUnmounted(() => {
                 <input
                   v-model="draftValue"
                   class="draft-input"
-                  placeholder="name, Enter to create"
+                  placeholder="name"
                   @keyup.enter="commitDraft"
                   @keyup.esc="cancelDraft"
                   @blur="cancelEmptyDraft"
                 />
+                <!-- A type is picked once, here. There is nowhere to change it
+                     afterwards, because a neuron's type is what it is. -->
+                <select
+                  v-if="subject === 'neurons'"
+                  v-model="draftType"
+                  class="draft-type"
+                  title="What it will be"
+                  @keyup.enter="commitDraft"
+                  @keyup.esc="cancelDraft"
+                  @blur="cancelEmptyDraft"
+                >
+                  <option :value="OBJECT_NEURON_TYPE">object</option>
+                  <option v-for="candidate in templates" :key="candidate.id" :value="candidate.id">
+                    {{ candidate.name ?? candidate.id }}
+                  </option>
+                </select>
+
+                <!-- Takes mousedown rather than focus, so the name never blurs
+                     and the draft cannot close out from under the click. -->
+                <button
+                  class="draft-done"
+                  title="Create"
+                  :disabled="busy || draftValue.trim().length === 0"
+                  @mousedown.prevent
+                  @click="commitDraft"
+                >
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M3.2 8.6 L6.4 11.8 L12.8 4.6" />
+                  </svg>
+                </button>
               </div>
             </foreignObject>
 
@@ -1657,7 +1882,7 @@ onUnmounted(() => {
             >
               <div class="node-confirm">
                 <span class="node-confirm-label">
-                  <span class="node-confirm-title">Delete {{ truncate(node.data.label, 14) }}?</span>
+                  <span class="node-confirm-title">Delete {{ truncate(node.data.label, 18) }}?</span>
                   <span v-if="pendingDelete?.hasChildren" class="node-confirm-note">
                     and everything inside
                   </span>
@@ -1672,14 +1897,27 @@ onUnmounted(() => {
             <template v-else-if="!node.data.isDraft">
               <text
                 :class="[node.data.isRoot ? 'root-mark' : 'name', { linked: node.data.neuron !== null }]"
-                :x="14"
-                :y="node.data.detail === '' ? 29 : 20"
+                :x="18"
+                :y="node.data.detail === '' ? 37 : 26"
                 @click.stop="openDetails(node.data)"
               >
-                {{ truncate(node.data.label, 22) }}
+                {{ truncate(node.data.label, 24) }}
               </text>
-              <text v-if="node.data.detail !== ''" :x="14" :y="36" class="detail">
-                {{ truncate(node.data.detail, 26) }}
+              <text v-if="node.data.detail !== ''" :x="18" :y="NODE_DETAIL_BASELINE" class="detail">
+                {{ truncate(node.data.detail, 24) }}
+              </text>
+
+              <!-- Barely there on purpose: it answers a question you only
+                   sometimes have. A plain object says nothing, since that is
+                   what a neuron is when it is not anything else. -->
+              <text
+                v-if="typeTagOf(node.data) !== ''"
+                class="type-tag"
+                :x="NODE_WIDTH - 16"
+                :y="NODE_TAG_BASELINE"
+                text-anchor="end"
+              >
+                {{ truncate(typeTagOf(node.data), 14) }}
               </text>
               <title>{{ node.data.id ?? 'Top level' }}</title>
 
@@ -1728,11 +1966,11 @@ onUnmounted(() => {
                 v-if="subject === 'neurons'"
                 class="add"
                 :class="{ disabled: busy }"
-                :transform="`translate(${NODE_WIDTH - 21}, ${NODE_HEIGHT / 2})`"
+                :transform="`translate(${NODE_WIDTH - 26}, ${NODE_HEIGHT / 2})`"
                 @click.stop="openDraft(node.data.id)"
               >
-                <circle r="10" />
-                <path d="M-4.5,0 H4.5 M0,-4.5 V4.5" />
+                <circle r="12" />
+                <path d="M-5.5,0 H5.5 M0,-5.5 V5.5" />
                 <title>Create inside {{ node.data.label }}</title>
               </g>
 
@@ -1740,11 +1978,11 @@ onUnmounted(() => {
                 v-if="node.data.neuron !== null || node.data.template !== null"
                 class="remove"
                 :class="{ disabled: busy }"
-                :transform="`translate(${NODE_WIDTH - 46}, ${NODE_HEIGHT / 2})`"
+                :transform="`translate(${NODE_WIDTH - 56}, ${NODE_HEIGHT / 2})`"
                 @click.stop="askDelete(node.data.id!)"
               >
-                <circle r="10" />
-                <path d="M-3.5,-3.5 L3.5,3.5 M3.5,-3.5 L-3.5,3.5" />
+                <circle r="12" />
+                <path d="M-4,-4 L4,4 M4,-4 L-4,4" />
                 <title>Delete {{ node.data.label }}</title>
               </g>
             </template>
@@ -1776,6 +2014,16 @@ onUnmounted(() => {
         </div>
         <code class="sidebar-id">{{ currentTemplate.id }}</code>
 
+        <label class="sidebar-extends">
+          extends
+          <select :value="currentTemplate.extendsId ?? ''" :disabled="busy" @change="setTemplateExtends">
+            <option value="">nothing</option>
+            <option v-for="candidate in extendsChoices" :key="candidate.id" :value="candidate.id">
+              {{ candidate.name ?? candidate.id }}
+            </option>
+          </select>
+        </label>
+
         <table class="sidebar-attributes">
           <thead>
             <tr>
@@ -1786,42 +2034,61 @@ onUnmounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="attribute in currentTemplate.attributes" :key="attribute.name">
-              <td class="type"><code>{{ templateAttributeTypeLabel(attribute) }}</code></td>
+            <!-- An inherited row belongs to the type that declares it, so it
+                 is shown here and changed there. -->
+            <tr
+              v-for="entry in templateAttributes"
+              :key="entry.attribute.name"
+              :class="{ inherited: entry.inherited }"
+            >
+              <td class="type">
+                <code>{{ templateAttributeTypeLabel(entry.attribute) }}</code>
+              </td>
               <td>
+                <span v-if="entry.inherited" :title="`from ${definedByLabel(entry)}`">
+                  {{ entry.attribute.name }}
+                </span>
                 <EditableText
-                  :value="attribute.name"
+                  v-else
+                  :value="entry.attribute.name"
                   placeholder="name"
                   title="Rename attribute"
                   :disabled="busy"
-                  @submit="(name) => renameTemplateAttribute(attribute, name)"
+                  @submit="(name) => renameTemplateAttribute(entry.attribute, name)"
                 />
               </td>
               <td>
-                <span v-if="attribute.templateId !== null" class="empty">built then</span>
+                <span v-if="entry.attribute.templateId !== null" class="empty">built then</span>
                 <input
-                  v-else-if="attribute.type === BOOLEAN_NEURON_TYPE"
+                  v-else-if="entry.attribute.type === BOOLEAN_NEURON_TYPE"
                   type="checkbox"
-                  :checked="templateDefaultFlag(attribute)"
-                  :disabled="busy"
-                  @change="(event) => onTemplateFlagChange(attribute, event)"
+                  :checked="templateDefaultFlag(entry.attribute)"
+                  :disabled="busy || entry.inherited"
+                  @change="(event) => onTemplateFlagChange(entry.attribute, event)"
                 />
+                <span v-else-if="entry.inherited" class="empty">
+                  {{ templateDefaultText(entry.attribute) || 'none' }}
+                </span>
                 <EditableText
                   v-else
-                  :value="templateDefaultText(attribute)"
+                  :value="templateDefaultText(entry.attribute)"
                   placeholder="default"
                   empty="none"
                   title="Edit the default"
                   :disabled="busy"
-                  @submit="(value) => setTemplateAttributeDefault(attribute, value)"
+                  @submit="(value) => setTemplateAttributeDefault(entry.attribute, value)"
                 />
               </td>
               <td class="actions">
+                <span v-if="entry.inherited" class="from" :title="`from ${definedByLabel(entry)}`">
+                  ↑
+                </span>
                 <button
+                  v-else
                   class="attribute-remove"
                   :disabled="busy"
                   title="Remove attribute"
-                  @click="removeTemplateAttribute(attribute.name)"
+                  @click="removeTemplateAttribute(entry.attribute.name)"
                 >
                   ×
                 </button>
@@ -1879,7 +2146,7 @@ onUnmounted(() => {
               </td>
             </tr>
 
-            <tr v-if="currentTemplate.attributes.length === 0 && !templateAttributeDraftOpen">
+            <tr v-if="templateAttributes.length === 0 && !templateAttributeDraftOpen">
               <td colspan="4" class="empty">No attributes yet.</td>
             </tr>
           </tbody>
@@ -2075,6 +2342,20 @@ header {
 .status.stale { color: var(--danger); }
 .resuming { color: var(--muted); }
 
+.connection-toggle {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.connection-toggle:hover,
+.connection-toggle.on { color: var(--text); border-color: var(--accent); }
+.connection-toggle .caret { margin-left: 4px; opacity: 0.7; }
+
 .error {
   margin: 0;
   padding: 8px 14px;
@@ -2206,14 +2487,16 @@ main { padding: 14px; }
   max-height: 70vh;
 }
 
-/* The tree scrolls on its own so the sidebar stays put beside it. */
+/* The tree scrolls on its own so the sidebar stays put beside it. Centring is
+   `safe`, because a drawing wider than the box would otherwise be centred with
+   its left edge spilling out of reach of the scrollbar. */
 .canvas {
   flex: 1 1 auto;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
+  align-items: safe center;
+  justify-content: safe center;
   overflow: auto;
 }
 
@@ -2270,6 +2553,19 @@ main { padding: 14px; }
 .sidebar-attributes td.type { width: 78px; padding-left: 0; color: var(--muted); }
 .sidebar-attributes td.type select { width: 100%; }
 
+.sidebar-attributes tr.inherited td { color: var(--muted); }
+.sidebar-attributes .from { color: var(--muted); cursor: help; }
+
+.sidebar-extends {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.sidebar-extends select { flex: 1 1 auto; min-width: 0; padding: 2px 4px; font-size: 12px; }
+
 /* The menu belongs to the whole database, so it lives in the node that stands
    for it rather than in the toolbar above the drawing. */
 .root-menu {
@@ -2279,8 +2575,8 @@ main { padding: 14px; }
   gap: 6px;
   width: 100%;
   height: 100%;
-  padding: 0 10px;
-  font: 11px ui-sans-serif, system-ui, sans-serif;
+  padding: 0 12px;
+  font: 12px ui-sans-serif, system-ui, sans-serif;
 }
 
 .switch {
@@ -2365,7 +2661,10 @@ main { padding: 14px; }
 
 .attribute-done:hover { color: var(--ok); }
 
-.graph svg { display: block; max-width: 100%; height: auto; }
+/* The drawing keeps the size it was laid out at. Letting it shrink to the box
+   would undo the node size at exactly the moment there is a lot to look at —
+   the canvas scrolls instead. */
+.graph svg { display: block; }
 
 .edge {
   fill: none;
@@ -2392,12 +2691,13 @@ main { padding: 14px; }
 
 .node text {
   fill: var(--text);
-  font-size: 13px;
+  font-size: 15px;
   font-family: ui-sans-serif, system-ui, sans-serif;
 }
 
-.node text.detail { fill: var(--muted); font-size: 11px; }
-.node text.root-mark { font-size: 17px; }
+.node text.detail { fill: var(--muted); font-size: 12px; }
+.node text.type-tag { fill: var(--muted); font-size: 10px; opacity: 0.55; }
+.node text.root-mark { font-size: 20px; }
 
 /* A name with a neuron behind it opens the sidebar; the top level has none. */
 .node text.linked { cursor: pointer; }
@@ -2432,12 +2732,12 @@ main { padding: 14px; }
   gap: 6px;
   width: 100%;
   height: 100%;
-  padding: 0 8px;
+  padding: 0 10px;
   border: 1px solid var(--danger);
   border-radius: 7px;
   background: var(--bg);
   color: var(--text);
-  font: 12px ui-sans-serif, system-ui, sans-serif;
+  font: 13px ui-sans-serif, system-ui, sans-serif;
 }
 
 .node-confirm-label {
@@ -2523,15 +2823,15 @@ td.name-cell { padding: 3px 10px; }
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 8px;
-  font: 11px ui-sans-serif, system-ui, sans-serif;
+  padding: 0 10px;
+  font: 12px ui-sans-serif, system-ui, sans-serif;
 }
 
 .attribute {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 24px;
+  gap: 8px;
+  height: 28px;
   min-width: 0;
 }
 
@@ -2582,10 +2882,48 @@ td.name-cell { padding: 3px 10px; }
   box-sizing: border-box;
   display: flex;
   align-items: center;
+  gap: 4px;
   width: 100%;
   height: 100%;
-  padding: 0 8px;
+  padding: 0 10px;
 }
+
+.draft-done {
+  flex: 0 0 auto;
+  display: inline-flex;
+  padding: 0 2px;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  cursor: pointer;
+  line-height: 0;
+}
+
+.draft-done svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.draft-done:hover:not(:disabled) { color: var(--ok); }
+.draft-done:disabled { color: var(--muted); opacity: 0.4; cursor: default; }
+
+.draft-type {
+  flex: 0 0 auto;
+  max-width: 40%;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--muted);
+  padding: 2px 4px;
+  font: 12px ui-sans-serif, system-ui, sans-serif;
+}
+
+.draft-type:hover { color: var(--text); }
 
 .draft-input {
   width: 100%;
@@ -2594,10 +2932,23 @@ td.name-cell { padding: 3px 10px; }
   background: transparent;
   color: var(--text);
   padding: 0;
-  font: 13px ui-sans-serif, system-ui, sans-serif;
+  font: 15px ui-sans-serif, system-ui, sans-serif;
 }
 
 .graph .empty { margin: 8px 0 4px; text-align: center; }
+
+/* Cells do not wrap, so on a narrow screen the table scrolls inside its own
+   box instead of pushing the whole page sideways. max-content lets it take the
+   width its content needs; min-width keeps it filling a wide screen. */
+.table-scroll {
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+.table-scroll > table {
+  width: max-content;
+  min-width: 100%;
+}
 
 table { width: 100%; border-collapse: collapse; }
 

@@ -41,11 +41,15 @@ export interface TemplateAttributeDocument {
 // refuse to read one as a neuron.
 export interface TemplateDocument extends NeuronDocument {
   template_attributes: TemplateAttributeDocument[]
+  // The type this one narrows. One parent, so the types form a tree and the
+  // order attributes resolve in is never in question.
+  extends_id: string | null
 }
 
 export interface TemplateProperties {
   name?: string | null
   attributes?: TemplateAttribute[]
+  extendsId?: string | null
 }
 
 export class Template {
@@ -53,6 +57,7 @@ export class Template {
   revision: string | null
   name: string | null
   attributes: TemplateAttribute[]
+  extendsId: string | null
   createdAt: string | null
   updatedAt: string | null
   createdBy: string | null
@@ -63,6 +68,7 @@ export class Template {
     this.revision = null
     this.name = null
     this.attributes = []
+    this.extendsId = null
     this.createdAt = null
     this.updatedAt = null
     this.createdBy = null
@@ -73,6 +79,7 @@ export class Template {
     const template = new Template()
     template.name = properties.name ?? null
     template.attributes = properties.attributes ?? []
+    template.extendsId = properties.extendsId ?? null
     return template
   }
 
@@ -97,6 +104,7 @@ export class Template {
         template_id: attribute.templateId,
         default_value: attribute.defaultValue
       })),
+      extends_id: this.extendsId,
       created_at: this.createdAt,
       updated_at: this.updatedAt,
       created_by: this.createdBy,
@@ -116,6 +124,7 @@ export class Template {
       templateId: attribute.template_id ?? null,
       defaultValue: attribute.default_value ?? null
     }))
+    this.extendsId = document.extends_id ?? null
     this.createdAt = document.created_at
     this.updatedAt = document.updated_at
     this.createdBy = document.created_by

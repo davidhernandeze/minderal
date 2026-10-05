@@ -68,6 +68,10 @@ export default defineConfig({
     // })
   ],
 
+  server: {
+    allowedHosts: ['mini', '.ts.net']
+  },
+
   define: {
     global: 'window'
   },

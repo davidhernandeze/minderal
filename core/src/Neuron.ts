@@ -12,6 +12,12 @@ export function isNeuronId(id: string): boolean {
   return id.startsWith(NEURON_ID_PREFIX)
 }
 
+// The tree hangs off one real document, created with the database. It exists so
+// that parent_id means one thing: a neuron under the root is in the tree, and
+// parent_id null is a neuron that is not in it — an attribute's value, or one
+// that has not been filed anywhere.
+export const NEURON_ROOT_ID = `${NEURON_ID_PREFIX}root`
+
 // A 1-to-1 relation: the name lives on the owner, the value and all of its
 // metadata live in the neuron the id points at.
 export interface NeuronAttribute {

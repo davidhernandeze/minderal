@@ -347,3 +347,193 @@ function valueOf(neuron: Neuron | undefined): string | boolean | null {
   if (neuron instanceof BooleanNeuron) return neuron.value
   return null
 }
+
+describe('Database.listByTemplateId', () => {
+  async function personTemplate(name: string): Promise<[Database, Template]> {
+    const database = useDatabase(name)
+    const person = await database.createTemplate(
+      Template.create({
+        name: 'person',
+        attributes: [
+          { name: 'city', type: STRING_NEURON_TYPE, templateId: null, defaultValue: 'Madrid' }
+        ]
+      })
+    )
+    return [database, person]
+  }
+
+  it('finds every neuron made from the type', async () => {
+    const [database, person] = await personTemplate('template-instances')
+    await database.createFromTemplate(person, { name: 'David' })
+    await database.createFromTemplate(person, { name: 'Ana' })
+    // A neuron of another kind is not one of them.
+    await database.create(ObjectNeuron.create({ name: 'something else' }))
+
+    const made = await database.listByTemplateId(person.id)
+
+    expect(made.map((neuron) => neuron.name).sort()).toEqual(['Ana', 'David'])
+  })
+
+  // An attribute value is a document of its type too, and it is the only kind
+  // that every other listing deliberately hides.
+  it('counts one held as an attribute', async () => {
+    const [database, address] = await personTemplate('template-instances-attribute')
+    const owner = await database.create(ObjectNeuron.create({ name: 'David' }))
+    const home = await database.setAttribute(
+      owner,
+      'home',
+      ObjectNeuron.create({ name: 'Home', templateId: address.id })
+    )
+
+    expect((await database.listByTemplateId(address.id)).map((n) => n.id)).toEqual([home.id])
+  })
+
+  it('leaves out a deleted one unless asked', async () => {
+    const [database, person] = await personTemplate('template-instances-deleted')
+    const david = await database.createFromTemplate(person, { name: 'David' })
+    await database.delete(david)
+
+    expect(await database.listByTemplateId(person.id)).toEqual([])
+    expect(
+      (await database.listByTemplateId(person.id, { includeDeleted: true })).map((n) => n.name)
+    ).toEqual(['David'])
+  })
+
+  it('is empty for a type nothing was made from', async () => {
+    const [database, person] = await personTemplate('template-instances-empty')
+
+    expect(await database.listByTemplateId(person.id)).toEqual([])
+  })
+})
+
+describe('Templates that extend another', () => {
+  async function family(name: string) {
+    const database = useDatabase(name)
+    const being = await database.createTemplate(
+      Template.create({
+        name: 'being',
+        attributes: [
+          { name: 'alive', type: BOOLEAN_NEURON_TYPE, templateId: null, defaultValue: true }
+        ]
+      })
+    )
+    const person = await database.createTemplate(
+      Template.create({
+        name: 'person',
+        extendsId: being.id,
+        attributes: [
+          { name: 'email', type: STRING_NEURON_TYPE, templateId: null, defaultValue: null }
+        ]
+      })
+    )
+    const uncle = await database.createTemplate(
+      Template.create({
+        name: 'uncle',
+        extendsId: person.id,
+        attributes: [
+          { name: 'nephews', type: STRING_NEURON_TYPE, templateId: null, defaultValue: '0' }
+        ]
+      })
+    )
+    return { database, being, person, uncle }
+  }
+
+  it('resolves the whole chain, not just the parent', async () => {
+    const { database, being, person, uncle } = await family('extends-chain')
+
+    const resolved = await database.resolveTemplateAttributes(uncle)
+
+    expect(resolved.map((entry) => entry.attribute.name)).toEqual(['alive', 'email', 'nephews'])
+    expect(resolved.map((entry) => entry.definedBy)).toEqual([being.id, person.id, uncle.id])
+    expect(resolved.map((entry) => entry.inherited)).toEqual([true, true, false])
+  })
+
+  // The nearest definition wins, and keeps the position the ancestor gave it so
+  // the shape still reads the same way.
+  it('lets a subtype narrow an attribute its ancestor defined', async () => {
+    const { database, being, uncle } = await family('extends-override')
+    await database.setTemplateAttribute(uncle, {
+      name: 'alive',
+      type: BOOLEAN_NEURON_TYPE,
+      templateId: null,
+      defaultValue: false
+    })
+
+    const resolved = await database.resolveTemplateAttributes(uncle)
+
+    expect(resolved.map((entry) => entry.attribute.name)).toEqual(['alive', 'email', 'nephews'])
+    expect(resolved[0]?.attribute.defaultValue).toBe(false)
+    expect(resolved[0]?.inherited).toBe(false)
+    // The type it came from is untouched: inherited means read, never copied.
+    expect((await database.resolveTemplateAttributes(being))[0]?.attribute.defaultValue).toBe(true)
+  })
+
+  it('builds a neuron from everything the chain defines', async () => {
+    const { database, uncle } = await family('extends-create')
+
+    const pedro = await database.createFromTemplate(uncle, { name: 'Pedro' })
+
+    const attributes = await database.listAttributes(pedro)
+    expect(attributes.map((attribute) => attribute.name).sort()).toEqual([
+      'alive',
+      'email',
+      'nephews'
+    ])
+    expect(pedro.templateId).toBe(uncle.id)
+  })
+
+  it('counts a subtype under the type it extends, however deep', async () => {
+    const { database, being, person, uncle } = await family('extends-query')
+    await database.createFromTemplate(uncle, { name: 'Pedro' })
+    await database.createFromTemplate(person, { name: 'Ada' })
+
+    // Exact by default: an uncle was made as an uncle, not as a person.
+    expect((await database.listByTemplateId(person.id)).map((n) => n.name)).toEqual(['Ada'])
+    expect(
+      (await database.listByTemplateId(person.id, { includeSubtypes: true }))
+        .map((n) => n.name)
+        .sort()
+    ).toEqual(['Ada', 'Pedro'])
+    expect(
+      (await database.listByTemplateId(being.id, { includeSubtypes: true }))
+        .map((n) => n.name)
+        .sort()
+    ).toEqual(['Ada', 'Pedro'])
+  })
+
+  it('refuses the changes that would make a chain with no end', async () => {
+    const { database, being, person, uncle } = await family('extends-cycles')
+
+    await expect(database.setTemplateExtends(being, being.id)).rejects.toThrow(NeuronError)
+    // being is already an ancestor of uncle, so it cannot also extend it.
+    await expect(database.setTemplateExtends(being, uncle.id)).rejects.toThrow(NeuronError)
+    await expect(database.setTemplateExtends(being, 'template:nope')).rejects.toThrow(NeuronError)
+    expect((await database.getTemplate(being.id))?.extendsId).toBeNull()
+    expect((await database.getTemplate(person.id))?.extendsId).toBe(being.id)
+  })
+
+  it('stops resolving a chain that was already broken into a loop', async () => {
+    const { database, being, uncle } = await family('extends-broken-loop')
+    // Written straight past the guard, the way replication could deliver it.
+    being.extendsId = uncle.id
+    await database.updateTemplate(being)
+
+    const resolved = await database.resolveTemplateAttributes(uncle)
+
+    expect(resolved.map((entry) => entry.attribute.name).sort()).toEqual([
+      'alive',
+      'email',
+      'nephews'
+    ])
+  })
+
+  it('clears what it extends', async () => {
+    const { database, uncle } = await family('extends-clear')
+
+    await database.setTemplateExtends(uncle, null)
+
+    expect((await database.resolveTemplateAttributes(uncle)).map((e) => e.attribute.name)).toEqual([
+      'nephews'
+    ])
+  })
+})

@@ -8,7 +8,8 @@ export default defineConfig({
     port: 5173,
     // Listen on every interface so a phone on the same network can reach the
     // dev server by this machine's LAN address.
-    host: true
+    host: true,
+    allowedHosts: ['mini', '.ts.net']
   },
   resolve: {
     alias: {

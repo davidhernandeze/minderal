@@ -52,6 +52,17 @@ drops to the root level and drops the parameter, replacing the history entry so 
 not lead straight back to the dead id. `buildTrail` returns `null` for that case, which is
 distinct from the empty trail that means "already at the root".
 
+## The root
+
+The tree hangs off one real document, `neuron:root`, created with the database. The 🧠 in the
+breadcrumb and the graph is that document, and a neuron at the top level has it as its
+`parent_id` — so `parent_id: null` now means a neuron that is *not* in the tree: an
+attribute's value, or one that has not been filed anywhere.
+
+The URL leaves the root out, so no `?id=` still means the top. `openParentId` resolves that
+to `NEURON_ROOT_ID` wherever children are listed or created, `buildTrail` stops climbing at
+it rather than showing it as an ancestor, and a parent link pointing at it renders as 🧠.
+
 At the top level the table lists `listByParentId(null)` — the roots — rather than every
 document, so navigation is a tree at every level. The graph draws the top level as a 🧠 node
 reading "start creating from here"; it is synthetic, with no neuron behind it, so it cannot
@@ -114,6 +125,14 @@ to catch up on whatever the feed missed while it was blind.
 Replication is not wired into the app yet — `local.syncWith(remote)` exists in core and is
 covered by tests, but the app still opens a single connection.
 
+## The connection
+
+Once it is connected the form has nothing left to say, so it folds into one line — `admin @
+localhost:5984` with a caret — and the header is a single row again. Clicking it brings the
+fields back; connecting successfully folds it away. Disconnected there is nothing to fold, so
+the form shows and the chip does not, which is also what you want when the form is the only
+thing on the page.
+
 ## What a reload starts from
 
 The server URL and the database name are remembered in `localStorage`
@@ -172,6 +191,40 @@ as starting with an empty string.
 Types live under a `template:` id, outside the `neuron:` key range every neuron query scans,
 so neither side ever sees the other: switching subject starts at the top, because an id from
 one names nothing on the other. The subject rides in the URL as `&subject=types`.
+
+Creating a neuron in the graph asks what it will be: the draft node carries a name, a type
+picker offering `object` and every type you have made, and a checkmark to finish, so Enter is
+a shortcut rather than the only way. The checkmark takes `mousedown` instead of focus, so the
+name never blurs and the draft cannot close out from under the click, and it stays disabled
+until there is a name to create. The types draft has the same checkmark and no picker — a
+type has no type. Picking one builds the
+neuron from that type, attributes and defaults included. A type is chosen once — there is
+nowhere to change it afterwards, because a neuron's type is what it is.
+
+Every node then says what it is, in a faint tag at the bottom right, below the round buttons
+rather than behind them. A plain object says nothing: that is what a neuron is when it is not
+anything more, so the tag would be noise on most of the tree.
+
+A type can narrow another one: `uncle` extends `person`, and a neuron made from it gets
+everything the chain defines. The sidebar shows inherited attributes greyed with a ↑ to the
+type that declares them, and they are read-only here — an inherited attribute is read where
+it is defined, so changing `person` changes every type under it. Giving the subtype an
+attribute of the same name overrides it, in the position the parent gave it.
+
+In the graph, what a type extends is drawn where a parent is drawn, so the slot the tree
+already has carries the hierarchy and the documents stay the children. Counting is exact by
+default — an uncle was made as an uncle — and `includeSubtypes` widens it, which is how
+"every person" picks up the uncles.
+
+Opening a type shows what has been made from it. In the graph the type takes the middle with
+its documents below, the same shape a neuron's children have; in the table they are the rows.
+Following one crosses back to the neurons side — a document is a neuron, and pretending
+otherwise would leave the breadcrumb describing a place that does not exist.
+
+The listing counts every neuron carrying that `template_id`, including one held as an
+attribute value. Those are hidden from every other listing on purpose, but here the question
+is what exists of this type, and an attribute's value is as much a document of its type as a
+child in the tree is.
 
 Both type pickers — the one for a neuron's attributes and the one for a type's — list the
 built-in types followed by every type the user has made, so a type becomes available the
