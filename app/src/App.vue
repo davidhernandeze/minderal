@@ -33,8 +33,18 @@ const NODE_GAP_VERTICAL = 88
 const NODE_GAP_HORIZONTAL = 390
 const GRAPH_PADDING = 32
 const DRAFT_NODE_ID = '__draft__'
-const ATTRIBUTE_ROW_HEIGHT = 30
-const ATTRIBUTE_PADDING = 10
+// The selected node is the editor, so it is wider than a plain node and as
+// tall as what it holds. Every part of it has a fixed height in the stylesheet,
+// which is what lets the box be measured here, before it is drawn.
+const EDITOR_WIDTH = 340
+const EDITOR_PADDING = 8
+const EDITOR_GAP = 6
+const EDITOR_HEAD_HEIGHT = 24
+const EDITOR_ID_HEIGHT = 15
+const EDITOR_EXTENDS_HEIGHT = 24
+const EDITOR_TABLE_HEAD_HEIGHT = 19
+const EDITOR_ROW_HEIGHT = 27
+const EDITOR_ADD_HEIGHT = 24
 const DEFAULT_DATABASE_NAME = 'neurons'
 const NEW_DATABASE_CHOICE = '\u0000new'
 const ROOT_MENU_HEIGHT = 36
@@ -143,7 +153,6 @@ const templateAttributeName = ref('')
 const templateAttributeType = ref(STRING_NEURON_TYPE)
 const templateAttributeValue = ref('')
 const templateAttributeFlag = ref(false)
-const templateAttributeInput = ref<HTMLInputElement | null>(null)
 
 const value = ref('')
 const name = ref('')
@@ -156,8 +165,8 @@ const draftValue = ref('')
 // what it is, and nothing changes it afterwards.
 const draftType = ref(OBJECT_NEURON_TYPE)
 
-// The table renames in place, on the name cell itself. The graph does it in the
-// sidebar instead, so the node can stay a label.
+// The table renames in place, on the name cell itself. The graph renames on the
+// node, which is the editor once it is selected.
 const editing = shallowRef<{ neuron: Neuron } | null>(null)
 const editValue = ref('')
 
@@ -165,15 +174,13 @@ const editValue = ref('')
 // without pushing anything else around.
 const attributes = shallowRef<ResolvedAttribute[]>([])
 
-// Editing the open neuron happens in the sidebar, never on the node: the node
-// shows the name and the attributes, and a click on either opens the sidebar.
-const sidebarOpen = ref(false)
+// Editing the open neuron happens on the node itself: the selected node is the
+// editor, so a name, its attributes and the row that adds one all live there.
 const attributeDraftOpen = ref(false)
 const attributeName = ref('')
 const attributeValue = ref('')
 const attributeFlag = ref(false)
 const attributeType = ref(STRING_NEURON_TYPE)
-const attributeNameInput = ref<HTMLInputElement | null>(null)
 
 // Deleting asks first, inline, rather than through a modal dialog. Deletion
 // takes the whole subtree, so the prompt has to say when there is one.
@@ -281,7 +288,6 @@ async function setSubject(next: Subject): Promise<void> {
   cancelDraft()
   cancelAttributeDraft()
   cancelTemplateAttributeDraft()
-  sidebarOpen.value = false
   subject.value = next
   currentId.value = null
   writeUrl(null)
@@ -419,8 +425,8 @@ async function buildTrail(id: string | null): Promise<Neuron[] | null> {
     seen.add(cursor.id)
     chain.unshift(cursor)
     // An attribute value hangs off its owner instead of a parent, so that is
-    // the way up for it. Without this a value opened from the sidebar would
-    // look like a root neuron with nothing above it. The climb stops at the
+    // the way up for it. Without this a value opened from its owner's editor
+    // would look like a root neuron with nothing above it. The climb stops at the
     // root, which the breadcrumb draws as 🧠 rather than as an ancestor.
     const above: string | null = cursor.parentId ?? cursor.attributeOf
     cursor = above === null || above === NEURON_ROOT_ID ? null : await database.value.get(above)
@@ -703,28 +709,54 @@ function cancelDraft(): void {
   draftValue.value = ''
 }
 
-// The open neuron carries its attribute rows, so it is taller than the rest.
-// Nothing else in its column, so nothing has to move.
+// The selected node is the editor. The top level is not a neuron and a draft is
+// not one yet, so neither becomes one: the root keeps the database menu, and a
+// draft keeps its single input.
+function isEditorNode(source: GraphSource): boolean {
+  if (source.isDraft || !source.isCurrent) return false
+  return source.neuron !== null || source.template !== null
+}
+
+// The editor carries a table, so it is wider than a plain node. The gap d3
+// leaves between columns is wide enough to take the difference.
+function nodeWidthOf(source: GraphSource): number {
+  return isEditorNode(source) ? EDITOR_WIDTH : NODE_WIDTH
+}
+
+// The editor grows with its rows. Nothing else shares its column, so nothing
+// has to move out of the way.
 function nodeHeightOf(source: GraphSource): number {
   // The root node carries the menu wherever it is drawn, open or as a parent.
   if (source.isRoot && !source.isDraft) return NODE_HEIGHT + ROOT_MENU_HEIGHT
-  if (!source.isCurrent || source.neuron === null) return NODE_HEIGHT
-  if (attributes.value.length === 0) return NODE_HEIGHT
-  return NODE_HEIGHT + attributes.value.length * ATTRIBUTE_ROW_HEIGHT + ATTRIBUTE_PADDING
+  if (!isEditorNode(source)) return NODE_HEIGHT
+  return editorHeight(source)
 }
 
-// Clicking a node's name or its attributes opens the sidebar on it, selecting
-// the node first when it was not the open one. The top level has no neuron
-// behind it, so there is nothing to show.
-async function openDetails(source: GraphSource): Promise<void> {
-  if (source.isDraft) return
-  if (!source.isCurrent) await openNode(source)
-  if (source.neuron !== null || source.template !== null) sidebarOpen.value = true
+// An empty table still shows a row — "No attributes yet" — so the box never
+// collapses onto its own heading.
+function editorRowCount(source: GraphSource): number {
+  const rows =
+    source.template === null
+      ? attributes.value.length + (attributeDraftOpen.value ? 1 : 0)
+      : templateAttributes.value.length + (templateAttributeDraftOpen.value ? 1 : 0)
+  return Math.max(rows, 1)
 }
 
-function closeSidebar(): void {
-  sidebarOpen.value = false
-  cancelAttributeDraft()
+// Adding the parts up rather than measuring them: a foreignObject clips at the
+// height it is given, so the height has to be known before the box is drawn.
+function editorHeight(source: GraphSource): number {
+  // Name, id, table and the add button — and for a type, what it extends.
+  const blocks = source.template === null ? 4 : 5
+  return (
+    EDITOR_PADDING * 2 +
+    EDITOR_GAP * (blocks - 1) +
+    EDITOR_HEAD_HEIGHT +
+    EDITOR_ID_HEIGHT +
+    (source.template === null ? 0 : EDITOR_EXTENDS_HEIGHT) +
+    EDITOR_TABLE_HEAD_HEIGHT +
+    editorRowCount(source) * EDITOR_ROW_HEIGHT +
+    EDITOR_ADD_HEIGHT
+  )
 }
 
 async function renameCurrentNeuron(name: string): Promise<void> {
@@ -743,13 +775,17 @@ async function renameCurrentNeuron(name: string): Promise<void> {
   }
 }
 
+function focusAttributeName(): void {
+  document.querySelector<HTMLInputElement>('.attribute-name-input')?.focus()
+}
+
 function openAttributeDraft(): void {
   attributeDraftOpen.value = true
   attributeName.value = ''
   attributeValue.value = ''
   attributeFlag.value = false
   attributeType.value = STRING_NEURON_TYPE
-  void nextTick(() => attributeNameInput.value?.focus())
+  void nextTick(() => focusAttributeName())
 }
 
 function cancelAttributeDraft(): void {
@@ -1010,9 +1046,9 @@ async function createTemplate(name: string): Promise<boolean> {
   try {
     const template = await db.createTemplate(Template.create({ name }))
     // Straight into the new type, the way creating a neuron opens its parent:
-    // a type with no attributes is not finished.
+    // a type with no attributes is not finished, and opening it is what puts
+    // the editor on it.
     await open(template.id)
-    sidebarOpen.value = true
     return true
   } catch (cause) {
     error.value = describe(cause)
@@ -1040,7 +1076,6 @@ async function openNeuron(id: string | null): Promise<void> {
   cancelDraft()
   cancelAttributeDraft()
   cancelTemplateAttributeDraft()
-  sidebarOpen.value = false
   subject.value = 'neurons'
   currentId.value = id
   writeUrl(id)
@@ -1058,9 +1093,8 @@ async function openNode(source: GraphSource): Promise<void> {
 
 async function openType(template: Template): Promise<void> {
   await open(template.id)
-  // The editor lives beside the drawing, so that is where opening one goes.
+  // The editor is the node itself, so opening a type goes to the drawing.
   setView('graph')
-  sidebarOpen.value = true
 }
 
 async function startTemplateDraft(): Promise<void> {
@@ -1107,7 +1141,7 @@ function openTemplateAttributeDraft(): void {
   templateAttributeType.value = STRING_NEURON_TYPE
   templateAttributeValue.value = ''
   templateAttributeFlag.value = false
-  void nextTick(() => templateAttributeInput.value?.focus())
+  void nextTick(() => focusAttributeName())
 }
 
 function cancelTemplateAttributeDraft(): void {
@@ -1376,13 +1410,14 @@ const graph = computed(() => {
 
   // d3 puts depth in y and sibling offset in x; swapping them lays the tree
   // out left to right, which suits long text labels.
-  const horizontals = nodes.map((node) => node.y)
+  const lefts = nodes.map((node) => node.y - nodeWidthOf(node.data) / 2)
+  const rights = nodes.map((node) => node.y + nodeWidthOf(node.data) / 2)
   const tops = nodes.map((node) => node.x - nodeHeightOf(node.data) / 2)
   const bottoms = nodes.map((node) => node.x + nodeHeightOf(node.data) / 2)
   const minVertical = Math.min(...tops) - NODE_HEIGHT / 2
   const maxVertical = Math.max(...bottoms) + NODE_HEIGHT / 2
-  const minHorizontal = Math.min(...horizontals) - NODE_WIDTH / 2
-  const maxHorizontal = Math.max(...horizontals) + NODE_WIDTH / 2
+  const minHorizontal = Math.min(...lefts)
+  const maxHorizontal = Math.max(...rights)
 
   const width = maxHorizontal - minHorizontal + GRAPH_PADDING * 2
   const height = maxVertical - minVertical + GRAPH_PADDING * 2
@@ -1410,9 +1445,14 @@ function linkMidpoint(link: {
   }
 }
 
-function linkPath(link: { source: { x: number; y: number }; target: { x: number; y: number } }): string {
-  const startX = link.source.y + NODE_WIDTH / 2
-  const endX = link.target.y - NODE_WIDTH / 2
+// The editor is wider than the rest, so each end of the curve leaves from the
+// edge of the node it is attached to rather than from a shared half-width.
+function linkPath(link: {
+  source: { x: number; y: number; data: GraphSource }
+  target: { x: number; y: number; data: GraphSource }
+}): string {
+  const startX = link.source.y + nodeWidthOf(link.source.data) / 2
+  const endX = link.target.y - nodeWidthOf(link.target.data) / 2
   const midX = (startX + endX) / 2
   return `M${startX},${link.source.x}C${midX},${link.source.x} ${midX},${link.target.x} ${endX},${link.target.x}`
 }
@@ -1812,10 +1852,10 @@ onUnmounted(() => {
               draft: node.data.isDraft,
               clickable: !node.data.isCurrent && !node.data.isDraft
             }"
-            :transform="`translate(${node.y - NODE_WIDTH / 2}, ${node.x - nodeHeightOf(node.data) / 2})`"
+            :transform="`translate(${node.y - nodeWidthOf(node.data) / 2}, ${node.x - nodeHeightOf(node.data) / 2})`"
             @click="openNode(node.data)"
           >
-            <rect :width="NODE_WIDTH" :height="nodeHeightOf(node.data)" rx="7" />
+            <rect :width="nodeWidthOf(node.data)" :height="nodeHeightOf(node.data)" rx="7" />
 
             <foreignObject
               v-if="node.data.isDraft"
@@ -1872,6 +1912,7 @@ onUnmounted(() => {
             <foreignObject
               v-else-if="
                 isPendingDelete(node.data.id) &&
+                !isEditorNode(node.data) &&
                 (node.data.neuron !== null || node.data.template !== null)
               "
               :x="0"
@@ -1894,12 +1935,395 @@ onUnmounted(() => {
               </div>
             </foreignObject>
 
+            <!-- The selected node is the editor: there is no second box
+                 beside the drawing, so the node carries the name, what it is,
+                 and its attributes. A type's rows hold the default a new
+                 neuron starts with, which is all that differs between them. -->
+            <foreignObject
+              v-else-if="isEditorNode(node.data)"
+              :x="0"
+              :y="0"
+              :width="nodeWidthOf(node.data)"
+              :height="nodeHeightOf(node.data)"
+              @click.stop
+            >
+              <div class="node-editor">
+                <div class="editor-head">
+                  <!-- Deletion takes the whole subtree, so it asks first, in
+                       the row the name was in. -->
+                  <template v-if="isPendingDelete(node.data.id)">
+                    <span class="editor-confirm">
+                      Delete {{ truncate(node.data.label, 14) }}<template
+                        v-if="pendingDelete?.hasChildren"
+                      >, and everything inside</template>?
+                    </span>
+                    <button class="confirm yes" :disabled="busy" @click="confirmDelete(node.data)">
+                      Yes
+                    </button>
+                    <button class="confirm no" :disabled="busy" @click="cancelDelete">No</button>
+                  </template>
+
+                  <template v-else>
+                    <EditableText
+                      v-if="node.data.template !== null"
+                      class="editor-name"
+                      :value="currentTemplate?.name ?? ''"
+                      empty="unnamed type"
+                      placeholder="type name"
+                      title="Rename"
+                      :disabled="busy"
+                      @submit="renameCurrentTemplate"
+                    />
+                    <EditableText
+                      v-else
+                      class="editor-name"
+                      :value="currentNeuron?.name ?? ''"
+                      empty="unnamed"
+                      placeholder="name"
+                      title="Rename"
+                      :disabled="busy"
+                      @submit="renameCurrentNeuron"
+                    />
+
+                    <!-- The round buttons the other nodes carry: on this one
+                         they would be behind the editor, so they sit in its
+                         own row instead. -->
+                    <button
+                      v-if="subject === 'neurons'"
+                      class="editor-button"
+                      :title="`Create inside ${node.data.label}`"
+                      :disabled="busy"
+                      @click="openDraft(node.data.id)"
+                    >
+                      +
+                    </button>
+                    <button
+                      class="editor-button delete"
+                      :title="`Delete ${node.data.label}`"
+                      :disabled="busy"
+                      @click="askDelete(node.data.id!)"
+                    >
+                      ×
+                    </button>
+                  </template>
+                </div>
+
+                <div class="editor-id">
+                  <span v-if="typeTagOf(node.data) !== ''">{{ typeTagOf(node.data) }}</span>
+                  <code>{{ node.data.id }}</code>
+                </div>
+
+                <template v-if="node.data.template !== null">
+                  <label class="editor-extends">
+                    extends
+                    <select
+                      :value="currentTemplate?.extendsId ?? ''"
+                      :disabled="busy"
+                      @change="setTemplateExtends"
+                    >
+                      <option value="">nothing</option>
+                      <option
+                        v-for="candidate in extendsChoices"
+                        :key="candidate.id"
+                        :value="candidate.id"
+                      >
+                        {{ candidate.name ?? candidate.id }}
+                      </option>
+                    </select>
+                  </label>
+
+                  <table class="editor-attributes">
+                    <thead>
+                      <tr>
+                        <th>type</th>
+                        <th>name</th>
+                        <th>default</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <!-- An inherited row belongs to the type that declares
+                           it, so it is shown here and changed there. -->
+                      <tr
+                        v-for="entry in templateAttributes"
+                        :key="entry.attribute.name"
+                        :class="{ inherited: entry.inherited }"
+                      >
+                        <td class="type">
+                          <code>{{ templateAttributeTypeLabel(entry.attribute) }}</code>
+                        </td>
+                        <td>
+                          <span v-if="entry.inherited" :title="`from ${definedByLabel(entry)}`">
+                            {{ entry.attribute.name }}
+                          </span>
+                          <EditableText
+                            v-else
+                            :value="entry.attribute.name"
+                            placeholder="name"
+                            title="Rename attribute"
+                            :disabled="busy"
+                            @submit="(name) => renameTemplateAttribute(entry.attribute, name)"
+                          />
+                        </td>
+                        <td>
+                          <span v-if="entry.attribute.templateId !== null" class="empty">
+                            built then
+                          </span>
+                          <input
+                            v-else-if="entry.attribute.type === BOOLEAN_NEURON_TYPE"
+                            type="checkbox"
+                            :checked="templateDefaultFlag(entry.attribute)"
+                            :disabled="busy || entry.inherited"
+                            @change="(event) => onTemplateFlagChange(entry.attribute, event)"
+                          />
+                          <span v-else-if="entry.inherited" class="empty">
+                            {{ templateDefaultText(entry.attribute) || 'none' }}
+                          </span>
+                          <EditableText
+                            v-else
+                            :value="templateDefaultText(entry.attribute)"
+                            placeholder="default"
+                            empty="none"
+                            title="Edit the default"
+                            :disabled="busy"
+                            @submit="(value) => setTemplateAttributeDefault(entry.attribute, value)"
+                          />
+                        </td>
+                        <td class="actions">
+                          <span
+                            v-if="entry.inherited"
+                            class="from"
+                            :title="`from ${definedByLabel(entry)}`"
+                          >
+                            ↑
+                          </span>
+                          <button
+                            v-else
+                            class="attribute-remove"
+                            :disabled="busy"
+                            title="Remove attribute"
+                            @click="removeTemplateAttribute(entry.attribute.name)"
+                          >
+                            ×
+                          </button>
+                        </td>
+                      </tr>
+
+                      <tr v-if="templateAttributeDraftOpen" class="draft">
+                        <td class="type">
+                          <select v-model="templateAttributeType" class="editor-input">
+                            <option
+                              v-for="choice in typeChoices"
+                              :key="choice.value"
+                              :value="choice.value"
+                            >
+                              {{ choice.label }}
+                            </option>
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            v-model="templateAttributeName"
+                            class="editor-input attribute-name-input"
+                            placeholder="name"
+                            @keyup.enter="commitTemplateAttributeDraft"
+                            @keyup.esc="cancelTemplateAttributeDraft"
+                          />
+                        </td>
+                        <td>
+                          <!-- A type is built when a neuron is made from it, so
+                               there is nothing here to default to. -->
+                          <span v-if="isTemplateChoice(templateAttributeType)" class="empty">
+                            built then
+                          </span>
+                          <input
+                            v-else-if="templateAttributeType === BOOLEAN_NEURON_TYPE"
+                            v-model="templateAttributeFlag"
+                            type="checkbox"
+                            @keyup.enter="commitTemplateAttributeDraft"
+                            @keyup.esc="cancelTemplateAttributeDraft"
+                          />
+                          <input
+                            v-else
+                            v-model="templateAttributeValue"
+                            class="editor-input"
+                            placeholder="default (optional)"
+                            @keyup.enter="commitTemplateAttributeDraft"
+                            @keyup.esc="cancelTemplateAttributeDraft"
+                          />
+                        </td>
+                        <td class="actions">
+                          <button
+                            class="attribute-done"
+                            title="Done"
+                            @click="commitTemplateAttributeDraft"
+                          >
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                              <path d="M3.2 8.6 L6.4 11.8 L12.8 4.6" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+
+                      <tr v-if="templateAttributes.length === 0 && !templateAttributeDraftOpen">
+                        <td colspan="4" class="empty">No attributes yet.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <button
+                    class="attribute-add"
+                    :disabled="busy || templateAttributeDraftOpen"
+                    @click="openTemplateAttributeDraft"
+                  >
+                    + Add attribute
+                  </button>
+                </template>
+
+                <template v-else>
+                  <table class="editor-attributes">
+                    <thead>
+                      <tr>
+                        <th>type</th>
+                        <th>name</th>
+                        <th>value</th>
+                        <th></th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr v-for="attribute in attributes" :key="attribute.name">
+                        <td class="type"><code>{{ typeLabelOf(attribute.neuron) }}</code></td>
+                        <td>
+                          <EditableText
+                            :value="attribute.name"
+                            placeholder="name"
+                            title="Rename attribute"
+                            :disabled="busy"
+                            @submit="(name) => renameAttribute(attribute, name)"
+                          />
+                        </td>
+                        <td>
+                          <span v-if="isBoolean(attribute.neuron)" class="attribute-flag">
+                            <input
+                              type="checkbox"
+                              :checked="flagOf(attribute.neuron)"
+                              :disabled="busy"
+                              @change="(event) => onFlagChange(attribute, event)"
+                            />
+                            <button
+                              class="attribute-open"
+                              title="Open this neuron"
+                              @click="open(attribute.neuron.id)"
+                            >
+                              ↗
+                            </button>
+                          </span>
+
+                          <EditableText
+                            v-else-if="isObject(attribute.neuron)"
+                            :value="attributeValueText(attribute.neuron)"
+                            placeholder="name"
+                            empty="unnamed"
+                            title="Open this neuron"
+                            link
+                            :disabled="busy"
+                            @follow="open(attribute.neuron.id)"
+                            @submit="(name) => setObjectName(attribute, name)"
+                          />
+
+                          <EditableText
+                            v-else
+                            :value="displayValue(attribute.neuron)"
+                            placeholder="value"
+                            empty="empty"
+                            title="Open this neuron"
+                            link
+                            :disabled="busy"
+                            @follow="open(attribute.neuron.id)"
+                            @submit="(value) => setStringValue(attribute, value)"
+                          />
+                        </td>
+                        <td class="actions">
+                          <button
+                            class="attribute-remove"
+                            :disabled="busy"
+                            title="Remove attribute"
+                            @click="removeAttribute(attribute.name)"
+                          >
+                            ×
+                          </button>
+                        </td>
+                      </tr>
+
+                      <tr v-if="attributeDraftOpen" class="draft">
+                        <td class="type">
+                          <select v-model="attributeType" class="editor-input">
+                            <option
+                              v-for="choice in typeChoices"
+                              :key="choice.value"
+                              :value="choice.value"
+                            >
+                              {{ choice.label }}
+                            </option>
+                          </select>
+                        </td>
+                        <td>
+                          <input
+                            v-model="attributeName"
+                            class="editor-input attribute-name-input"
+                            placeholder="name"
+                            @keyup.enter="commitAttributeDraft"
+                            @keyup.esc="cancelAttributeDraft"
+                          />
+                        </td>
+                        <td>
+                          <input
+                            v-if="attributeType === BOOLEAN_NEURON_TYPE"
+                            v-model="attributeFlag"
+                            type="checkbox"
+                            @keyup.enter="commitAttributeDraft"
+                            @keyup.esc="cancelAttributeDraft"
+                          />
+                          <input
+                            v-else
+                            v-model="attributeValue"
+                            class="editor-input"
+                            :placeholder="isTemplateChoice(attributeType) ? 'name' : 'value'"
+                            @keyup.enter="commitAttributeDraft"
+                            @keyup.esc="cancelAttributeDraft"
+                          />
+                        </td>
+                        <td class="actions">
+                          <button class="attribute-done" title="Done" @click="commitAttributeDraft">
+                            <svg viewBox="0 0 16 16" aria-hidden="true">
+                              <path d="M3.2 8.6 L6.4 11.8 L12.8 4.6" />
+                            </svg>
+                          </button>
+                        </td>
+                      </tr>
+
+                      <tr v-if="attributes.length === 0 && !attributeDraftOpen">
+                        <td colspan="4" class="empty">No attributes yet.</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  <button
+                    class="attribute-add"
+                    :disabled="busy || attributeDraftOpen"
+                    @click="openAttributeDraft"
+                  >
+                    + Add attribute
+                  </button>
+                </template>
+              </div>
+            </foreignObject>
+
             <template v-else-if="!node.data.isDraft">
               <text
                 :class="[node.data.isRoot ? 'root-mark' : 'name', { linked: node.data.neuron !== null }]"
                 :x="18"
                 :y="node.data.detail === '' ? 37 : 26"
-                @click.stop="openDetails(node.data)"
               >
                 {{ truncate(node.data.label, 24) }}
               </text>
@@ -1946,22 +2370,6 @@ onUnmounted(() => {
                 </div>
               </foreignObject>
 
-              <foreignObject
-                v-if="node.data.isCurrent && attributes.length > 0"
-                :x="0"
-                :y="NODE_HEIGHT - 6"
-                :width="NODE_WIDTH"
-                :height="nodeHeightOf(node.data) - NODE_HEIGHT + 6"
-                @click.stop="openDetails(node.data)"
-              >
-                <div class="attributes" title="Edit attributes">
-                  <div v-for="attribute in attributes" :key="attribute.name" class="attribute">
-                    <span class="attribute-name-label">{{ attribute.name }}</span>
-                    <span class="attribute-value">{{ attributeValueText(attribute.neuron) }}</span>
-                  </div>
-                </div>
-              </foreignObject>
-
               <g
                 v-if="subject === 'neurons'"
                 class="add"
@@ -1995,319 +2403,6 @@ onUnmounted(() => {
         </p>
       </div>
 
-      <!-- Everything editable about the open neuron lives here, so the node
-           itself can stay a label. -->
-      <!-- The same editor as a neuron's, over a type's attributes: a name, and
-           rows of name, type and the value a new neuron starts with. -->
-      <aside v-if="sidebarOpen && currentTemplate !== null" class="sidebar">
-        <div class="sidebar-head">
-          <EditableText
-            class="sidebar-name"
-            :value="currentTemplate.name ?? ''"
-            empty="unnamed type"
-            placeholder="type name"
-            title="Rename"
-            :disabled="busy"
-            @submit="renameCurrentTemplate"
-          />
-          <button class="sidebar-close" title="Close" @click="closeSidebar">×</button>
-        </div>
-        <code class="sidebar-id">{{ currentTemplate.id }}</code>
-
-        <label class="sidebar-extends">
-          extends
-          <select :value="currentTemplate.extendsId ?? ''" :disabled="busy" @change="setTemplateExtends">
-            <option value="">nothing</option>
-            <option v-for="candidate in extendsChoices" :key="candidate.id" :value="candidate.id">
-              {{ candidate.name ?? candidate.id }}
-            </option>
-          </select>
-        </label>
-
-        <table class="sidebar-attributes">
-          <thead>
-            <tr>
-              <th>type</th>
-              <th>name</th>
-              <th>default</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <!-- An inherited row belongs to the type that declares it, so it
-                 is shown here and changed there. -->
-            <tr
-              v-for="entry in templateAttributes"
-              :key="entry.attribute.name"
-              :class="{ inherited: entry.inherited }"
-            >
-              <td class="type">
-                <code>{{ templateAttributeTypeLabel(entry.attribute) }}</code>
-              </td>
-              <td>
-                <span v-if="entry.inherited" :title="`from ${definedByLabel(entry)}`">
-                  {{ entry.attribute.name }}
-                </span>
-                <EditableText
-                  v-else
-                  :value="entry.attribute.name"
-                  placeholder="name"
-                  title="Rename attribute"
-                  :disabled="busy"
-                  @submit="(name) => renameTemplateAttribute(entry.attribute, name)"
-                />
-              </td>
-              <td>
-                <span v-if="entry.attribute.templateId !== null" class="empty">built then</span>
-                <input
-                  v-else-if="entry.attribute.type === BOOLEAN_NEURON_TYPE"
-                  type="checkbox"
-                  :checked="templateDefaultFlag(entry.attribute)"
-                  :disabled="busy || entry.inherited"
-                  @change="(event) => onTemplateFlagChange(entry.attribute, event)"
-                />
-                <span v-else-if="entry.inherited" class="empty">
-                  {{ templateDefaultText(entry.attribute) || 'none' }}
-                </span>
-                <EditableText
-                  v-else
-                  :value="templateDefaultText(entry.attribute)"
-                  placeholder="default"
-                  empty="none"
-                  title="Edit the default"
-                  :disabled="busy"
-                  @submit="(value) => setTemplateAttributeDefault(entry.attribute, value)"
-                />
-              </td>
-              <td class="actions">
-                <span v-if="entry.inherited" class="from" :title="`from ${definedByLabel(entry)}`">
-                  ↑
-                </span>
-                <button
-                  v-else
-                  class="attribute-remove"
-                  :disabled="busy"
-                  title="Remove attribute"
-                  @click="removeTemplateAttribute(entry.attribute.name)"
-                >
-                  ×
-                </button>
-              </td>
-            </tr>
-
-            <tr v-if="templateAttributeDraftOpen" class="draft">
-              <td class="type">
-                <select v-model="templateAttributeType" class="sidebar-input">
-                  <option v-for="choice in typeChoices" :key="choice.value" :value="choice.value">
-                    {{ choice.label }}
-                  </option>
-                </select>
-              </td>
-              <td>
-                <input
-                  ref="templateAttributeInput"
-                  v-model="templateAttributeName"
-                  class="sidebar-input"
-                  placeholder="name"
-                  @keyup.enter="commitTemplateAttributeDraft"
-                  @keyup.esc="cancelTemplateAttributeDraft"
-                />
-              </td>
-              <td>
-                <!-- A type is built when a neuron is made from it, so there is
-                     nothing here to default to. -->
-                <span v-if="isTemplateChoice(templateAttributeType)" class="empty">built then</span>
-                <input
-                  v-else-if="templateAttributeType === BOOLEAN_NEURON_TYPE"
-                  v-model="templateAttributeFlag"
-                  type="checkbox"
-                  @keyup.enter="commitTemplateAttributeDraft"
-                  @keyup.esc="cancelTemplateAttributeDraft"
-                />
-                <input
-                  v-else
-                  v-model="templateAttributeValue"
-                  class="sidebar-input"
-                  placeholder="default (optional)"
-                  @keyup.enter="commitTemplateAttributeDraft"
-                  @keyup.esc="cancelTemplateAttributeDraft"
-                />
-              </td>
-              <td class="actions">
-                <button
-                  class="attribute-done"
-                  title="Done"
-                  @click="commitTemplateAttributeDraft"
-                >
-                  <svg viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3.2 8.6 L6.4 11.8 L12.8 4.6" />
-                  </svg>
-                </button>
-              </td>
-            </tr>
-
-            <tr v-if="templateAttributes.length === 0 && !templateAttributeDraftOpen">
-              <td colspan="4" class="empty">No attributes yet.</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <button
-          class="attribute-add"
-          :disabled="busy || templateAttributeDraftOpen"
-          @click="openTemplateAttributeDraft"
-        >
-          + Add attribute
-        </button>
-      </aside>
-
-      <aside v-else-if="sidebarOpen && currentNeuron !== null" class="sidebar">
-        <div class="sidebar-head">
-          <EditableText
-            class="sidebar-name"
-            :value="currentNeuron.name ?? ''"
-            empty="unnamed"
-            placeholder="name"
-            title="Rename"
-            :disabled="busy"
-            @submit="renameCurrentNeuron"
-          />
-          <button class="sidebar-close" title="Close" @click="closeSidebar">×</button>
-        </div>
-        <code class="sidebar-id">{{ currentNeuron.id }}</code>
-
-        <table class="sidebar-attributes">
-          <thead>
-            <tr>
-              <th>type</th>
-              <th>name</th>
-              <th>value</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="attribute in attributes" :key="attribute.name">
-              <td class="type"><code>{{ typeLabelOf(attribute.neuron) }}</code></td>
-              <td>
-                <EditableText
-                  :value="attribute.name"
-                  placeholder="name"
-                  title="Rename attribute"
-                  :disabled="busy"
-                  @submit="(name) => renameAttribute(attribute, name)"
-                />
-              </td>
-              <td>
-                <span v-if="isBoolean(attribute.neuron)" class="attribute-flag">
-                  <input
-                    type="checkbox"
-                    :checked="flagOf(attribute.neuron)"
-                    :disabled="busy"
-                    @change="(event) => onFlagChange(attribute, event)"
-                  />
-                  <button
-                    class="attribute-open"
-                    title="Open this neuron"
-                    @click="open(attribute.neuron.id)"
-                  >
-                    ↗
-                  </button>
-                </span>
-
-                <EditableText
-                  v-else-if="isObject(attribute.neuron)"
-                  :value="attributeValueText(attribute.neuron)"
-                  placeholder="name"
-                  empty="unnamed"
-                  title="Open this neuron"
-                  link
-                  :disabled="busy"
-                  @follow="open(attribute.neuron.id)"
-                  @submit="(name) => setObjectName(attribute, name)"
-                />
-
-                <EditableText
-                  v-else
-                  :value="displayValue(attribute.neuron)"
-                  placeholder="value"
-                  empty="empty"
-                  title="Open this neuron"
-                  link
-                  :disabled="busy"
-                  @follow="open(attribute.neuron.id)"
-                  @submit="(value) => setStringValue(attribute, value)"
-                />
-              </td>
-              <td class="actions">
-                <button
-                  class="attribute-remove"
-                  :disabled="busy"
-                  title="Remove attribute"
-                  @click="removeAttribute(attribute.name)"
-                >
-                  ×
-                </button>
-              </td>
-            </tr>
-
-            <tr v-if="attributeDraftOpen" class="draft">
-              <td class="type">
-                <select v-model="attributeType" class="sidebar-input">
-                  <option v-for="choice in typeChoices" :key="choice.value" :value="choice.value">
-                    {{ choice.label }}
-                  </option>
-                </select>
-              </td>
-              <td>
-                <input
-                  ref="attributeNameInput"
-                  v-model="attributeName"
-                  class="sidebar-input"
-                  placeholder="name"
-                  @keyup.enter="commitAttributeDraft"
-                  @keyup.esc="cancelAttributeDraft"
-                />
-              </td>
-              <td>
-                <input
-                  v-if="attributeType === BOOLEAN_NEURON_TYPE"
-                  v-model="attributeFlag"
-                  type="checkbox"
-                  @keyup.enter="commitAttributeDraft"
-                  @keyup.esc="cancelAttributeDraft"
-                />
-                <input
-                  v-else
-                  v-model="attributeValue"
-                  class="sidebar-input"
-                  :placeholder="isTemplateChoice(attributeType) ? 'name' : 'value'"
-                  @keyup.enter="commitAttributeDraft"
-                  @keyup.esc="cancelAttributeDraft"
-                />
-              </td>
-              <td class="actions">
-                <button class="attribute-done" title="Done" @click="commitAttributeDraft">
-                  <svg viewBox="0 0 16 16" aria-hidden="true">
-                    <path d="M3.2 8.6 L6.4 11.8 L12.8 4.6" />
-                  </svg>
-                </button>
-              </td>
-            </tr>
-
-            <tr v-if="attributes.length === 0 && !attributeDraftOpen">
-              <td colspan="4" class="empty">No attributes yet.</td>
-            </tr>
-          </tbody>
-        </table>
-
-        <button
-          class="attribute-add"
-          :disabled="busy || attributeDraftOpen"
-          @click="openAttributeDraft"
-        >
-          + Add attribute
-        </button>
-      </aside>
     </div>
   </main>
 
@@ -2487,9 +2582,9 @@ main { padding: 14px; }
   max-height: 70vh;
 }
 
-/* The tree scrolls on its own so the sidebar stays put beside it. Centring is
-   `safe`, because a drawing wider than the box would otherwise be centred with
-   its left edge spilling out of reach of the scrollbar. */
+/* The tree scrolls on its own inside the box. Centring is `safe`, because a
+   drawing wider than the box would otherwise be centred with its left edge
+   spilling out of reach of the scrollbar. */
 .canvas {
   flex: 1 1 auto;
   min-width: 0;
@@ -2500,71 +2595,118 @@ main { padding: 14px; }
   overflow: auto;
 }
 
-.sidebar {
-  flex: 0 0 320px;
+/* Inside the node, so it takes the whole box the layout gave it. Every part
+   has a height fixed here, because `editorHeight` adds those heights up to
+   decide how big the node is — a foreignObject clips what overflows it. The
+   node's own rect draws the frame, so there is no border here. */
+.node-editor {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  align-self: flex-start;
-  max-height: 100%;
-  overflow: auto;
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--bg);
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 8px 10px;
+  overflow: hidden;
+  color: var(--text);
+  font: 12px ui-sans-serif, system-ui, sans-serif;
 }
 
-.sidebar-head { display: flex; align-items: center; gap: 6px; }
+.editor-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+}
 
-.sidebar-name {
+.editor-name {
   flex: 1 1 auto;
   min-width: 0;
-  font-size: 17px;
+  font-size: 16px;
   font-weight: 600;
 }
 
-.sidebar-close {
+/* The same two actions every other node carries as circles in its corner.
+   Here the editor is in that corner, so they come inside it. */
+.editor-button {
   flex: 0 0 auto;
-  padding: 0 4px;
-  border: none;
-  background: transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel);
   color: var(--muted);
-  font-size: 16px;
+  font-size: 13px;
   line-height: 1;
-  cursor: pointer;
 }
 
-.sidebar-close:hover { color: var(--text); }
-.sidebar-id { color: var(--muted); word-break: break-all; }
+.editor-button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #fff;
+}
+
+.editor-button.delete:hover:not(:disabled) {
+  border-color: var(--danger);
+  background: var(--danger);
+}
+
+.editor-confirm {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--danger);
+}
+
+.editor-id {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  height: 15px;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--muted);
+}
+
+.editor-id code { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+.editor-extends {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  color: var(--muted);
+}
+
+.editor-extends select { flex: 1 1 auto; min-width: 0; padding: 1px 4px; font-size: 12px; }
 
 /* Fixed layout, so a long value takes an ellipsis instead of squeezing the
    other two columns down to a letter each. */
-.sidebar-attributes { table-layout: fixed; }
+.editor-attributes { flex: 0 0 auto; table-layout: fixed; }
 
-.sidebar-attributes th,
-.sidebar-attributes td {
-  padding: 5px 6px;
+.editor-attributes th,
+.editor-attributes td {
+  height: 27px;
+  padding: 0 6px;
   font-size: 12px;
   overflow: hidden;
 }
 
-.sidebar-attributes th { font-size: 10px; }
-.sidebar-attributes th:first-child,
-.sidebar-attributes td.type { width: 78px; padding-left: 0; color: var(--muted); }
-.sidebar-attributes td.type select { width: 100%; }
+.editor-attributes th { height: 19px; font-size: 10px; }
+.editor-attributes th:first-child,
+.editor-attributes td.type { width: 72px; padding-left: 0; color: var(--muted); }
+.editor-attributes td.type select { width: 100%; }
 
-.sidebar-attributes tr.inherited td { color: var(--muted); }
-.sidebar-attributes .from { color: var(--muted); cursor: help; }
-
-.sidebar-extends {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
-.sidebar-extends select { flex: 1 1 auto; min-width: 0; padding: 2px 4px; font-size: 12px; }
+.editor-attributes tr.inherited td { color: var(--muted); }
+.editor-attributes .from { color: var(--muted); cursor: help; }
 
 /* The menu belongs to the whole database, so it lives in the node that stands
    for it rather than in the toolbar above the drawing. */
@@ -2622,12 +2764,12 @@ main { padding: 14px; }
   cursor: pointer;
   line-height: 1;
 }
-.sidebar-attributes th:last-child,
-.sidebar-attributes td.actions { width: 20px; padding: 5px 0; }
-.sidebar-attributes tr:last-child td { border-bottom: none; }
-.sidebar-attributes .empty { text-align: center; }
+.editor-attributes th:last-child,
+.editor-attributes td.actions { width: 20px; padding: 0; }
+.editor-attributes tr:last-child td { border-bottom: none; }
+.editor-attributes .empty { text-align: center; }
 
-.sidebar-input {
+.editor-input {
   width: 100%;
   min-width: 0;
   padding: 2px 4px;
@@ -2699,7 +2841,7 @@ main { padding: 14px; }
 .node text.type-tag { fill: var(--muted); font-size: 10px; opacity: 0.55; }
 .node text.root-mark { font-size: 20px; }
 
-/* A name with a neuron behind it opens the sidebar; the top level has none. */
+/* A name with a neuron behind it selects it; the top level has none. */
 .node text.linked { cursor: pointer; }
 .node text.linked:hover { text-decoration: underline; text-underline-offset: 2px; }
 
@@ -2814,45 +2956,6 @@ td.name-cell { padding: 3px 10px; }
 
 .node.draft rect { stroke: var(--accent); stroke-dasharray: 4 3; fill: var(--bg); }
 
-/* The editor sits inside the node with a borderless input, so the node itself
-   has to show that it is being edited. */
-
-.attributes {
-  box-sizing: border-box;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: 0 10px;
-  font: 12px ui-sans-serif, system-ui, sans-serif;
-}
-
-.attribute {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  height: 28px;
-  min-width: 0;
-}
-
-.attribute-name-label {
-  color: var(--muted);
-  flex: 0 0 auto;
-  max-width: 45%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.attribute-value {
-  color: var(--text);
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 .attribute-remove {
   background: transparent;
   border: none;
@@ -2865,13 +2968,15 @@ td.name-cell { padding: 3px 10px; }
 .attribute-remove:hover { color: var(--danger); }
 
 .attribute-add {
+  flex: 0 0 auto;
   align-self: flex-start;
+  height: 24px;
   background: transparent;
   border: 1px dashed var(--border);
   border-radius: 5px;
   color: var(--muted);
   cursor: pointer;
-  padding: 3px 8px;
+  padding: 0 8px;
   text-align: left;
   font-size: 12px;
 }
