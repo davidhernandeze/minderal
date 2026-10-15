@@ -7,7 +7,7 @@ services:
       COUCHDB_USER: admin
       COUCHDB_PASSWORD: password
     volumes:
-      - ./couchdb/local.ini:/opt/couchdb/etc/local.d/01-minderal.ini:ro
+      - ./couchdb/local.ini:/opt/couchdb/etc/local.d/01-minderal.ini
       # A named volume, not tmpfs: tmpfs is wiped whenever the container stops,
       # so `docker compose stop` loses every database. `couchdb:down` still
       # drops the volume when a clean slate is wanted.
