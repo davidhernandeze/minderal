@@ -1,0 +1,36 @@
+{
+  "name": "@minderal/core",
+  "version": "0.0.0",
+  "description": "Minderal core library",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:node": "vitest run --project node",
+    "test:browser": "vitest run --project browser",
+    "test:dist": "npm run build && MINDERAL_TARGET=dist vitest run",
+    "verify": "npm run typecheck && npm test && npm run test:dist",
+    "setup:browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@vitest/browser-playwright": "^5.1.0",
+    "playwright": "^1.65.1",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  }
+}
