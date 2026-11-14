@@ -1,5 +1,3 @@
-import { Core as CoreClass } from './Core.js'
-
-export const Core: CoreClass = CoreClass.instance
-export type Core = CoreClass
+export type { Core } from './Core.js'
+export { getCoreForCurrentRuntime } from './getCoreForCurrentRuntime.js'
 export { UnsupportedRuntimeError, type Runtime } from './Runtime.js'

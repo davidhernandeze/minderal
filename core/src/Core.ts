@@ -1,11 +1,7 @@
-import { detectRuntime, type Runtime } from './Runtime.js'
+import type { Runtime } from './Runtime.js'
 
-export class Core {
-  static readonly instance: Core = new Core()
+export abstract class Core {
+  abstract readonly runtime: Runtime
 
-  private constructor() {}
-
-  async init(): Promise<Runtime> {
-    return detectRuntime()
-  }
+  protected constructor() {}
 }

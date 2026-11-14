@@ -73,13 +73,21 @@ From `legacy/core/AGENTS.md`, kept because each one cost real debugging:
 ## Usage
 
 ```ts
-import { Core } from '@minderal/core'
+import { getCoreForCurrentRuntime } from '@minderal/core'
 
-const runtime = await Core.init() // 'node' | 'browser'
+const core = getCoreForCurrentRuntime()
+core.runtime // 'node' | 'browser'
 ```
 
-`Core` is a singleton: every import gets the same instance. `init()` throws
-`UnsupportedRuntimeError` on a runtime it does not recognize.
+`getCoreForCurrentRuntime()` detects the runtime, creates the matching core and returns it.
+The concrete classes stay internal: callers only ever see the abstract `Core` type.
+
+- `BrowserCore` — created in a browser.
+- `ServerCore` — created in Node.js.
+
+A core encapsulates distributed access to a single dataset. It is not a singleton: every
+call creates a new, independent core, and running several cores side by side — one per
+dataset — is an intended use. An unrecognized runtime throws `UnsupportedRuntimeError`.
 
 ## Development
 
@@ -114,9 +122,12 @@ Adding a runtime means adding a project in `vitest.config.ts`.
 ```
 core/
   src/
-    index.ts       public API — the only entry point
-    Core.ts        the Core singleton
-    Runtime.ts     runtime detection
+    index.ts                      public API — the only entry point
+    Core.ts                       abstract base, exported as a type only
+    BrowserCore.ts                the core for browsers
+    ServerCore.ts                 the core for Node.js
+    getCoreForCurrentRuntime.ts   detects the runtime, creates a new core
+    Runtime.ts                    runtime detection
   tests/
     e2e/           public API, every runtime, src and dist
     unit/          internals, every runtime

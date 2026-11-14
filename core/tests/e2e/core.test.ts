@@ -1,19 +1,22 @@
-import { Core } from '@minderal/core'
+import * as library from '@minderal/core'
+import { getCoreForCurrentRuntime } from '@minderal/core'
 import { describe, expect, inject, it } from 'vitest'
 
-describe('Core', () => {
-  it('is the same instance on every import', async () => {
-    const again = await import('@minderal/core')
-    expect(again.Core).toBe(Core)
+describe('getCoreForCurrentRuntime()', () => {
+  it('returns a core for the runtime it is running on', () => {
+    expect(getCoreForCurrentRuntime().runtime).toBe(inject('runtime'))
   })
 
-  describe('init()', () => {
-    it('resolves to the runtime it is running on', async () => {
-      await expect(Core.init()).resolves.toBe(inject('runtime'))
-    })
+  it('returns a new, independent core on every call', () => {
+    const first = getCoreForCurrentRuntime()
+    const second = getCoreForCurrentRuntime()
+    expect(second).not.toBe(first)
+    expect(second.runtime).toBe(first.runtime)
+  })
+})
 
-    it('resolves to the same runtime on every call', async () => {
-      expect(await Core.init()).toBe(await Core.init())
-    })
+describe('public API', () => {
+  it('exposes the factory, not the core classes', () => {
+    expect(Object.keys(library).sort()).toEqual(['UnsupportedRuntimeError', 'getCoreForCurrentRuntime'])
   })
 })
