@@ -20,7 +20,7 @@ coverage
 .claude/settings.local.json
 
 # Local reference material & downloaded binaries — not part of the source
-minderal-app/docs/
+legacy/minderal-app/docs/
 *.pkg
 *.dmg
 *.msi
