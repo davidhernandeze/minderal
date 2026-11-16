@@ -17,6 +17,8 @@ export interface CoreState {
   readonly devCluster: Ref<DevCluster | undefined>
   readonly nodes: ComputedRef<readonly ClusterNode[]>
   readonly quality: (nodeId: string) => LinkQuality | undefined
+  readonly isOnline: (nodeId: string) => boolean
+  readonly onlineSince: (nodeId: string) => string | undefined
   join(endpoint: string, name: string): Promise<void>
   leave(): Promise<void>
 }
@@ -47,6 +49,16 @@ export function useCore(): CoreState {
   function quality(nodeId: string): LinkQuality | undefined {
     void revision.value
     return core.value?.cluster.qualityOf(nodeId)
+  }
+
+  function isOnline(nodeId: string): boolean {
+    void revision.value
+    return core.value?.cluster.isOnline(nodeId) ?? false
+  }
+
+  function onlineSince(nodeId: string): string | undefined {
+    void revision.value
+    return core.value?.cluster.onlineSince(nodeId)
   }
 
   async function join(endpoint: string, name: string): Promise<void> {
@@ -90,7 +102,7 @@ export function useCore(): CoreState {
     void core.value?.close()
   })
 
-  return { core, phase, error, devCluster, nodes, quality, join, leave }
+  return { core, phase, error, devCluster, nodes, quality, isOnline, onlineSince, join, leave }
 }
 
 async function loadDevCluster(): Promise<DevCluster | undefined> {

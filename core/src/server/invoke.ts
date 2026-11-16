@@ -1,6 +1,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { AnyCapability } from '../capabilities/Capability.js'
-import { chunkFrame, encodeFrame, serializeError, type Frame } from '../cluster/frames.js'
+import { encodeFrame, type Frame } from '../cluster/frames.js'
+import { produceFrames } from '../cluster/produceFrames.js'
 import { readJson } from './http.js'
 
 export interface Invocation {
@@ -8,50 +9,44 @@ export interface Invocation {
   run(args: readonly unknown[]): Promise<unknown>
 }
 
-/**
- * Runs a capability on behalf of another node and streams the result back as delegation frames. Once the
- * 200 is sent every outcome is a frame: a head and chunks then end, or an error. If the requester goes away,
- * reading the result stops, which cancels whatever produces it.
- */
+/** Runs a capability for another node over HTTP, streaming the frames back. */
 export async function serveInvocation(invocation: Invocation, request: IncomingMessage, response: ServerResponse): Promise<void> {
   const payload = await readJson(request)
+  const args: unknown = typeof payload === 'object' && payload !== null && 'args' in payload ? payload.args : undefined
   response.writeHead(200, { 'content-type': 'application/x-ndjson', 'cache-control': 'no-store' })
-  let gone = false
-  response.on('close', () => {
-    gone = !response.writableFinished
-  })
-  const send = async (frame: Frame): Promise<void> => {
-    if (gone) return
-    if (!response.write(encodeFrame(frame))) {
-      await new Promise<void>((resolve) => {
-        const done = (): void => {
-          response.off('drain', done)
-          response.off('close', done)
-          resolve()
-        }
-        response.on('drain', done)
-        response.on('close', done)
-      })
-    }
-  }
+  await pipeFrames(produceFrames(invocation.capability, args, async (decoded) => invocation.run(decoded)), response)
+}
 
-  const wire = invocation.capability.wire
+/**
+ * Writes frames to a response as NDJSON with backpressure, stopping when the client goes away. Bytes
+ * already encoded elsewhere (`{ t: 'raw' }`) pass through as they are.
+ */
+export async function pipeFrames(lines: AsyncIterable<Frame | { t: 'raw'; raw: Uint8Array }>, response: ServerResponse): Promise<void> {
+  let gone = false
+  const onClose = (): void => {
+    gone = !response.writableFinished
+  }
+  response.on('close', onClose)
   try {
-    if (wire === undefined) throw new TypeError(`${invocation.capability.id} cannot be performed for another node`)
-    const args: unknown = typeof payload === 'object' && payload !== null && 'args' in payload ? payload.args : undefined
-    const result = await invocation.run(wire.decodeArgs(args))
-    const encoded = wire.encodeResult(result)
-    await send({ t: 'head', v: encoded.head })
-    if (encoded.body !== undefined) {
-      for await (const bytes of encoded.body) {
-        if (gone) break
-        await send(chunkFrame(bytes))
-      }
+    for await (const frame of lines) {
+      if (gone) break
+      const chunk = frame.t === 'raw' ? frame.raw : encodeFrame(frame)
+      if (!response.write(chunk)) await drained(response)
     }
-    await send({ t: 'end' })
-  } catch (error) {
-    await send({ t: 'error', e: serializeError(error) })
   } finally {
+    response.off('close', onClose)
     response.end()
   }
+}
+
+async function drained(response: ServerResponse): Promise<void> {
+  await new Promise<void>((resolve) => {
+    const done = (): void => {
+      response.off('drain', done)
+      response.off('close', done)
+      resolve()
+    }
+    response.on('drain', done)
+    response.on('close', done)
+  })
 }

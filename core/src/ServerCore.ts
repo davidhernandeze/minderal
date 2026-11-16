@@ -1,7 +1,13 @@
+import { databaseCapability } from './capabilities/database/contract.js'
 import type { ServeOptions } from './capabilities/serve/contract.js'
-import { newNode, withAnnouncement, withNode, type NodeAnnouncement } from './cluster/ClusterDocument.js'
+import type { Presence } from './cluster/channel.js'
+import { CLUSTER_DOCUMENT_ID, newNode, withAnnouncement, withNode, type NodeAnnouncement } from './cluster/ClusterDocument.js'
 import { readClusterDocument } from './cluster/clusterStorage.js'
+import { RelayHub } from './cluster/RelayHub.js'
 import { Core, type CoreContext } from './Core.js'
+import { errorResponse, handleCouchRequest, type CouchRequest, type CouchResponse } from './database/couchApi.js'
+import { CouchError } from './database/CouchError.js'
+import { CapabilityUnavailableError } from './errors.js'
 import { HttpError } from './server/http.js'
 import type { EndpointHost } from './server/DatasetEndpoint.js'
 import { serveDataset, type ServedDataset } from './server/serveDataset.js'
@@ -10,9 +16,15 @@ export class ServerCore extends Core {
   readonly runtime: 'nodejs' = 'nodejs'
   private serving: Promise<ServedDataset> | undefined
   private servedUrl: string | undefined
+  private hub: RelayHub | undefined
+  private unsubscribeCluster: (() => void) | undefined
+  private broadcastRevision: string | undefined
+  /** Which data holder each requester was last served by: replication goes smoother when it stays. */
+  private readonly affinity: Map<string, string>
 
   private constructor(context: CoreContext) {
     super(context)
+    this.affinity = new Map()
   }
 
   static create(context: CoreContext): ServerCore {
@@ -35,6 +47,9 @@ export class ServerCore extends Core {
   }
 
   protected override async beforeClose(): Promise<void> {
+    this.unsubscribeCluster?.()
+    this.hub?.close()
+    this.hub = undefined
     const serving = this.serving
     this.serving = undefined
     if (serving === undefined) return
@@ -48,7 +63,8 @@ export class ServerCore extends Core {
   }
 
   private async launch(options: ServeOptions): Promise<ServedDataset> {
-    const served = await serveDataset(this.database.database, this.datasetId, options, this.endpointHost(options.origins ?? []))
+    if (this.role === 'orchestrator') this.hostChannels()
+    const served = await serveDataset(this.datasetId, options, this.endpointHost(options.origins ?? []))
     this.servedUrl = served.url
     if (!this.writesClusterDocument()) {
       // a member announces its endpoint through the orchestrator; unreachable now, it retries on the next sync
@@ -65,18 +81,102 @@ export class ServerCore extends Core {
     return served
   }
 
+  /**
+   * As orchestrator: accept member channels, track who is online, push presence and cluster changes
+   * down every channel, and relay requests to members through them.
+   */
+  private hostChannels(): void {
+    const hub = new RelayHub(this.presenceTiming, () => {
+      const online = this.presence()
+      this.adoptPresence(online)
+      hub.broadcast({ t: 'presence', online })
+    })
+    this.hub = hub
+    this.adoptPresence(this.presence())
+    this.setRelay(async (nodeId: string, capabilityId: string, args: unknown) => hub.open(nodeId, capabilityId, args))
+    this.unsubscribeCluster = this.cluster.subscribe(() => {
+      const revision = this.clusterRevision
+      if (revision === undefined || revision === this.broadcastRevision) return
+      this.broadcastRevision = revision
+      this.inBackground(this.pushClusterDocument((message) => hub.broadcast(message)))
+    })
+  }
+
+  private presence(): Presence[] {
+    const self = { id: this.nodeId, since: this.cluster.onlineSince(this.nodeId) ?? new Date().toISOString() }
+    return [self, ...(this.hub?.presence() ?? [])]
+  }
+
+  private async pushClusterDocument(send: (message: { t: 'cluster'; document: unknown }) => void): Promise<void> {
+    const document = await this.database.database.get(CLUSTER_DOCUMENT_ID, { revs: true })
+    send({ t: 'cluster', document })
+  }
+
   private endpointHost(origins: readonly string[]): EndpointHost {
     return {
       origins,
-      status: async () => readClusterDocument(this.database.database, this.datasetId),
+      status: async () => ({
+        cluster: await readClusterDocument(this.database.database, this.datasetId),
+        online: this.hub === undefined ? [] : this.presence(),
+        holdsData: this.holdsData,
+      }),
       join: async (announcement) => this.admit(announcement),
       announce: async (nodeId, announcement) => this.record(nodeId, announcement),
       isMember: (nodeId) => this.cluster.nodes.some((node) => node.id === nodeId),
       invoke: (capabilityId) => {
         const entry = this.platform.capabilities.forwardable(capabilityId)
-        if (entry === undefined || this.isClosed) return undefined
+        if (entry === undefined || this.isClosed || (capabilityId === databaseCapability.id && !this.holdsData)) return undefined
         return { capability: entry.capability, run: async (args) => entry.run(this, args) }
       },
+      database: async (request, requester, signal) => this.answer(request, requester, signal),
+      channel: (nodeId, sink) => {
+        const hub = this.hub
+        if (hub === undefined) return undefined
+        const disconnect = hub.connect(nodeId, sink)
+        sink.send({ t: 'presence', online: this.presence() })
+        this.inBackground(this.pushClusterDocument((message) => sink.send(message)))
+        return disconnect
+      },
+      heartbeat: (nodeId) => this.hub?.heartbeat(nodeId) ?? false,
+      reply: (nodeId, requestId, frames) => this.hub?.reply(nodeId, requestId, frames) ?? false,
+      relay: async (nodeId, capabilityId, args, signal) => {
+        const hub = this.hub
+        if (hub === undefined) throw new HttpError(404, 'not_found', 'This node relays nothing; ask the orchestrator')
+        return hub.open(nodeId, capabilityId, args, signal)
+      },
+    }
+  }
+
+  /**
+   * Answers the CouchDB API: from the local copy, or — holding none — by relaying the request to an
+   * online member holding the data, other than the requester itself. With none online, 503: replicators
+   * retry, and the data is there again once a holder is.
+   */
+  private async answer(request: CouchRequest, requester: string | undefined, signal: AbortSignal): Promise<CouchResponse> {
+    if (this.holdsData) {
+      return handleCouchRequest({ database: this.database.database, name: `minderal-${this.datasetId}`, signal }, request)
+    }
+    const hub = this.hub
+    const holders = this.cluster
+      .nodesWith(databaseCapability)
+      .filter((node) => node.id !== this.nodeId && node.id !== requester && hub?.isOnline(node.id) === true)
+    if (hub === undefined || holders.length === 0) {
+      return errorResponse(new CouchError(503, 'unavailable', 'No node holding the data is online'))
+    }
+    const routes = holders.map((node) => ({
+      node,
+      open: async (capabilityId: string, args: unknown) => hub.open(node.id, capabilityId, args, signal),
+    }))
+    const prefer = requester === undefined ? undefined : this.affinity.get(requester)
+    try {
+      const response = await this.forwardTo(databaseCapability, [request], routes, prefer)
+      if (requester !== undefined) this.affinity.set(requester, response.servedBy)
+      return response.result
+    } catch (error) {
+      if (error instanceof CapabilityUnavailableError) {
+        return errorResponse(new CouchError(503, 'unavailable', 'No node holding the data could answer'))
+      }
+      return errorResponse(new CouchError(502, 'bad_gateway', error instanceof Error ? error.message : String(error)))
     }
   }
 
@@ -84,8 +184,8 @@ export class ServerCore extends Core {
   private async admit(announcement: NodeAnnouncement): Promise<{ nodeId: string; cluster: unknown }> {
     this.requireOrchestrator()
     const node = newNode(crypto.randomUUID(), 'member', announcement, new Date())
-    const cluster = await this.changeClusterDocument((document) => withNode(document, node))
-    return { nodeId: node.id, cluster }
+    await this.changeClusterDocument((document) => withNode(document, node))
+    return { nodeId: node.id, cluster: await this.database.database.get(CLUSTER_DOCUMENT_ID, { revs: true }) }
   }
 
   private async record(nodeId: string, announcement: NodeAnnouncement): Promise<unknown> {
@@ -102,3 +202,4 @@ export class ServerCore extends Core {
     }
   }
 }
+

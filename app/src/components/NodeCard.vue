@@ -6,7 +6,16 @@ const props = defineProps<{
   node: ClusterNode
   isSelf: boolean
   quality: LinkQuality | undefined
+  online: boolean
+  since: string | undefined
 }>()
+
+const holdsData = computed(() => props.node.capabilities.includes('database@1'))
+const onlineFor = computed(() => {
+  if (!props.online || props.since === undefined) return undefined
+  const minutes = Math.floor((Date.now() - Date.parse(props.since)) / 60_000)
+  return minutes < 1 ? 'just now' : minutes < 60 ? `${minutes} min` : `${Math.floor(minutes / 60)} h`
+})
 
 const agent = computed(() => {
   const value = props.node.userAgent
@@ -33,8 +42,9 @@ const health = computed(() => {
 </script>
 
 <template>
-  <article class="node" :class="[node.role, { self: isSelf }, health]">
+  <article class="node" :class="[node.role, { self: isSelf, offline: !online }, health]">
     <header>
+      <span class="dot" :class="{ on: online }" :title="online ? `online since ${since}` : 'offline'" />
       <span class="runtime" :title="node.runtime">{{ node.runtime === 'nodejs' ? 'Node.js' : 'Browser' }}</span>
       <span class="role">{{ node.role }}</span>
       <span v-if="isSelf" class="you">you</span>
@@ -55,6 +65,10 @@ const health = computed(() => {
         <dt>endpoint</dt>
         <dd class="mono" :title="node.endpoint">{{ host }}</dd>
       </template>
+      <dt>status</dt>
+      <dd>{{ online ? `online · ${onlineFor}` : 'offline' }}</dd>
+      <dt>data</dt>
+      <dd>{{ holdsData ? 'holds a copy' : 'none, relays' }}</dd>
       <dt>id</dt>
       <dd class="mono" :title="node.id">{{ node.id.slice(0, 8) }}</dd>
     </dl>
@@ -90,6 +104,18 @@ const health = computed(() => {
 }
 .node.failing {
   border-color: var(--danger);
+}
+.node.offline {
+  opacity: 0.55;
+}
+.dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border-strong);
+}
+.dot.on {
+  background: var(--ok);
 }
 header {
   display: flex;

@@ -9,7 +9,10 @@
     "cluster": "tsx scripts/devCluster.ts",
     "cluster:reset": "tsx scripts/devCluster.ts --reset",
     "build": "npm run typecheck && vite build",
-    "typecheck": "npm --prefix ../core run build && vue-tsc -b"
+    "typecheck": "npm --prefix ../core run build && vue-tsc -b",
+    "dev:relay": "DEV_CLUSTER_MODE=relay vite",
+    "cluster:relay": "DEV_CLUSTER_MODE=relay tsx scripts/devCluster.ts",
+    "cluster:relay:reset": "DEV_CLUSTER_MODE=relay tsx scripts/devCluster.ts --reset"
   },
   "dependencies": {
     "vue": "^3.5.45"

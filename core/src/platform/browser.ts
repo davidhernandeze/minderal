@@ -1,7 +1,9 @@
 import HttpAdapter from 'pouchdb-adapter-http'
 import IndexedDbAdapter from 'pouchdb-adapter-indexeddb'
 import { BrowserCore } from '../BrowserCore.js'
-import { CapabilitySet } from '../capabilities/CapabilitySet.js'
+import { CapabilitySet, type NodeSetup } from '../capabilities/CapabilitySet.js'
+import { databaseCapability } from '../capabilities/database/contract.js'
+import { answerDatabase } from '../Core.js'
 import { openCouchDb, openEndpoint } from '../storage/couchdb.js'
 import type { DatabaseLocation } from '../storage/DatabaseLocation.js'
 import { DatabasePool } from '../storage/DatabasePool.js'
@@ -57,13 +59,21 @@ function browserFromUserAgent(agent: string): string {
   return 'Browser'
 }
 
+async function holdsData(setup: NodeSetup): Promise<boolean> {
+  return setup.holdsData
+}
+
 export const browserPlatform: Platform = {
   runtime: 'browser',
   localEngine: 'indexeddb',
   role: 'member',
   databases: new DatabasePool(openDatabase),
-  capabilities: new CapabilitySet<BrowserCore>(),
-  openRemote: (url) => openEndpoint(BrowserPouchDB, url),
+  capabilities: new CapabilitySet<BrowserCore>().with(
+    databaseCapability,
+    async (core, request) => core[answerDatabase](request),
+    holdsData,
+  ),
+  openRemote: (url, nodeId) => openEndpoint(BrowserPouchDB, url, nodeId),
   defaultHome: () => 'minderal',
   defaultCredentials: () => undefined,
   describeNode: describeBrowser,

@@ -2,16 +2,8 @@ import type { IncomingMessage, ServerResponse } from 'node:http'
 
 const MAX_BODY_BYTES = 64 * 1024 * 1024
 
-export class HttpError extends Error {
-  readonly status: number
-  readonly error: string
-
-  constructor(status: number, error: string, reason: string) {
-    super(reason)
-    this.status = status
-    this.error = error
-  }
-}
+export { CouchError as HttpError } from '../database/CouchError.js'
+import { CouchError as HttpError } from '../database/CouchError.js'
 
 export async function readJson(request: IncomingMessage): Promise<unknown> {
   const chunks: Uint8Array[] = []

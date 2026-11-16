@@ -7,10 +7,13 @@
  *
  * The first run creates the dataset and seeds it; later runs reopen the same dataset, so whatever you
  * do in the app survives restarts. `--reset` wipes it and starts over. `--activity` writes a note every
- * few seconds from the orchestrator, to watch live sync arrive in the browser.
+ * few seconds, to watch live sync arrive in the browser.
  *
- * State lives in app/.dev-cluster/: one home per node, and state.json, which the Vite dev server reads to
- * tell the app where to join.
+ * DEV_CLUSTER_MODE=relay runs the orchestrator without a copy of the data: Desk holds and seeds it, and
+ * the orchestrator relays every sync request to an online member that holds the data.
+ *
+ * State lives in app/.dev-cluster/ (app/.dev-cluster-relay/ in relay mode): one home per node, and
+ * state.json, which the Vite dev server reads to tell the app where to join.
  */
 import { existsSync } from 'node:fs'
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises'
@@ -19,7 +22,10 @@ import { fileURLToPath } from 'node:url'
 import { createDataset, joinDataset, openDataset, type Core } from '../../core/src/index.ts'
 import { seedDocuments } from './seed.ts'
 
-const root = fileURLToPath(new URL('../.dev-cluster/', import.meta.url))
+const relayMode = process.env.DEV_CLUSTER_MODE === 'relay'
+const root = fileURLToPath(new URL(relayMode ? '../.dev-cluster-relay/' : '../.dev-cluster/', import.meta.url))
+/** Quicker than the defaults, so presence changes show in the app within seconds. */
+const presence = { heartbeatMs: 2000, leaseMs: 6000 }
 const statePath = join(root, 'state.json')
 const host = process.env.DEV_CLUSTER_HOST ?? '127.0.0.1'
 const port = Number(process.env.DEV_CLUSTER_PORT ?? '5985')
@@ -51,22 +57,24 @@ async function main(): Promise<void> {
   const cores = existsSync(statePath) ? await reopen(JSON.parse(await readFile(statePath, 'utf8')) as State) : await create()
   const [orchestrator] = cores
   const self = orchestrator?.cluster.self
-  console.log(`dev cluster: ${orchestrator?.datasetId}`)
+  const writer = cores.find((core) => core.holdsData)
+  console.log(`dev cluster${relayMode ? ' (relay: the orchestrator holds no data)' : ''}: ${orchestrator?.datasetId}`)
   for (const core of cores) {
     const node = core.cluster.self
-    console.log(`  ${node?.role.padEnd(12)} ${node?.name.padEnd(18)} ${node?.endpoint ?? '(not serving)'}`)
+    const data = core.holdsData ? 'holds data' : 'no data'
+    console.log(`  ${node?.role.padEnd(12)} ${node?.name.padEnd(18)} ${data.padEnd(11)} ${node?.endpoint ?? '(not serving)'}`)
   }
   console.log(`join from the app, or: ${self?.endpoint}`)
 
-  if (process.argv.includes('--activity') && orchestrator !== undefined) {
+  if (process.argv.includes('--activity') && writer !== undefined) {
     let tick = 0
     setInterval(() => {
       tick += 1
-      void orchestrator.documents.put({
+      void writer.documents.put({
         _id: `note:activity-${Date.now()}`,
         type: 'note',
         title: `Activity #${tick}`,
-        body: 'Written by the dev orchestrator to show live sync.',
+        body: `Written by ${writer.cluster.self?.name ?? 'the dev cluster'} to show live sync.`,
         tags: ['activity'],
         createdAt: new Date().toISOString(),
       })
@@ -83,15 +91,23 @@ async function main(): Promise<void> {
 }
 
 async function create(): Promise<Core[]> {
-  const orchestrator = await createDataset({ home: join(root, 'orchestrator'), name: 'Dev orchestrator' })
+  const orchestrator = await createDataset({
+    home: join(root, 'orchestrator'),
+    name: relayMode ? 'Relay orchestrator' : 'Dev orchestrator',
+    presence,
+    ...(relayMode ? { storage: { engine: 'none' } as const } : {}),
+  })
   const endpoint = await orchestrator.serve({ host, port, origins })
-  for (const document of seedDocuments()) await orchestrator.documents.put(document)
+  if (!relayMode) for (const document of seedDocuments()) await orchestrator.documents.put(document)
   const members: Core[] = []
-  for (const plan of memberPlans) {
+  // relay mode: Desk joins first and seeds, so the next member already finds data to copy
+  for (const plan of relayMode ? [...memberPlans].reverse() : memberPlans) {
     const member = await joinDataset(endpoint, { home: join(root, slug(plan.name)), name: plan.name })
+    if (relayMode && plan.name === 'Desk') for (const document of seedDocuments()) await member.documents.put(document)
     if (plan.port !== undefined) await member.serve({ host, port: plan.port, origins })
     members.push(member)
   }
+  if (relayMode) members.reverse()
   const state: State = {
     datasetId: orchestrator.datasetId,
     endpoint,
@@ -103,7 +119,7 @@ async function create(): Promise<Core[]> {
 }
 
 async function reopen(state: State): Promise<Core[]> {
-  const orchestrator = await openDataset(state.datasetId, { home: join(root, 'orchestrator') })
+  const orchestrator = await openDataset(state.datasetId, { home: join(root, 'orchestrator'), presence })
   await orchestrator.serve({ host, port, origins })
   const members: Core[] = []
   for (const member of state.members) {

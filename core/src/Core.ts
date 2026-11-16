@@ -1,9 +1,16 @@
+import type { NodeSetup } from './capabilities/CapabilitySet.js'
+import { databaseCapability } from './capabilities/database/contract.js'
 import { fetchCapability, parseHttpUrl, type FetchOptions } from './capabilities/fetch/contract.js'
 import { bindCapabilityMethod } from './capabilities/methods.js'
 import type { Capability } from './capabilities/Capability.js'
 import { serveCapability, type ServeOptions } from './capabilities/serve/contract.js'
-import { Cluster, type ClusterView } from './cluster/Cluster.js'
+import { isPresenceList, type ChannelMessage, type Presence, type PresenceTiming } from './cluster/channel.js'
+import { ChannelClient } from './cluster/ChannelClient.js'
+import { Cluster, type ClusterView, type LocalRelay } from './cluster/Cluster.js'
+import type { Route } from './cluster/delegate.js'
 import { callCluster } from './cluster/clusterClient.js'
+import { serializeError } from './cluster/frames.js'
+import { produceFrames } from './cluster/produceFrames.js'
 import {
   CLUSTER_DOCUMENT_ID,
   announcementChanges,
@@ -14,6 +21,7 @@ import {
   type NodeRole,
 } from './cluster/ClusterDocument.js'
 import { updateClusterDocument } from './cluster/clusterStorage.js'
+import { handleCouchRequest, type CouchRequest, type CouchResponse } from './database/couchApi.js'
 import { Documents } from './documents/Documents.js'
 import { CapabilityUnavailableError, ClusterError, CoreClosedError, NetworkError } from './errors.js'
 import type { Platform } from './platform/Platform.js'
@@ -31,6 +39,10 @@ export interface CoreContext {
   readonly bootstrap: readonly string[]
   /** A name the user gave this node now, replacing the one on record. */
   readonly name: string | undefined
+  /** False for a core holding no copy of the dataset: its database holds the cluster document only. */
+  readonly holdsData: boolean
+  /** Lease timing an orchestrator gives its members. */
+  readonly presence: PresenceTiming
 }
 
 export interface SyncReport {
@@ -41,6 +53,9 @@ export interface SyncReport {
 /** Starts a core once created; internal to the library, so implementers never see it on `Core`. */
 export const startCore: unique symbol = Symbol('startCore')
 
+/** Answers a CouchDB API request from the core's own copy; the `database` capability's implementation. */
+export const answerDatabase: unique symbol = Symbol('answerDatabase')
+
 const LIVE_SYNC_MAX_BACKOFF_MS = 30_000
 
 export abstract class Core {
@@ -49,7 +64,10 @@ export abstract class Core {
   readonly nodeId: string
   /** Raw document access; provisional until the neuron model lands. */
   readonly documents: Documents
+  /** Whether this core holds a copy of the dataset. An orchestrator may hold none and serve its members' data. */
+  readonly holdsData: boolean
   protected readonly database: DatabaseHandle
+  protected readonly presenceTiming: PresenceTiming
   protected readonly platform: Platform
   private readonly clusterState: Cluster
   private readonly bootstrap: readonly string[]
@@ -58,6 +76,8 @@ export abstract class Core {
   private readonly background: Set<Promise<unknown>>
   private clusterFeed: PouchDB.Core.Changes<object> | undefined
   private liveSync: { readonly stop: () => Promise<void> } | undefined
+  private channel: ChannelClient | undefined
+  private readonly relayed: Map<string, AbortController>
   private announcementPending: boolean
   private closed: boolean
 
@@ -71,9 +91,15 @@ export abstract class Core {
     this.requestedName = context.name
     this.lifetime = new AbortController()
     this.background = new Set()
+    this.holdsData = context.holdsData
+    this.presenceTiming = context.presence
+    this.relayed = new Map()
     this.announcementPending = false
     this.closed = false
-    this.documents = new Documents(() => this.database.database, this.datasetId, () => this.ensureOpen())
+    this.documents = new Documents(() => this.database.database, this.datasetId, () => {
+      this.ensureOpen()
+      if (!this.holdsData) throw new CapabilityUnavailableError(databaseCapability.id)
+    })
   }
 
   get cluster(): ClusterView {
@@ -106,11 +132,13 @@ export abstract class Core {
     const upstream = this.upstream()
     if (upstream === undefined) return { pushed: 0, pulled: 0 }
     if (this.announcementPending) await this.announce().catch(() => undefined)
-    const remote = this.platform.openRemote(upstream)
+    const remote = this.platform.openRemote(upstream, this.nodeId)
     try {
       const result = await this.database.database.sync(remote)
       return { pushed: result.push?.docs_written ?? 0, pulled: result.pull?.docs_written ?? 0 }
     } catch (cause) {
+      // an orchestrator without data answers 503 while no node holding the data is online
+      if (statusOf(cause) === 503) throw new CapabilityUnavailableError(databaseCapability.id)
       throw new NetworkError(upstream, cause)
     } finally {
       await remote.close()
@@ -124,6 +152,8 @@ export abstract class Core {
     try {
       this.documents.stopWatching()
       this.clusterFeed?.cancel()
+      for (const relayed of this.relayed.values()) relayed.abort()
+      await this.channel?.stop()
       await this.liveSync?.stop()
       await Promise.allSettled([...this.background])
       await this.beforeClose()
@@ -139,7 +169,19 @@ export abstract class Core {
       return
     }
     this.startLiveSync()
+    this.openChannel()
     this.inBackground(this.announce())
+  }
+
+  async [answerDatabase](request: CouchRequest): Promise<CouchResponse> {
+    if (!this.holdsData) throw new CapabilityUnavailableError(databaseCapability.id)
+    // long-polls end when the core closes; a cancelled relay is not passed down yet, so its wait runs out instead
+    return handleCouchRequest({ database: this.database.database, name: `minderal-${this.datasetId}`, signal: this.lifetime.signal }, request)
+  }
+
+  /** How this node is set up, for capability availability probes. */
+  protected get setup(): NodeSetup {
+    return { holdsData: this.holdsData }
   }
 
   /** Where this node is reachable, once it serves. */
@@ -169,6 +211,34 @@ export abstract class Core {
 
   protected get links(): Cluster['links'] {
     return this.clusterState.links
+  }
+
+  protected get clusterRevision(): string | undefined {
+    return this.clusterState.revision
+  }
+
+  protected adoptPresence(online: readonly Presence[]): void {
+    this.clusterState.setPresence(online)
+  }
+
+  protected setRelay(relay: LocalRelay | undefined): void {
+    this.clusterState.setRelay(relay)
+  }
+
+  /** Delegates over given routes, reporting which node answered. */
+  protected async forwardTo<Args extends readonly unknown[], Result>(
+    capability: Capability<Args, Result>,
+    args: Args,
+    routes: readonly Route[],
+    prefer: string | undefined,
+  ): Promise<{ result: Result; servedBy: string }> {
+    let servedBy = ''
+    const result = await this.clusterState.forward(capability, args, {
+      routes,
+      ...(prefer === undefined ? {} : { prefer }),
+      onServed: (nodeId) => (servedBy = nodeId),
+    })
+    return { result, servedBy }
   }
 
   /**
@@ -217,7 +287,7 @@ export abstract class Core {
       name: this.requestedName ?? this.clusterState.self?.name ?? description.defaultName,
       runtime: this.runtime,
       coreVersion: CORE_VERSION,
-      capabilities: await this.platform.capabilities.availableIds(),
+      capabilities: await this.platform.capabilities.availableIds(this.setup),
       ...(description.userAgent === undefined ? {} : { userAgent: description.userAgent }),
       ...(description.os === undefined ? {} : { os: description.os }),
       ...(endpoint === undefined ? {} : { endpoint }),
@@ -239,10 +309,74 @@ export abstract class Core {
     this.clusterFeed = feed
   }
 
+  /**
+   * The member's channel to its orchestrator: presence, cluster changes and relayed requests arrive on
+   * it. While it is down, this core knows nobody to be online but itself.
+   */
+  private openChannel(): void {
+    const channel = new ChannelClient({
+      nodeId: this.nodeId,
+      endpoint: () => this.upstream(),
+      onMessage: (message) => this.onChannelMessage(message),
+      onConnection: (connected) => {
+        if (!connected) this.clusterState.setPresence([])
+        else if (this.announcementPending && !this.closed) this.inBackground(this.announce())
+      },
+    })
+    this.channel = channel
+    channel.start()
+  }
+
+  private onChannelMessage(message: ChannelMessage): void {
+    switch (message.t) {
+      case 'presence':
+        if (isPresenceList(message.online)) this.clusterState.setPresence(message.online)
+        return
+      case 'cluster':
+        this.inBackground(this.storePushedClusterDocument(message.document))
+        return
+      case 'request':
+        this.inBackground(this.answerRelayed(message.id, message.capability, message.args))
+        return
+      case 'cancel':
+        this.relayed.get(message.id)?.abort()
+        return
+      default:
+    }
+  }
+
+  /** Keeps the orchestrator's revision of the cluster document, history included, so every copy converges. */
+  private async storePushedClusterDocument(document: unknown): Promise<void> {
+    if (!isClusterDocument(document) || document.dataset !== this.datasetId || document._rev === undefined) return
+    await this.database.database.bulkDocs([document as unknown as PouchDB.Core.PutDocument<object>], { new_edits: false })
+    this.clusterState.update(document)
+  }
+
+  /** Performs a capability another node asked for through the orchestrator, answering frame by frame. */
+  private async answerRelayed(requestId: string, capabilityId: string, args: unknown): Promise<void> {
+    const channel = this.channel
+    if (channel === undefined) return
+    const abort = new AbortController()
+    this.relayed.set(requestId, abort)
+    try {
+      const entry = this.platform.capabilities.forwardable(capabilityId)
+      const available = entry !== undefined && (await this.platform.capabilities.isAvailable(capabilityId, this.setup))
+      if (entry === undefined || !available) {
+        await channel.reply(requestId, [{ t: 'error', e: serializeError(new CapabilityUnavailableError(capabilityId)) }])
+        return
+      }
+      for await (const frame of produceFrames(entry.capability, args, async (decoded) => entry.run(this, decoded))) {
+        if (abort.signal.aborted || !(await channel.reply(requestId, [frame]))) break
+      }
+    } finally {
+      this.relayed.delete(requestId)
+    }
+  }
+
   private startLiveSync(): void {
     const upstream = this.upstream()
-    if (upstream === undefined) return
-    const remote = this.platform.openRemote(upstream)
+    if (upstream === undefined || !this.holdsData) return
+    const remote = this.platform.openRemote(upstream, this.nodeId)
     const sync = this.database.database.sync(remote, {
       live: true,
       retry: true,
@@ -281,6 +415,10 @@ export abstract class Core {
     if (local === undefined) throw new CapabilityUnavailableError(capability.id)
     return local(this, ...args)
   }
+}
+
+function statusOf(error: unknown): number | undefined {
+  return typeof error === 'object' && error !== null && 'status' in error && typeof error.status === 'number' ? error.status : undefined
 }
 
 bindCapabilityMethod(Core.prototype.fetch, fetchCapability)

@@ -21,8 +21,8 @@ export interface Platform {
   readonly databases: DatabasePool
   /** The capabilities cores on this runtime implement locally. */
   readonly capabilities: CapabilitySet<any>
-  /** Opens another node's endpoint for replication. */
-  openRemote(url: string): PouchDB.Database
+  /** Opens another node's endpoint for replication, identifying this node to it. */
+  openRemote(url: string, nodeId?: string): PouchDB.Database
   defaultHome(): string
   defaultCredentials(): Credentials | undefined
   describeNode(): NodeDescription

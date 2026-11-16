@@ -10,8 +10,12 @@ import { createDataset, joinDataset, openDataset, type Core } from '../../src/in
  * Real cluster nodes for tests, in this Node.js process, driven over HTTP so tests in every runtime use
  * them the same way: a browser test joins a served orchestrator here, then stops it to go offline.
  *
- *   POST   /clusters                              new orchestrator, served → { datasetId, nodeId, endpoint }
+ *   POST   /clusters  { storage? }                new orchestrator, served → { datasetId, nodeId, endpoint }
+ *                                                 storage 'none': an orchestrator without data
  *   POST   /clusters/:id/members  { name, serve } Node.js member joined (and serving) → { nodeId, endpoint? }
+ *   POST   /clusters/:id/members/:node/sync       member.sync()
+ *   GET    /clusters/:id/members/:node/documents/:doc   read from a member
+ *   DELETE /clusters/:id/members/:node            close a member
  *   GET    /clusters/:id/cluster                  the orchestrator's cluster view
  *   GET    /clusters/:id/members/:node/cluster    a member's cluster view
  *   PUT    /clusters/:id/documents/:doc           write on the orchestrator, served or not
@@ -28,6 +32,8 @@ interface HarnessCluster {
 }
 
 const ORIGINS = ['*']
+/** Short leases, so tests see nodes go offline in about a second. */
+const PRESENCE = { heartbeatMs: 200, leaseMs: 1000 }
 
 export default async function setup(project: TestProject): Promise<() => Promise<void>> {
   const root = await mkdtemp(join(tmpdir(), 'minderal-harness-'))
@@ -61,8 +67,10 @@ async function handle(request: IncomingMessage, response: ServerResponse, cluste
   if (base !== 'clusters') return send(response, 404, { error: 'unknown path' })
 
   if (datasetId === undefined && method === 'POST') {
+    const options = (await readBody(request)) as { storage?: 'none' }
     const home = join(root, crypto.randomUUID())
-    const core = await createDataset({ home, name: 'Harness orchestrator' })
+    const storage = options.storage === 'none' ? ({ engine: 'none' } as const) : ({ engine: 'local' } as const)
+    const core = await createDataset({ home, name: 'Harness orchestrator', storage, presence: PRESENCE })
     const endpoint = await core.serve({ origins: ORIGINS })
     clusters.set(core.datasetId, { datasetId: core.datasetId, home, port: Number(new URL(endpoint).port), orchestrator: core, members: new Map() })
     return send(response, 201, { datasetId: core.datasetId, nodeId: core.nodeId, endpoint })
@@ -83,7 +91,7 @@ async function handle(request: IncomingMessage, response: ServerResponse, cluste
     return send(response, 200, { ok: true })
   }
   if (action === 'start' && method === 'POST') {
-    cluster.orchestrator ??= await openDataset(cluster.datasetId, { home: cluster.home })
+    cluster.orchestrator ??= await openDataset(cluster.datasetId, { home: cluster.home, presence: PRESENCE })
     const endpoint = await cluster.orchestrator.serve({ port: cluster.port, origins: ORIGINS })
     return send(response, 200, { endpoint })
   }
@@ -101,6 +109,27 @@ async function handle(request: IncomingMessage, response: ServerResponse, cluste
     cluster.members.set(member.nodeId, member)
     const served = options.serve === true ? await member.serve({ origins: ORIGINS }) : undefined
     return send(response, 201, { nodeId: member.nodeId, ...(served === undefined ? {} : { endpoint: served }) })
+  }
+  if (action === 'members' && target !== undefined && extra === undefined && method === 'DELETE') {
+    await cluster.members.get(target)?.close()
+    cluster.members.delete(target)
+    return send(response, 200, { ok: true })
+  }
+  if (action === 'members' && target !== undefined && extra === 'sync' && method === 'POST') {
+    const member = cluster.members.get(target)
+    if (member === undefined) return send(response, 404, { error: 'unknown member' })
+    try {
+      return send(response, 200, await member.sync())
+    } catch (error) {
+      return send(response, 409, { error: error instanceof Error ? error.name : String(error) })
+    }
+  }
+  if (action === 'members' && target !== undefined && extra === 'documents' && method === 'GET') {
+    const member = cluster.members.get(target)
+    const documentId = url.pathname.split('/').filter(Boolean).map(decodeURIComponent)[5]
+    if (member === undefined || documentId === undefined) return send(response, 404, { error: 'unknown member' })
+    const document = await member.documents.get(documentId, { conflicts: true })
+    return document === undefined ? send(response, 404, { error: 'not_found' }) : send(response, 200, document)
   }
   if (action === 'members' && target !== undefined && extra === 'cluster' && method === 'GET') {
     const member = cluster.members.get(target)

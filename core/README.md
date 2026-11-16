@@ -78,6 +78,7 @@ import { capabilities, createDataset, joinDataset, openDataset } from '@minderal
 const core = await createDataset({ name: 'Desk' })       // new dataset in this runtime's local storage
 const again = await openDataset(core.datasetId)          // a dataset this runtime already knows
 await core.serve({ port: 5985, origins: ['http://localhost:5173'] })   // Node.js: reachable by other nodes
+const relay = await createDataset({ storage: { engine: 'none' } })     // Node.js: an orchestrator storing no data
 
 // in a browser, or another Node.js process
 const member = await joinDataset('http://127.0.0.1:5985/minderal-<id>', { name: 'Phone' })
@@ -88,6 +89,7 @@ const response = await member.fetch('https://example.com')      // a browser del
 member.cluster.nodes                     // every node: name, runtime, role, core version, capabilities…
 member.cluster.nodesWith(member.fetch)   // nodes that can fetch — named by the method, not a string
 member.cluster.qualityOf(nodeId)         // latency and outcomes this core measured talking to a node
+member.cluster.isOnline(nodeId)          // presence, from the member's channel to the orchestrator
 member.cluster.subscribe(() => render()) // nodes or measurements changed
 await member.close()
 ```
@@ -106,6 +108,7 @@ A dataset is a CouchDB-compatible database, accessed through PouchDB.
 | `{ engine: 'local' }` (default) | Node.js | LevelDB under `<home>/datasets/<id>` |
 | `{ engine: 'local' }` (default) | browser | IndexedDB, named `<home>/datasets/<id>` |
 | `{ engine: 'couchdb', url }` | both | database `minderal-<id>` on that server |
+| `{ engine: 'none' }` | Node.js orchestrator | no copy: the cluster document only, under `<home>/clusters/<id>` — see below |
 
 A CouchDB server still counts as *local* storage for the core using it: local means the
 core reads and writes the storage itself. Client mode — a core with no storage, using
@@ -173,8 +176,69 @@ founded in a browser has no orchestrator; its only node writes the document itse
   network; conflicts resolve the CouchDB way, with the same winner everywhere and the losers
   kept in `_conflicts`.
 
-Presence — which nodes are online now — is not tracked yet: a node stays listed, with its
-last endpoint, until presence lands.
+### Presence
+
+Every member keeps a **channel** open to its orchestrator: `GET /_minderal/channel?node=<id>`,
+a long-lived NDJSON response. The orchestrator welcomes it with lease terms, then sends down it:
+
+| message | |
+| --- | --- |
+| `welcome` | `{ heartbeatMs, leaseMs }` — the member renews with `POST /_minderal/channel/heartbeat` every `heartbeatMs` |
+| `presence` | who is online and since when, on every change |
+| `cluster` | the cluster document, revision history included, on connect and on every change |
+| `request` / `cancel` | relayed requests — see Relay |
+| `ping` | every heartbeat, so a member notices a dead connection |
+
+A member is **online** while its channel is open and its lease renewed: closing the core takes
+it offline at once, a node that vanishes without closing goes offline when its lease runs out
+(30 s by default; `{ presence: { heartbeatMs, leaseMs } }` on an orchestrator's create or open).
+Members reconnect with backoff, up to 30 s. `core.cluster.isOnline(id)` and `onlineSince(id)`
+answer from what the channel last said; while a member's channel is down it knows only itself
+to be online. `GET /_minderal/status` lists `online` too.
+
+Presence is live state: it is never written to the cluster document. Members store the
+pushed cluster document with its revisions as they are, so every copy converges.
+
+### Relay
+
+A browser cannot accept connections, yet it can answer requests: the orchestrator relays them
+down its channel, and the browser posts the answer back (`POST /_minderal/channel/reply`) as the
+same delegation frames an endpoint streams. So any node that is online is reachable, endpoint
+or not.
+
+- **Inside the library**, delegation does it on its own: a node announcing a capability without
+  an endpoint is a candidate while it is online, reached through
+  `POST <orchestrator>/_minderal/relay/<node>/invoke/<capability>`.
+- **Outcomes** are the same three as any delegation. A node that goes offline before answering
+  is a refusal (the next candidate is tried); one that goes offline mid-answer cuts the result,
+  and the requester reads `PartialResultError`. A requester that goes away cancels the request
+  on the node.
+
+### An orchestrator without data
+
+`createDataset({ storage: { engine: 'none' } })` makes a Node.js orchestrator that keeps no
+copy of the dataset — only its cluster document. Its data lives on the members: every node
+holding a copy announces `database@1`, the capability of answering a CouchDB API request from
+its own copy. The orchestrator serves its endpoint by relaying each request to an online
+member that holds the data:
+
+```
+Browser B ──sync──▶ Orchestrator (no data) ──relay──▶ Browser A (IndexedDB)
+```
+
+- Members sync through the orchestrator exactly as before; they cannot tell. A requester is
+  never relayed to itself (members identify themselves with `x-minderal-node`), and keeps
+  being served by the same holder while it can, which keeps replication checkpoints useful.
+- With **no other holder online**, the endpoint answers 503: `core.sync()` throws
+  `CapabilityUnavailableError` for `database@1`, live sync retries, and writes stay local until
+  a peer is back.
+- **Joining** works with nobody holding the data: the newcomer gets the cluster document from
+  the orchestrator, and its copy fills in once a holder is online. The first member to join
+  is where the data starts.
+- The orchestrator's own `core.documents` throws `CapabilityUnavailableError`: it has no copy.
+  Reading a cluster's data from a core without a copy is client mode, next.
+
+This lets a small server coordinate a cluster while storing nothing of it.
 
 ## Serving
 
@@ -201,13 +265,17 @@ Endpoints under `/minderal-<id>/_minderal/`:
 
 | | |
 | --- | --- |
-| `GET status` | `{ dataset, nodes }` |
+| `GET status` | `{ dataset, nodes, online, holdsData }` |
 | `POST join` | `{ node: announcement }` → `{ dataset, nodeId, cluster }`; orchestrator only |
 | `POST announce` | `{ nodeId, node: announcement }` → `{ cluster }`; orchestrator only |
 | `POST invoke/<capability id>` | performs a capability for a node of the cluster (`x-minderal-node` header) — see Delegation |
+| `GET channel?node=<id>` | a member's channel — see Presence; orchestrator only |
+| `POST channel/heartbeat`, `POST channel/reply` | lease renewal; frames answering a relayed request |
+| `POST relay/<node>/invoke/<capability id>` | performs a capability on a member through its channel — see Relay |
 
 **Sync without CouchDB.** The endpoint implements the part of CouchDB's HTTP API that
-PouchDB replication uses, on top of the core's own LevelDB database: the server root,
+PouchDB replication uses (`src/database/couchApi.ts`, runtime-neutral, so a browser answers
+it too when relayed), on top of the core's own LevelDB database: the server root,
 `GET /{db}`, `_changes` (normal and long-poll with heartbeats, including `_doc_ids`),
 `_revs_diff`, `_bulk_get`, `_bulk_docs`, document GET/PUT including `_local` checkpoints,
 attachment GET and `_ensure_full_commit`. Any client that replicates with CouchDB —
@@ -243,6 +311,9 @@ stays. A different shape is a new capability, `fetch@2`, next to the old one.
 `capabilities.lock.json` holds a fingerprint of every published contract; changing one, or
 dropping an id, fails the test suite.
 
+The catalog: `database@1` (answer a CouchDB API request from the node's copy — every node
+holding data), `fetch@1` (Node.js), `serve@1` (Node.js, never forwarded).
+
 **Naming without strings.** `capabilities.fetch` is the capability object, and so is the
 method itself: `cluster.nodesWith(core.fetch)` and `cluster.nodesWith(capabilities.fetch)`
 are the same query. Ids appear only on the wire and in the cluster document.
@@ -250,7 +321,8 @@ are the same query. Ids appear only on the wire and in the cluster document.
 **Availability.** What a node can do depends on more than its runtime: a browser may have a
 camera without permission to use it, a server may have a media store attached or not. Each
 platform lists its capabilities in a `CapabilitySet`, and an implementation can carry an
-availability probe; a node announces only the capabilities whose probes say yes. Setup-made
+availability probe, given the node's setup; a node announces only the capabilities whose probes
+say yes. `database@1` is the first: implemented everywhere, available only on nodes holding data. Setup-made
 capabilities — a camera, an S3-like media store that serves the cluster's media — plug in
 there.
 
@@ -342,8 +414,9 @@ fast reruns. `npm run couchdb:down` removes it.
 **The cluster harness.** `tests/setup/clusterHarness.ts` runs real orchestrators and Node.js
 members in the Vitest process and exposes them over HTTP (`tests/support/harness.ts`), so a
 test in any runtime can start a served cluster, join it, take the orchestrator offline and
-bring it back on the same port. Join, sync, conflict and delegation tests run this way in
-Node.js and in Chromium alike.
+bring it back on the same port, start orchestrators without data, and drive Node.js members.
+Join, sync, conflict, presence, relay and delegation tests run this way in Node.js and in
+Chromium alike. Harness orchestrators use 200 ms heartbeats and a 1 s lease.
 
 Tests:
 
@@ -374,6 +447,7 @@ core/
       lifecycle.ts                createDataset, openDataset, joinDataset
       Registry.ts                 the runtime's list of known datasets
     documents/Documents.ts        raw document access (provisional)
+    database/couchApi.ts          CouchDB replication API over a PouchDB database, any runtime
     platform/
       Platform.ts                 what each runtime provides: engines, capabilities, node description
       loadPlatform.ts             loads only the current runtime's platform
@@ -389,13 +463,17 @@ core/
       clusterStorage.ts           reads and writes it, retrying concurrent updates
       clusterClient.ts            calls another node's /_minderal endpoints
       Cluster.ts                  the core's live cluster view; forwarding
-      delegate.ts                 performs a capability on another node: candidates, outcomes
+      delegate.ts                 performs a capability on another node: routes, outcomes
       frames.ts                   the delegation wire protocol
+      produceFrames.ts            runs a capability for another node, as frames
+      channel.ts                  channel messages and presence timing
+      ChannelClient.ts            a member's channel: reconnects, heartbeats
+      RelayHub.ts                 the orchestrator's channels: presence, leases, relayed requests
       QualityLedger.ts            link quality measurements and candidate ranking
     server/                       Node.js only, loaded through ServerCore
       serveDataset.ts             mounts a dataset on a listener, builds its endpoint
       HttpListenerPool.ts         shared listeners per host:port, CORS
-      DatasetEndpoint.ts          replication API + /_minderal endpoints for one dataset
+      DatasetEndpoint.ts          HTTP for one dataset: the CouchDB API (local or relayed), /_minderal
       invoke.ts                   runs a delegated capability and streams its frames
       http.ts                     JSON bodies, CouchDB-shaped errors
     capabilities/
@@ -403,7 +481,7 @@ core/
       CapabilitySet.ts            a runtime's implementations and availability probes
       catalog.ts                  `capabilities`, every definition
       methods.ts                  core methods as capability names
-      fetch/, serve/              contracts and implementations
+      database/, fetch/, serve/   contracts and implementations
   capabilities.lock.json          fingerprints of published contracts
   tests/
     e2e/                          public API, every runtime, src and dist

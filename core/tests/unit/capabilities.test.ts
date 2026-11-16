@@ -43,16 +43,16 @@ describe('CapabilitySet', () => {
     const set = new CapabilitySet<null>()
       .with(ping, async () => 'pong')
       .with(camera, async () => 'photo', async () => permitted)
-    expect(await set.availableIds()).toEqual(['ping@1'])
+    expect(await set.availableIds({ holdsData: true })).toEqual(['ping@1'])
     permitted = true
-    expect(await set.availableIds()).toEqual(['camera@1', 'ping@1'])
+    expect(await set.availableIds({ holdsData: true })).toEqual(['camera@1', 'ping@1'])
   })
 
   it('treats a probe that throws as unavailable', async () => {
     const set = new CapabilitySet<null>().with(camera, async () => 'photo', async () => {
       throw new Error('permission API missing')
     })
-    expect(await set.availableIds()).toEqual([])
+    expect(await set.availableIds({ holdsData: true })).toEqual([])
   })
 
   it('refuses to implement a capability twice', () => {

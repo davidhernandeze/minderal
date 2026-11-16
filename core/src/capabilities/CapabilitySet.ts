@@ -5,7 +5,16 @@ import type { AnyCapability, Capability } from './Capability.js'
  * browser may have a camera but no permission to use it, a server may have a media store attached or
  * not. A probe answers for the node's current setup; capabilities without one are always available.
  */
-export type AvailabilityProbe = () => Promise<boolean>
+export type AvailabilityProbe = (setup: NodeSetup) => Promise<boolean>
+
+/**
+ * How a node was set up, as far as its capabilities care. Grows with setup-made capabilities: attached
+ * media stores, granted permissions.
+ */
+export interface NodeSetup {
+  /** Whether the node holds a copy of the dataset; an orchestrator may hold none. */
+  readonly holdsData: boolean
+}
 
 /** A local implementation, given the core it runs for. */
 export type HostedImplementation<Host, Args extends readonly unknown[], Result> = (host: Host, ...args: Args) => Promise<Result>
@@ -40,7 +49,11 @@ export class CapabilitySet<Host> {
     available?: AvailabilityProbe,
   ): this {
     if (this.entries.has(capability.id)) throw new Error(`${capability.id} is implemented twice`)
-    this.entries.set(capability.id, { capability, implementation: implementation as unknown as AnyImplementation, available })
+    this.entries.set(capability.id, {
+      capability,
+      implementation: implementation as unknown as AnyImplementation,
+      available,
+    })
     return this
   }
 
@@ -56,19 +69,26 @@ export class CapabilitySet<Host> {
     return { capability: entry.capability, run: async (host, args) => implementation(host, ...args) }
   }
 
-  /** The ids this node announces to its cluster: every capability whose probe says it is available now. */
-  async availableIds(): Promise<string[]> {
+  /** The ids a node announces to its cluster: every capability whose probe says it is available now. */
+  async availableIds(setup: NodeSetup): Promise<string[]> {
     const ids: string[] = []
     for (const entry of this.entries.values()) {
-      if (entry.available === undefined || (await safely(entry.available))) ids.push(entry.capability.id)
+      if (entry.available === undefined || (await safely(entry.available, setup))) ids.push(entry.capability.id)
     }
     return ids.sort()
   }
+
+  /** Whether this node can perform a capability now: implemented, and its probe agrees. */
+  async isAvailable(id: string, setup: NodeSetup): Promise<boolean> {
+    const entry = this.entries.get(id)
+    if (entry === undefined) return false
+    return entry.available === undefined || safely(entry.available, setup)
+  }
 }
 
-async function safely(probe: AvailabilityProbe): Promise<boolean> {
+async function safely(probe: AvailabilityProbe, setup: NodeSetup): Promise<boolean> {
   try {
-    return await probe()
+    return await probe(setup)
   } catch {
     return false
   }

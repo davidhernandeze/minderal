@@ -19,7 +19,7 @@ describe('joinDataset()', () => {
       runtime,
       role: 'member',
       coreVersion: CORE_VERSION,
-      capabilities: runtime === 'nodejs' ? ['fetch@1', 'serve@1'] : [],
+      capabilities: runtime === 'nodejs' ? ['database@1', 'fetch@1', 'serve@1'] : ['database@1'],
       userAgent: expect.any(String),
       os: expect.any(String),
       joinedAt: expect.any(String),

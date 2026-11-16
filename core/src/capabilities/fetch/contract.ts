@@ -69,8 +69,55 @@ const fetchWire: Wire<FetchArgs, Response> = {
       }
       return new Response(null, init)
     }
-    return new Response(toStream(body), init)
+    const failure: { error?: unknown } = {}
+    return new DelegatedResponse(
+      toStream(body, (error) => (failure.error = error)),
+      init,
+      failure,
+    )
   },
+}
+
+/**
+ * A Response whose body came from another node. Browsers replace a body stream's error with a generic
+ * TypeError in text(), json() and the like; this one rethrows the original — PartialResultError when the
+ * body was cut short — whichever way the body is read.
+ */
+class DelegatedResponse extends Response {
+  private readonly failure: { error?: unknown }
+
+  constructor(body: ReadableStream<Uint8Array<ArrayBuffer>>, init: ResponseInit, failure: { error?: unknown }) {
+    super(body, init)
+    this.failure = failure
+  }
+
+  override async text(): Promise<string> {
+    return this.original(super.text())
+  }
+
+  override async json(): Promise<unknown> {
+    return this.original(super.json())
+  }
+
+  override async arrayBuffer(): Promise<ArrayBuffer> {
+    return this.original(super.arrayBuffer())
+  }
+
+  override async blob(): Promise<Blob> {
+    return this.original(super.blob())
+  }
+
+  override async formData(): Promise<FormData> {
+    return this.original(super.formData())
+  }
+
+  private async original<Value>(reading: Promise<Value>): Promise<Value> {
+    try {
+      return await reading
+    } catch (error) {
+      throw this.failure.error ?? error
+    }
+  }
 }
 
 export const fetchCapability = defineCapability<FetchArgs, Response>({

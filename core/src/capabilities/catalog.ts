@@ -1,4 +1,5 @@
 import type { AnyCapability } from './Capability.js'
+import { databaseCapability } from './database/contract.js'
 import { fetchCapability } from './fetch/contract.js'
 import { serveCapability } from './serve/contract.js'
 
@@ -7,6 +8,7 @@ import { serveCapability } from './serve/contract.js'
  * Ids are derived from these objects and only ever appear on the wire and in the cluster document.
  */
 export const capabilities = Object.freeze({
+  database: databaseCapability,
   fetch: fetchCapability,
   serve: serveCapability,
 })

@@ -5,7 +5,7 @@ import ClusterDiagram from './components/ClusterDiagram.vue'
 import DocumentsPanel from './components/DocumentsPanel.vue'
 import { useCore } from './composables/useCore'
 
-const { core, phase, error, devCluster, nodes, quality, join, leave } = useCore()
+const { core, phase, error, devCluster, nodes, quality, isOnline, onlineSince, join, leave } = useCore()
 const endpoint = ref('')
 const name = ref('')
 
@@ -48,7 +48,13 @@ watch(devCluster, (cluster) => {
   </main>
 
   <main v-else class="layout">
-    <ClusterDiagram :nodes="nodes" :self-id="core.nodeId" :quality="quality" />
+    <ClusterDiagram
+      :nodes="nodes"
+      :self-id="core.nodeId"
+      :quality="quality"
+      :is-online="isOnline"
+      :online-since="onlineSince"
+    />
     <aside>
       <ActionsPanel :core="core" />
       <DocumentsPanel :core="core" />

@@ -7,6 +7,8 @@ const props = defineProps<{
   nodes: readonly ClusterNode[]
   selfId: string
   quality: (nodeId: string) => LinkQuality | undefined
+  isOnline: (nodeId: string) => boolean
+  onlineSince: (nodeId: string) => string | undefined
 }>()
 
 interface Placed {
@@ -53,12 +55,13 @@ function failing(quality: LinkQuality): boolean {
 </script>
 
 <template>
-  <section class="diagram" :style="{ minHeight: `${Math.max(560, 200 + nodes.length * 90)}px` }">
+  <section class="diagram" :style="{ minHeight: `${Math.max(680, 260 + nodes.length * 100)}px` }">
     <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
       <line
         v-for="link in syncLinks"
         :key="`sync-${link.from.node.id}`"
         class="sync"
+        :class="{ live: isOnline(link.from.node.id) && isOnline(link.to.node.id) }"
         :x1="link.from.x"
         :y1="link.from.y"
         :x2="link.to.x"
@@ -85,10 +88,16 @@ function failing(quality: LinkQuality): boolean {
       {{ failing(link.quality) ? 'failing' : `${Math.round(link.quality.latencyMs ?? 0)} ms` }}
     </span>
     <div v-for="entry in placed" :key="entry.node.id" class="slot" :style="{ left: `${entry.x}%`, top: `${entry.y}%` }">
-      <NodeCard :node="entry.node" :is-self="entry.node.id === selfId" :quality="quality(entry.node.id)" />
+      <NodeCard
+        :node="entry.node"
+        :is-self="entry.node.id === selfId"
+        :quality="quality(entry.node.id)"
+        :online="isOnline(entry.node.id)"
+        :since="onlineSince(entry.node.id)"
+      />
     </div>
     <p class="legend">
-      <span><i class="sync" /> syncs with the orchestrator</span>
+      <span><i class="sync" /> channel to the orchestrator (darker while both are online)</span>
       <span><i class="measured" /> link this node measured</span>
     </p>
   </section>
@@ -113,9 +122,12 @@ line {
   stroke-linecap: round;
 }
 line.sync {
-  stroke: var(--border-strong);
+  stroke: var(--border);
   stroke-width: 1.5;
   stroke-dasharray: 6 6;
+}
+line.sync.live {
+  stroke: var(--border-strong);
 }
 line.measured {
   stroke: var(--accent);
@@ -145,7 +157,7 @@ line.measured.failing {
 .legend {
   position: absolute;
   left: 12px;
-  bottom: 8px;
+  top: 10px;
   margin: 0;
   display: flex;
   gap: 16px;

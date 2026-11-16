@@ -1,8 +1,8 @@
 # @minderal/app
 
 A development app for `@minderal/core`: a browser node that joins a cluster and shows it —
-every node, what it announces, the links this browser has measured — next to the dataset's
-documents, live.
+every node, what it announces, who is online, whether it holds data, the links this browser
+has measured — next to the dataset's documents, live.
 
 ```sh
 npm install
@@ -31,6 +31,12 @@ yourself with `npm run cluster`). It runs real cores from `../core/src`:
   **Forget this dataset** in the app, since the browser still holds the old one.
 - **Live activity.** `MINDERAL_DEV_ACTIVITY=on npm run dev` (or `npm run cluster -- --activity`)
   writes a note every 5 s from the orchestrator, to watch live sync arrive.
+- **Relay mode.** `npm run dev:relay` runs the same cluster with an orchestrator that holds no
+  data (state in `.dev-cluster-relay/`): Desk seeds the data, and every sync — the browser's
+  included — is relayed by the orchestrator to an online member holding it. Stop the cluster
+  with the browser closed and its data waits; `npm run cluster:relay:reset` starts over.
+- **Presence.** Nodes renew a 6 s lease every 2 s here, so the diagram's online dots follow
+  within seconds when a node comes or goes.
 - **Allowed origins.** The nodes accept browser requests from `http://localhost:5173` and
   `http://127.0.0.1:5173` only; set `DEV_CLUSTER_ORIGINS` (comma-separated) for others.
   `DEV_CLUSTER_PORT` and `DEV_CLUSTER_HOST` move the endpoints.

@@ -5,7 +5,9 @@ import vue from '@vitejs/plugin-vue'
 import { defineConfig, type Plugin } from 'vite'
 
 const coreSource = fileURLToPath(new URL('../core/src/index.ts', import.meta.url))
-const statePath = fileURLToPath(new URL('.dev-cluster/state.json', import.meta.url))
+const statePath = fileURLToPath(
+  new URL(process.env.DEV_CLUSTER_MODE === 'relay' ? '.dev-cluster-relay/state.json' : '.dev-cluster/state.json', import.meta.url),
+)
 
 /**
  * Runs the dev cluster (scripts/devCluster.ts) next to the dev server and tells the app where to join

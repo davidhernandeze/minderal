@@ -71,7 +71,8 @@ function isRegistryDocument(value: unknown): value is RegistryDocument {
 
 function isStorageDescriptor(value: unknown): value is StorageDescriptor {
   if (typeof value !== 'object' || value === null) return false
-  const candidate: { engine?: unknown; url?: unknown } = value
+  const candidate: { engine?: unknown; url?: unknown; clusterStore?: unknown } = value
   if (candidate.engine === 'leveldb' || candidate.engine === 'indexeddb') return true
+  if (candidate.engine === 'none') return candidate.clusterStore === 'leveldb' || candidate.clusterStore === 'indexeddb'
   return candidate.engine === 'couchdb' && typeof candidate.url === 'string'
 }

@@ -5,6 +5,8 @@ export type LocalEngine = 'leveldb' | 'indexeddb'
 export type StorageDescriptor =
   | { readonly engine: LocalEngine }
   | { readonly engine: 'couchdb'; readonly url: string }
+  /** No copy of the dataset: only the cluster document, kept in a small local store. */
+  | { readonly engine: 'none'; readonly clusterStore: LocalEngine }
 
 export function locateDataset(
   home: string,
@@ -19,6 +21,10 @@ export function locateDataset(
       return { engine: 'indexeddb', name: `${home}/datasets/${datasetId}` }
     case 'couchdb':
       return { engine: 'couchdb', url: `${storage.url.replace(/\/+$/, '')}/minderal-${datasetId}`, credentials }
+    case 'none':
+      return storage.clusterStore === 'leveldb'
+        ? { engine: 'leveldb', path: `${home}/clusters/${datasetId}` }
+        : { engine: 'indexeddb', name: `${home}/clusters/${datasetId}` }
   }
 }
 

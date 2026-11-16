@@ -11,6 +11,33 @@ export function invokeUrl(endpoint: string, capabilityId: string): string {
   return `${endpoint.replace(/\/+$/, '')}/_minderal/invoke/${encodeURIComponent(capabilityId)}`
 }
 
+export function relayUrl(orchestratorEndpoint: string, nodeId: string, capabilityId: string): string {
+  return `${orchestratorEndpoint.replace(/\/+$/, '')}/_minderal/relay/${encodeURIComponent(nodeId)}/invoke/${encodeURIComponent(capabilityId)}`
+}
+
+/** A way to reach a node with a request: its own endpoint, or a relay through the orchestrator. */
+export interface Route {
+  readonly node: ClusterNode
+  /** Sends the encoded arguments; answers like an invoke endpoint: 200 and frames, or a refusal. */
+  open(capabilityId: string, args: unknown, selfId: string): Promise<Response>
+}
+
+export function directRoute(node: ClusterNode, endpoint: string): Route {
+  return { node, open: async (capabilityId, args, selfId) => post(invokeUrl(endpoint, capabilityId), args, selfId) }
+}
+
+export function relayedRoute(node: ClusterNode, orchestratorEndpoint: string): Route {
+  return { node, open: async (capabilityId, args, selfId) => post(relayUrl(orchestratorEndpoint, node.id, capabilityId), args, selfId) }
+}
+
+async function post(url: string, args: unknown, selfId: string): Promise<Response> {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', [NODE_HEADER]: selfId },
+    body: JSON.stringify({ args }),
+  })
+}
+
 /**
  * Performs a capability on another node. Candidates are tried in the ledger's order while they cannot take
  * the request — unreachable, refusing, or no longer able to perform it — since none of that ran anything.
@@ -26,16 +53,26 @@ export function invokeUrl(endpoint: string, capabilityId: string): string {
 export async function delegate<Args extends readonly unknown[], Result>(
   capability: Capability<Args, Result>,
   args: Args,
-  candidates: readonly ClusterNode[],
-  context: { readonly selfId: string; readonly ledger: QualityLedger },
+  routes: readonly Route[],
+  context: {
+    readonly selfId: string
+    readonly ledger: QualityLedger
+    readonly prefer?: string
+    readonly onServed?: (nodeId: string) => void
+  },
 ): Promise<Result> {
   const wire = capability.wire
   if (wire === undefined) throw new CapabilityUnavailableError(capability.id)
-  const payload = JSON.stringify({ args: wire.encodeArgs(args) })
+  const encoded = wire.encodeArgs(args)
   const attempts: DelegationAttempt[] = []
+  const byNode = new Map(routes.map((route) => [route.node.id, route]))
+  const ranked = context.ledger.rank(routes.map((route) => route.node))
+  const preferred = ranked.findIndex((node) => node.id === context.prefer)
+  if (preferred > 0) ranked.unshift(...ranked.splice(preferred, 1))
 
-  for (const node of context.ledger.rank(candidates)) {
-    if (node.endpoint === undefined) continue
+  for (const node of ranked) {
+    const route = byNode.get(node.id)
+    if (route === undefined) continue
     const startedAt = Date.now()
     const refuse = (reason: string): void => {
       attempts.push({ nodeId: node.id, reason })
@@ -44,11 +81,7 @@ export async function delegate<Args extends readonly unknown[], Result>(
 
     let response: Response
     try {
-      response = await fetch(invokeUrl(node.endpoint, capability.id), {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', [NODE_HEADER]: context.selfId },
-        body: payload,
-      })
+      response = await route.open(capability.id, encoded, context.selfId)
     } catch (error) {
       refuse(`is unreachable (${error instanceof Error ? error.message : String(error)})`)
       continue
@@ -84,6 +117,7 @@ export async function delegate<Args extends readonly unknown[], Result>(
     }
 
     context.ledger.recordSuccess(node.id, Date.now() - startedAt)
+    context.onServed?.(node.id)
     const body = resultBody(frames, capability.id, node.id, context.ledger)
     try {
       return await wire.decodeResult(first.value.v, body)

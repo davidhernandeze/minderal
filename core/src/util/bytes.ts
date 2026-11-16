@@ -36,7 +36,10 @@ export async function* readStream(stream: ReadableStream<Uint8Array>): AsyncGene
 }
 
 /** The opposite of readStream: a pull-based stream over an async iterable, which cancels it when the reader does. */
-export function toStream(source: AsyncIterable<Uint8Array>): ReadableStream<Uint8Array<ArrayBuffer>> {
+export function toStream(
+  source: AsyncIterable<Uint8Array>,
+  onError: (error: unknown) => void = () => undefined,
+): ReadableStream<Uint8Array<ArrayBuffer>> {
   const iterator = source[Symbol.asyncIterator]()
   return new ReadableStream<Uint8Array<ArrayBuffer>>({
     async pull(controller) {
@@ -45,6 +48,7 @@ export function toStream(source: AsyncIterable<Uint8Array>): ReadableStream<Uint
         if (done) controller.close()
         else controller.enqueue(new Uint8Array(value))
       } catch (error) {
+        onError(error)
         controller.error(error)
       }
     },
@@ -52,4 +56,20 @@ export function toStream(source: AsyncIterable<Uint8Array>): ReadableStream<Uint
       await iterator.return?.()
     },
   })
+}
+
+export async function readAll(source: AsyncIterable<Uint8Array>): Promise<Uint8Array> {
+  const chunks: Uint8Array[] = []
+  let length = 0
+  for await (const chunk of source) {
+    chunks.push(chunk)
+    length += chunk.length
+  }
+  const all = new Uint8Array(length)
+  let offset = 0
+  for (const chunk of chunks) {
+    all.set(chunk, offset)
+    offset += chunk.length
+  }
+  return all
 }

@@ -11,7 +11,6 @@ export interface ServedDataset {
 }
 
 export async function serveDataset(
-  database: PouchDB.Database,
   datasetId: string,
   options: ServeOptions,
   endpointHost: EndpointHost,
@@ -29,7 +28,7 @@ export async function serveDataset(
   const name = `minderal-${datasetId}`
   const listener: ListenerHandle = await listeners.acquire(host, port)
   try {
-    listener.mount(name, new DatasetEndpoint(database, datasetId, name, endpointHost))
+    listener.mount(name, new DatasetEndpoint(name, endpointHost))
   } catch (error) {
     await listener.release()
     throw error
