@@ -73,21 +73,101 @@ From `legacy/core/AGENTS.md`, kept because each one cost real debugging:
 ## Usage
 
 ```ts
-import { getCoreForCurrentRuntime } from '@minderal/core'
+import { createDataset, openDataset } from '@minderal/core'
 
-const core = getCoreForCurrentRuntime()
-core.runtime // 'node' | 'browser'
+const core = await createDataset()                       // new dataset in this runtime's local storage
+const again = await openDataset(core.datasetId)          // a dataset this runtime already knows
+const remote = await createDataset({                     // a dataset stored in a CouchDB server
+  storage: { engine: 'couchdb', url: 'https://couch.example' },
+  credentials: { username, password },
+})
+
+core.datasetId        // uuid of the dataset
+core.nodeId           // uuid of this core as a node of the dataset's cluster
+core.cluster.nodes    // [{ id, runtime: 'nodejs' | 'browser', role: 'orchestrator' | 'member' }]
+await core.close()
 ```
 
-`getCoreForCurrentRuntime()` detects the runtime, creates the matching core and returns it.
-The concrete classes stay internal: callers only ever see the abstract `Core` type.
+A core does one job: give access to one dataset. It is created by `createDataset` or
+`openDataset`, never directly, and callers only see the abstract `Core` type —
+`ServerCore` (Node.js) and `BrowserCore` stay internal. Several cores can run side by
+side, including several on the same dataset.
 
-- `BrowserCore` — created in a browser.
-- `ServerCore` — created in Node.js.
+## Datasets
 
-A core encapsulates distributed access to a single dataset. It is not a singleton: every
-call creates a new, independent core, and running several cores side by side — one per
-dataset — is an intended use. An unrecognized runtime throws `UnsupportedRuntimeError`.
+A dataset is a CouchDB-compatible database, accessed through PouchDB.
+
+| storage | runtime | where |
+| --- | --- | --- |
+| `{ engine: 'local' }` (default) | Node.js | LevelDB under `<home>/datasets/<id>` |
+| `{ engine: 'local' }` (default) | browser | IndexedDB, named `<home>/datasets/<id>` |
+| `{ engine: 'couchdb', url }` | both | database `minderal-<id>` on that server |
+
+A CouchDB server still counts as *local* storage for the core using it: local means the
+core reads and writes the storage itself. Client mode — a core with no storage, using
+the cluster's — comes later.
+
+**Registry.** Each runtime keeps a registry of the datasets it knows, so `openDataset(id)`
+knows how to reach a dataset. It lives in `<home>/registry`. The default home is
+`MINDERAL_HOME` or `~/.minderal` on Node.js, and `minderal` in a browser; every function
+accepts `{ home }` to use another one. The registry never stores credentials: pass
+`{ credentials }` when opening, or set `MINDERAL_COUCHDB_USERNAME` and
+`MINDERAL_COUCHDB_PASSWORD` on Node.js.
+
+**Cluster document.** Every dataset holds a `_design/cluster` document, written when it
+is created, with the founding core as its only node:
+
+```json
+{ "_id": "_design/cluster", "dataset": "<id>", "nodes": [{ "id": "<node>", "runtime": "nodejs", "role": "orchestrator" }], "endpoints": [] }
+```
+
+A Node.js core founds a dataset as its `orchestrator`; a browser core founds it as its
+only `member`, with no cluster capabilities. Opening a dataset reads this document into
+`core.cluster`. Cluster endpoints, joining and sync come in the next steps.
+
+Errors: `DatasetNotFoundError` when the registry does not know the id, `StorageError` when
+the storage cannot be reached, rejects the credentials, or holds no valid cluster
+document, `CoreClosedError` when a closed core is used.
+
+## Capabilities
+
+A capability is a method on `Core` — `core.fetch(...)` — never a string key. Callers get
+exactly one of two outcomes: the result, or a typed exception. Where the work ran is
+invisible to them.
+
+```
+core.fetch(url)
+  ├─ the core implements it locally  → runs it          (ServerCore: Node's fetch)
+  └─ it does not                     → asks its cluster for a core that can
+                                       → none: CapabilityUnavailableError
+```
+
+Error contract, the same on every core:
+
+| outcome | when |
+| --- | --- |
+| result | the capability ran — for `fetch`, any HTTP status, 404 and 500 included |
+| `TypeError` | invalid arguments, checked before routing (a malformed or non-http URL) |
+| `CapabilityUnavailableError` | neither this core nor any core in its cluster can perform it |
+| `NetworkError` | a core performed it and the network failed; `cause` holds the original |
+
+Every library error extends `CoreError`.
+
+Adding a capability:
+
+1. `src/capabilities/<name>/contract.ts` — argument and result types, the capability
+   definition, argument validation.
+2. `src/capabilities/<name>/<runtime>.ts` — a local implementation for each core that can
+   perform it.
+3. `src/capabilities/LocalCapabilities.ts` — one optional field.
+4. `src/Core.ts` — one public method that calls `perform(...)`.
+5. The core classes that implement it list it in their `local` capabilities.
+
+The type checker holds the pieces together: a local implementation must match the
+capability's signature.
+
+Status: the cluster has no nodes yet, so a capability a core cannot run locally always
+throws `CapabilityUnavailableError`. Forwarding to other cores is the next step.
 
 ## Development
 
@@ -96,14 +176,19 @@ Every step lands with tests that run end to end on every supported runtime.
 ```sh
 npm install
 npm run setup:browsers   # once: downloads Playwright's Chromium
-npm run verify           # typecheck + all tests on src + all e2e tests on the built dist
+npm run verify           # typecheck + every test incl. CouchDB + e2e tests on the built dist
 ```
+
+`verify` and `test:couchdb` need Docker running: they start a CouchDB 3.4 container
+(`compose.yaml`, port 15984, compose project `minderal-core-test`) and leave it running for
+fast reruns. `npm run couchdb:down` removes it.
 
 | script | what it does |
 | --- | --- |
 | `npm test` | every suite, once in Node and once in headless Chromium |
-| `npm run test:node` / `test:browser` | one runtime only |
+| `npm run test:nodejs` / `test:browser` | one runtime only |
 | `npm run test:watch` | watch mode, both runtimes |
+| `npm run test:couchdb` | starts the CouchDB container, then every suite including `*.couchdb.test.ts` |
 | `npm run test:dist` | builds, then runs `tests/e2e` against `dist/` — the shipped artifact |
 | `npm run typecheck` | `tsc` over src, tests and config |
 
@@ -112,6 +197,11 @@ Tests:
 - `tests/e2e/` — black-box, public API only, imported as `@minderal/core`. Runs against
   `src/` by default and against `dist/` under `test:dist`.
 - `tests/unit/` — white-box tests of internals, imported from `src/` directly.
+- `*.couchdb.test.ts` — need a CouchDB; skipped unless `MINDERAL_TEST_COUCHDB_URL` is set,
+  which `test:couchdb` does.
+
+Each test gets a fresh home (a temporary directory on Node.js, a unique IndexedDB prefix in
+the browser), so tests never share a registry.
 
 Each runtime is a Vitest project. A project tells the suite which runtime it is through
 `provide` (`inject('runtime')` in a test), so one spec asserts the right thing everywhere.
@@ -124,12 +214,37 @@ core/
   src/
     index.ts                      public API — the only entry point
     Core.ts                       abstract base, exported as a type only
-    BrowserCore.ts                the core for browsers
-    ServerCore.ts                 the core for Node.js
-    getCoreForCurrentRuntime.ts   detects the runtime, creates a new core
+    BrowserCore.ts / ServerCore.ts the core per runtime
     Runtime.ts                    runtime detection
+    errors.ts                     CoreError and its subclasses
+    dataset/
+      lifecycle.ts                createDataset, openDataset
+      Registry.ts                 the runtime's list of known datasets
+    platform/
+      Platform.ts                 what each runtime provides: engines, home, core class
+      loadPlatform.ts             loads only the current runtime's platform
+      nodejs.ts / browser.ts      LevelDB + HTTP / IndexedDB + HTTP
+    storage/
+      DatabasePool.ts             one shared, reference-counted PouchDB per location
+      DatabaseLocation.ts         where a database lives, and credentials
+      StorageDescriptor.ts        what the registry stores; dataset and registry locations
+      couchdb.ts                  opens a CouchDB database over HTTP
+    cluster/
+      ClusterDocument.ts          the _design/cluster document
+      Cluster.ts                  the core's view of its cluster; forwarding (none yet)
+    capabilities/                 capability definitions and local implementations
   tests/
-    e2e/           public API, every runtime, src and dist
-    unit/          internals, every runtime
-  vitest.config.ts one project per runtime
+    e2e/                          public API, every runtime, src and dist
+    unit/                         internals, every runtime
+    setup/                        local HTTP server, temp homes, CouchDB check
+    support/                      fresh homes and automatic core cleanup
+  compose.yaml, couchdb/          CouchDB container for integration tests
+  vitest.config.ts                one project per runtime
 ```
+
+**Platforms load lazily.** `loadPlatform` imports only the current runtime's module, so a
+browser never loads LevelDB and Node.js never loads IndexedDB.
+
+**Databases are pooled.** PouchDB's LevelDB adapter shares one store per path inside a
+process, and closing any instance closes it for all. `DatabasePool` hands out
+reference-counted handles instead, so two cores on one dataset close independently.

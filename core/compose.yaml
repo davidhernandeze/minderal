@@ -1,0 +1,16 @@
+name: minderal-core-test
+services:
+  couchdb:
+    image: couchdb:3.4
+    ports:
+      - '127.0.0.1:15984:5984'
+    environment:
+      COUCHDB_USER: admin
+      COUCHDB_PASSWORD: password
+    volumes:
+      - ./couchdb/local.ini:/opt/couchdb/etc/local.d/01-minderal.ini
+    healthcheck:
+      test: ['CMD', 'curl', '-fs', 'http://localhost:5984/_up']
+      interval: 1s
+      timeout: 3s
+      retries: 30

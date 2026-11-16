@@ -20,17 +20,32 @@
     "typecheck": "tsc",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:node": "vitest run --project node",
+    "test:nodejs": "vitest run --project nodejs",
     "test:browser": "vitest run --project browser",
+    "test:couchdb": "npm run couchdb:up && MINDERAL_TEST_COUCHDB_URL=http://127.0.0.1:15984 vitest run",
     "test:dist": "npm run build && MINDERAL_TARGET=dist vitest run",
-    "verify": "npm run typecheck && npm test && npm run test:dist",
-    "setup:browsers": "playwright install chromium"
+    "verify": "npm run typecheck && npm run test:couchdb && npm run test:dist",
+    "setup:browsers": "playwright install chromium",
+    "couchdb:up": "docker compose up -d --wait",
+    "couchdb:down": "docker compose down"
   },
   "devDependencies": {
     "@types/node": "^22.20.5",
+    "@types/pouchdb-adapter-http": "^6.1.6",
+    "@types/pouchdb-adapter-leveldb": "^6.1.6",
+    "@types/pouchdb-adapter-memory": "^6.1.6",
+    "@types/pouchdb-core": "^7.0.15",
     "@vitest/browser-playwright": "^5.1.0",
     "playwright": "^1.65.1",
+    "pouchdb-adapter-memory": "^9.0.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
+  },
+  "dependencies": {
+    "events": "^3.3.0",
+    "pouchdb-adapter-http": "^9.0.0",
+    "pouchdb-adapter-indexeddb": "^9.0.0",
+    "pouchdb-adapter-leveldb": "^9.0.0",
+    "pouchdb-core": "^9.0.0"
   }
 }

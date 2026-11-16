@@ -1,13 +1,15 @@
-import { Core } from './Core.js'
+import type { LocalCapabilities } from './capabilities/LocalCapabilities.js'
+import { Core, type CoreContext } from './Core.js'
 
 export class BrowserCore extends Core {
   readonly runtime: 'browser' = 'browser'
+  protected readonly local: LocalCapabilities = {}
 
-  private constructor() {
-    super()
+  private constructor(context: CoreContext) {
+    super(context)
   }
 
-  static create(): BrowserCore {
-    return new BrowserCore()
+  static create(context: CoreContext): BrowserCore {
+    return new BrowserCore(context)
   }
 }

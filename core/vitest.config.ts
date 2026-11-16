@@ -5,20 +5,23 @@ import { defineConfig } from 'vitest/config'
 const againstDist = process.env.MINDERAL_TARGET === 'dist'
 const entry = fileURLToPath(new URL(againstDist ? 'dist/index.js' : 'src/index.ts', import.meta.url))
 const include = againstDist ? ['tests/e2e/**/*.test.ts'] : ['tests/**/*.test.ts']
+const exclude = process.env.MINDERAL_TEST_COUCHDB_URL === undefined ? ['tests/**/*.couchdb.test.ts'] : []
 
 export default defineConfig({
   resolve: {
     alias: { '@minderal/core': entry },
   },
   test: {
+    globalSetup: ['tests/setup/httpServer.ts', 'tests/setup/couchdb.ts'],
     projects: [
       {
         extends: true,
         test: {
-          name: 'node',
+          name: 'nodejs',
           environment: 'node',
           include,
-          provide: { runtime: 'node' },
+          exclude,
+          provide: { runtime: 'nodejs' },
         },
       },
       {
@@ -26,6 +29,7 @@ export default defineConfig({
         test: {
           name: 'browser',
           include,
+          exclude,
           provide: { runtime: 'browser' },
           browser: {
             enabled: true,
