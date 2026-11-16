@@ -27,7 +27,6 @@ describe('a dataset stored in CouchDB', () => {
     expect(await response.json()).toMatchObject({
       dataset: core.datasetId,
       nodes: [{ id: core.nodeId, runtime, role: runtime === 'nodejs' ? 'orchestrator' : 'member' }],
-      endpoints: [],
     })
   })
 

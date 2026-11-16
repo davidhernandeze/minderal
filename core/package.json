@@ -35,9 +35,11 @@
     "@types/pouchdb-adapter-leveldb": "^6.1.6",
     "@types/pouchdb-adapter-memory": "^6.1.6",
     "@types/pouchdb-core": "^7.0.15",
+    "@types/pouchdb-replication": "^6.4.7",
     "@vitest/browser-playwright": "^5.1.0",
     "playwright": "^1.65.1",
     "pouchdb-adapter-memory": "^9.0.0",
+    "pouchdb-replication": "^9.0.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   },

@@ -84,7 +84,8 @@ const remote = await createDataset({                     // a dataset stored in 
 
 core.datasetId        // uuid of the dataset
 core.nodeId           // uuid of this core as a node of the dataset's cluster
-core.cluster.nodes    // [{ id, runtime: 'nodejs' | 'browser', role: 'orchestrator' | 'member' }]
+core.cluster.nodes    // [{ id, runtime: 'nodejs' | 'browser', role: 'orchestrator' | 'member', endpoint? }]
+await core.serve({ port: 5985 })   // Node.js only: http://127.0.0.1:5985/minderal-<id>
 await core.close()
 ```
 
@@ -118,12 +119,47 @@ accepts `{ home }` to use another one. The registry never stores credentials: pa
 is created, with the founding core as its only node:
 
 ```json
-{ "_id": "_design/cluster", "dataset": "<id>", "nodes": [{ "id": "<node>", "runtime": "nodejs", "role": "orchestrator" }], "endpoints": [] }
+{ "_id": "_design/cluster", "dataset": "<id>",
+  "nodes": [{ "id": "<node>", "runtime": "nodejs", "role": "orchestrator", "endpoint": "http://127.0.0.1:5985/minderal-<id>" }] }
 ```
 
 A Node.js core founds a dataset as its `orchestrator`; a browser core founds it as its
 only `member`, with no cluster capabilities. Opening a dataset reads this document into
-`core.cluster`. Cluster endpoints, joining and sync come in the next steps.
+`core.cluster`. A node's `endpoint` appears once it serves. Joining and sync come next.
+
+## Serving
+
+`core.serve(options)` makes a `ServerCore` reachable by other nodes and returns its
+endpoint. It is Node.js only: a `BrowserCore` throws `CapabilityUnavailableError`, and the
+call is never forwarded to the cluster.
+
+| option | default | |
+| --- | --- | --- |
+| `port` | `0` (any free port) | pass a fixed port: the endpoint is stored in the cluster document |
+| `host` | `127.0.0.1` | `0.0.0.0` / `::` serve every interface and then require `publicUrl` |
+| `publicUrl` | `http://<host>:<port>` | the base URL other nodes use, e.g. behind a proxy |
+
+- The dataset is served at `/minderal-<id>`. Datasets served on the same host and port
+  share one listener; it stops when its last core closes.
+- Serving writes the endpoint into the core's own node in `_design/cluster`.
+  Calling `serve()` again, even concurrently, returns the same endpoint.
+- `GET /minderal-<id>/_minderal/status` returns `{ dataset, nodes }`.
+
+**Sync without CouchDB.** The endpoint implements the part of CouchDB's HTTP API that
+PouchDB replication uses, on top of the core's own LevelDB database: the server root,
+`GET /{db}`, `_changes` (normal and long-poll with heartbeats, including `_doc_ids`),
+`_revs_diff`, `_bulk_get`, `_bulk_docs`, document GET/PUT including `_local` checkpoints,
+attachment GET and `_ensure_full_commit`. Any client that replicates with CouchDB —
+stock PouchDB included — replicates with a Node.js core, with revision histories,
+conflicts, deletions, checkpoints and attachments intact.
+
+Writes to `_design/*` over HTTP are refused as `forbidden`, the way CouchDB reports a
+failed validation: replicators count it as a failed write and carry on with the rest of
+the batch. The cluster document is written by its orchestrator only.
+
+The replication suite in `tests/support/replicationSuite.ts` runs unchanged against a
+served `ServerCore` and against real CouchDB, so any divergence from the reference
+behavior fails a test.
 
 Errors: `DatasetNotFoundError` when the registry does not know the id, `StorageError` when
 the storage cannot be reached, rejects the credentials, or holds no valid cluster
@@ -148,7 +184,7 @@ Error contract, the same on every core:
 | --- | --- |
 | result | the capability ran — for `fetch`, any HTTP status, 404 and 500 included |
 | `TypeError` | invalid arguments, checked before routing (a malformed or non-http URL) |
-| `CapabilityUnavailableError` | neither this core nor any core in its cluster can perform it |
+| `CapabilityUnavailableError` | neither this core nor any core in its cluster can perform it (local-only capabilities such as `serve` never ask the cluster) |
 | `NetworkError` | a core performed it and the network failed; `cause` holds the original |
 
 Every library error extends `CoreError`.
@@ -160,7 +196,8 @@ Adding a capability:
 2. `src/capabilities/<name>/<runtime>.ts` — a local implementation for each core that can
    perform it.
 3. `src/capabilities/LocalCapabilities.ts` — one optional field.
-4. `src/Core.ts` — one public method that calls `perform(...)`.
+4. `src/Core.ts` — one public method that calls `perform(...)`, or `performLocally(...)`
+   for a capability that must never be forwarded.
 5. The core classes that implement it list it in their `local` capabilities.
 
 The type checker holds the pieces together: a local implementation must match the
@@ -231,13 +268,19 @@ core/
       couchdb.ts                  opens a CouchDB database over HTTP
     cluster/
       ClusterDocument.ts          the _design/cluster document
+      clusterStorage.ts           reads and writes it, with StorageError on failure
       Cluster.ts                  the core's view of its cluster; forwarding (none yet)
+    server/                       Node.js only, loaded through ServerCore
+      serveDataset.ts             mounts a dataset on a listener, builds its endpoint
+      HttpListenerPool.ts         shared, reference-counted HTTP listeners per host:port
+      DatasetEndpoint.ts          CouchDB replication API + cluster status for one dataset
+      http.ts                     JSON bodies, CouchDB-shaped errors
     capabilities/                 capability definitions and local implementations
   tests/
     e2e/                          public API, every runtime, src and dist
     unit/                         internals, every runtime
     setup/                        local HTTP server, temp homes, CouchDB check
-    support/                      fresh homes and automatic core cleanup
+    support/                      fresh homes, core cleanup, PouchDB client, replication suite
   compose.yaml, couchdb/          CouchDB container for integration tests
   vitest.config.ts                one project per runtime
 ```

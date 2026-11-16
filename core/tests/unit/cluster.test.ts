@@ -1,19 +1,27 @@
 import { describe, expect, it } from 'vitest'
 import { defineCapability } from '../../src/capabilities/Capability.js'
 import { Cluster } from '../../src/cluster/Cluster.js'
-import { isClusterDocument, newClusterDocument } from '../../src/cluster/ClusterDocument.js'
+import { isClusterDocument, newClusterDocument, withEndpoint } from '../../src/cluster/ClusterDocument.js'
 import { CapabilityUnavailableError } from '../../src/errors.js'
 
 const founder = { id: 'node-1', runtime: 'browser', role: 'member' } as const
 
 describe('cluster document', () => {
-  it('starts with the founding node and no endpoints', () => {
+  it('starts with the founding node only', () => {
     expect(newClusterDocument('dataset-1', founder)).toEqual({
       _id: '_design/cluster',
       dataset: 'dataset-1',
       nodes: [founder],
-      endpoints: [],
     })
+  })
+
+  it('records an endpoint on one node only', () => {
+    const other = { id: 'node-2', runtime: 'nodejs', role: 'orchestrator' } as const
+    const document = { ...newClusterDocument('dataset-1', founder), nodes: [founder, other] }
+    expect(withEndpoint(document, 'node-2', 'http://host/x').nodes).toEqual([
+      founder,
+      { ...other, endpoint: 'http://host/x' },
+    ])
   })
 
   it('recognizes a valid document', () => {
@@ -25,7 +33,7 @@ describe('cluster document', () => {
     ['a missing dataset', { _id: '_design/cluster', nodes: [], endpoints: [] }],
     ['an unknown runtime', { ...newClusterDocument('d', founder), nodes: [{ ...founder, runtime: 'deno' }] }],
     ['an unknown role', { ...newClusterDocument('d', founder), nodes: [{ ...founder, role: 'leader' }] }],
-    ['non-string endpoints', { ...newClusterDocument('d', founder), endpoints: [1] }],
+    ['a non-string endpoint', { ...newClusterDocument('d', founder), nodes: [{ ...founder, endpoint: 1 }] }],
     ['null', null],
   ])('rejects a document with %s', (_, document) => {
     expect(isClusterDocument(document)).toBe(false)

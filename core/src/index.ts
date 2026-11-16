@@ -1,4 +1,5 @@
 export type { FetchOptions } from './capabilities/fetch/contract.js'
+export type { ServeOptions } from './capabilities/serve/contract.js'
 export type { ClusterView } from './cluster/Cluster.js'
 export type { ClusterNode, NodeRole } from './cluster/ClusterDocument.js'
 export type { Core } from './Core.js'
