@@ -1,4 +1,4 @@
-import { createDataset, type Core, type CreateDatasetOptions } from '@minderal/core'
+import { createDataset, joinDataset, type Core, type CreateDatasetOptions, type JoinDatasetOptions } from '@minderal/core'
 import { afterEach, inject } from 'vitest'
 
 const opened: Core[] = []
@@ -12,11 +12,15 @@ export function freshHome(): string {
   return inject('runtime') === 'nodejs' ? `${inject('homeRoot')}/${id}` : `minderal-test-${id}`
 }
 
-export function track(core: Core): Core {
+export function track<Tracked extends Core>(core: Tracked): Tracked {
   opened.push(core)
   return core
 }
 
 export async function createTracked(options: CreateDatasetOptions = {}): Promise<Core> {
   return track(await createDataset({ home: freshHome(), ...options }))
+}
+
+export async function joinTracked(endpoint: string, options: JoinDatasetOptions = {}): Promise<Core> {
+  return track(await joinDataset(endpoint, { home: freshHome(), ...options }))
 }

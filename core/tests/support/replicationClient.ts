@@ -1,9 +1,8 @@
 import HttpAdapter from 'pouchdb-adapter-http'
 import MemoryAdapter from 'pouchdb-adapter-memory'
-import PouchDB from 'pouchdb-core'
-import Replication from 'pouchdb-replication'
+import { withReplication } from '../../src/storage/replication.js'
 
-const ClientPouchDB = PouchDB.plugin(MemoryAdapter).plugin(HttpAdapter).plugin(Replication)
+const ClientPouchDB = withReplication().plugin(MemoryAdapter).plugin(HttpAdapter)
 
 export interface RemoteCredentials {
   readonly username: string

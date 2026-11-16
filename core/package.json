@@ -39,7 +39,6 @@
     "@vitest/browser-playwright": "^5.1.0",
     "playwright": "^1.65.1",
     "pouchdb-adapter-memory": "^9.0.0",
-    "pouchdb-replication": "^9.0.0",
     "typescript": "^7.0.2",
     "vitest": "^5.1.0"
   },
@@ -48,6 +47,7 @@
     "pouchdb-adapter-http": "^9.0.0",
     "pouchdb-adapter-indexeddb": "^9.0.0",
     "pouchdb-adapter-leveldb": "^9.0.0",
-    "pouchdb-core": "^9.0.0"
+    "pouchdb-core": "^9.0.0",
+    "pouchdb-replication": "^9.0.0"
   }
 }

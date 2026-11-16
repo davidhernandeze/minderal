@@ -1,0 +1,25 @@
+{
+  "name": "@minderal/app",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Development app for @minderal/core: watch a cluster and its data from a browser node",
+  "scripts": {
+    "dev": "vite",
+    "cluster": "tsx scripts/devCluster.ts",
+    "cluster:reset": "tsx scripts/devCluster.ts --reset",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "npm --prefix ../core run build && vue-tsc -b"
+  },
+  "dependencies": {
+    "vue": "^3.5.45"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "@vitejs/plugin-vue": "^6.0.11",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vite": "^8.3.8",
+    "vue-tsc": "^3.3.14"
+  }
+}

@@ -26,7 +26,7 @@ describe('a dataset stored in CouchDB', () => {
     expect(response.status).toBe(200)
     expect(await response.json()).toMatchObject({
       dataset: core.datasetId,
-      nodes: [{ id: core.nodeId, runtime, role: runtime === 'nodejs' ? 'orchestrator' : 'member' }],
+      nodes: [{ id: core.nodeId, runtime, role: runtime === 'nodejs' ? 'orchestrator' : 'member', coreVersion: expect.any(String) }],
     })
   })
 
@@ -47,7 +47,8 @@ describe('a dataset stored in CouchDB', () => {
     const created = await createTracked({ home, storage: { engine: 'couchdb', url }, credentials })
     await created.close()
 
-    const wrong = { username: credentials.username, password: 'wrong' }
+    // a user that does not exist: a wrong password for the real admin counts toward CouchDB's lockout
+    const wrong = { username: `nobody-${crypto.randomUUID()}`, password: 'wrong' }
     await expect(openDataset(created.datasetId, { home, credentials: wrong })).rejects.toThrow(StorageError)
   })
 })

@@ -1,7 +1,20 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
-import { readClusterDocument } from '../cluster/clusterStorage.js'
+import { parseAnnouncement, type ClusterDocument, type NodeAnnouncement } from '../cluster/ClusterDocument.js'
+import { NODE_HEADER } from '../cluster/delegate.js'
 import { HttpError, readJson, sendJson } from './http.js'
 import type { Mount } from './HttpListenerPool.js'
+import { serveInvocation, type Invocation } from './invoke.js'
+
+/** What the core serving a dataset provides to its endpoint. */
+export interface EndpointHost {
+  /** Browser origins allowed to call this endpoint; `*` allows any. */
+  readonly origins: readonly string[]
+  status(): Promise<ClusterDocument>
+  join(announcement: NodeAnnouncement): Promise<{ nodeId: string; cluster: unknown }>
+  announce(nodeId: string, announcement: NodeAnnouncement): Promise<unknown>
+  isMember(nodeId: string): boolean
+  invoke(capabilityId: string): Invocation | undefined
+}
 
 const DEFAULT_LONGPOLL_TIMEOUT = 60_000
 const MAX_LONGPOLL_TIMEOUT = 300_000
@@ -13,13 +26,19 @@ export class DatasetEndpoint implements Mount {
   private readonly database: PouchDB.Database
   private readonly datasetId: string
   private readonly name: string
+  private readonly host: EndpointHost
   private readonly waiters: Set<() => void>
 
-  constructor(database: PouchDB.Database, datasetId: string, name: string) {
+  constructor(database: PouchDB.Database, datasetId: string, name: string, host: EndpointHost) {
     this.database = database
     this.datasetId = datasetId
     this.name = name
+    this.host = host
     this.waiters = new Set()
+  }
+
+  allowsOrigin(origin: string): boolean {
+    return this.host.origins.includes('*') || this.host.origins.includes(origin)
   }
 
   close(): void {
@@ -36,10 +55,7 @@ export class DatasetEndpoint implements Mount {
       if (rest.length > 0) return this.attachment(method, id, rest.join('/'), response, query)
       return this.document(method, id, request, response, query)
     }
-    if (first === '_minderal') {
-      if (second === 'status' && rest.length === 0 && method === 'GET') return this.status(response)
-      throw new HttpError(404, 'not_found', 'Unknown path')
-    }
+    if (first === '_minderal') return this.cluster(method, second, rest, request, response)
     if (second !== undefined) {
       if (first.startsWith('_')) throw new HttpError(404, 'not_found', 'Unknown path')
       return this.attachment(method, first, [second, ...rest].join('/'), response, query)
@@ -81,9 +97,39 @@ export class DatasetEndpoint implements Mount {
     throw new HttpError(403, 'forbidden', 'Datasets are managed by their core')
   }
 
-  private async status(response: ServerResponse): Promise<void> {
-    const cluster = await readClusterDocument(this.database, this.datasetId)
-    sendJson(response, 200, { dataset: cluster.dataset, nodes: cluster.nodes })
+  private async cluster(
+    method: string,
+    action: string | undefined,
+    rest: readonly string[],
+    request: IncomingMessage,
+    response: ServerResponse,
+  ): Promise<void> {
+    if (action === 'status' && rest.length === 0 && method === 'GET') {
+      const cluster = await this.host.status()
+      return sendJson(response, 200, { dataset: cluster.dataset, nodes: cluster.nodes })
+    }
+    if (action === 'join' && rest.length === 0 && method === 'POST') {
+      const body = await readJson(request)
+      const announcement = parse(() => parseAnnouncement(field(body, 'node')))
+      return sendJson(response, 201, { dataset: this.datasetId, ...(await this.host.join(announcement)) })
+    }
+    if (action === 'announce' && rest.length === 0 && method === 'POST') {
+      const body = await readJson(request)
+      const nodeId = field(body, 'nodeId')
+      if (typeof nodeId !== 'string') throw new HttpError(400, 'bad_request', 'An announcement needs the nodeId')
+      const announcement = parse(() => parseAnnouncement(field(body, 'node')))
+      return sendJson(response, 200, { cluster: await this.host.announce(nodeId, announcement) })
+    }
+    if (action === 'invoke' && rest.length === 1 && method === 'POST') {
+      const caller = request.headers[NODE_HEADER]
+      if (typeof caller !== 'string' || !this.host.isMember(caller)) {
+        throw new HttpError(403, 'forbidden', 'Only nodes of this cluster may delegate capabilities to it')
+      }
+      const invocation = this.host.invoke(rest[0] ?? '')
+      if (invocation === undefined) throw new HttpError(404, 'capability_unavailable', `This node cannot perform ${rest[0]} for others`)
+      return serveInvocation(invocation, request, response)
+    }
+    throw new HttpError(404, 'not_found', 'Unknown path')
   }
 
   private async changes(request: IncomingMessage, response: ServerResponse, query: URLSearchParams, body: unknown): Promise<void> {
@@ -197,6 +243,18 @@ export class DatasetEndpoint implements Mount {
       return sendJson(response, 201, result)
     }
     throw new HttpError(405, 'method_not_allowed', `${method} is not allowed on documents`)
+  }
+}
+
+function field(body: unknown, name: string): unknown {
+  return typeof body === 'object' && body !== null && name in body ? (body as Record<string, unknown>)[name] : undefined
+}
+
+function parse<Value>(read: () => Value): Value {
+  try {
+    return read()
+  } catch (error) {
+    throw new HttpError(400, 'bad_request', error instanceof Error ? error.message : String(error))
   }
 }
 

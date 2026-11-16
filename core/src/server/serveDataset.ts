@@ -1,4 +1,4 @@
-import { DatasetEndpoint } from './DatasetEndpoint.js'
+import { DatasetEndpoint, type EndpointHost } from './DatasetEndpoint.js'
 import { HttpListenerPool, type ListenerHandle } from './HttpListenerPool.js'
 import type { ServeOptions } from '../capabilities/serve/contract.js'
 
@@ -10,18 +10,26 @@ export interface ServedDataset {
   stop(): Promise<void>
 }
 
-export async function serveDataset(database: PouchDB.Database, datasetId: string, options: ServeOptions): Promise<ServedDataset> {
+export async function serveDataset(
+  database: PouchDB.Database,
+  datasetId: string,
+  options: ServeOptions,
+  endpointHost: EndpointHost,
+): Promise<ServedDataset> {
   const host = options.host ?? '127.0.0.1'
   const port = options.port ?? 0
   if (!Number.isInteger(port) || port < 0 || port > 65535) throw new TypeError(`Invalid port ${port}`)
   if (WILDCARD_HOSTS.has(host) && options.publicUrl === undefined) {
     throw new TypeError(`Serving on all interfaces (${host}) needs a publicUrl to advertise to other nodes`)
   }
+  for (const origin of options.origins ?? []) {
+    if (origin !== '*' && new URL(origin).origin !== origin) throw new TypeError(`${origin} is not an origin, like http://localhost:5173`)
+  }
   const publicBase = options.publicUrl === undefined ? undefined : new URL(options.publicUrl)
   const name = `minderal-${datasetId}`
   const listener: ListenerHandle = await listeners.acquire(host, port)
   try {
-    listener.mount(name, new DatasetEndpoint(database, datasetId, name))
+    listener.mount(name, new DatasetEndpoint(database, datasetId, name, endpointHost))
   } catch (error) {
     await listener.release()
     throw error

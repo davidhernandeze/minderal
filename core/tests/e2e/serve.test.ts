@@ -1,4 +1,4 @@
-import { CapabilityUnavailableError, openDataset } from '@minderal/core'
+import { capabilities, CapabilityUnavailableError, joinDataset, openDataset } from '@minderal/core'
 import { describe, expect, inject, it } from 'vitest'
 import { createTracked, freshHome, track } from '../support/datasets.js'
 
@@ -9,7 +9,7 @@ describe.runIf(runtime === 'browser')('core.serve() on a BrowserCore', () => {
     const core = await createTracked()
     const failure = core.serve()
     await expect(failure).rejects.toThrow(CapabilityUnavailableError)
-    await expect(failure).rejects.toMatchObject({ capability: 'serve' })
+    await expect(failure).rejects.toMatchObject({ capability: capabilities.serve.id })
   })
 })
 
@@ -18,7 +18,7 @@ describe.runIf(runtime === 'nodejs')('core.serve() on a ServerCore', () => {
     const core = await createTracked()
     const url = await core.serve()
     expect(url).toMatch(new RegExp(`^http://127\\.0\\.0\\.1:\\d+/minderal-${core.datasetId}$`))
-    expect(core.cluster.nodes).toEqual([{ id: core.nodeId, runtime: 'nodejs', role: 'orchestrator', endpoint: url }])
+    expect(core.cluster.nodes).toEqual([expect.objectContaining({ id: core.nodeId, runtime: 'nodejs', role: 'orchestrator', endpoint: url })])
   })
 
   it('returns the same endpoint when asked to serve again, even concurrently', async () => {
@@ -47,6 +47,67 @@ describe.runIf(runtime === 'nodejs')('core.serve() on a ServerCore', () => {
   it('refuses to bind every interface without a publicUrl to advertise', async () => {
     const core = await createTracked()
     await expect(core.serve({ host: '0.0.0.0' })).rejects.toThrow(TypeError)
+  })
+
+  it('lets no browser origin in by default', async () => {
+    const core = await createTracked()
+    const url = await core.serve()
+    const preflight = await fetch(`${url}/_changes`, {
+      method: 'OPTIONS',
+      headers: { origin: 'https://evil.example', 'access-control-request-method': 'GET' },
+    })
+    expect(preflight.status).toBe(403)
+    const read = await fetch(`${url}/_minderal/status`, { headers: { origin: 'https://evil.example' } })
+    expect(read.headers.get('access-control-allow-origin')).toBeNull()
+  })
+
+  it('lets the origins it was given in, with credentials, as PouchDB requires', async () => {
+    const core = await createTracked()
+    const url = await core.serve({ origins: ['http://localhost:5173'] })
+    const preflight = await fetch(`${url}/_bulk_docs`, {
+      method: 'OPTIONS',
+      headers: {
+        origin: 'http://localhost:5173',
+        'access-control-request-method': 'POST',
+        'access-control-request-headers': 'content-type',
+      },
+    })
+    expect(preflight.status).toBe(204)
+    expect(preflight.headers.get('access-control-allow-origin')).toBe('http://localhost:5173')
+    expect(preflight.headers.get('access-control-allow-credentials')).toBe('true')
+    expect(preflight.headers.get('access-control-allow-headers')).toBe('content-type')
+    const root = await fetch(new URL('/', url), { headers: { origin: 'http://localhost:5173' } })
+    expect(root.headers.get('access-control-allow-origin')).toBe('http://localhost:5173')
+  })
+
+  it('rejects origins that are not origins', async () => {
+    const core = await createTracked()
+    await expect(core.serve({ origins: ['http://localhost:5173/app'] })).rejects.toThrow(TypeError)
+  })
+
+  it('accepts joins and announcements only on the orchestrator', async () => {
+    const orchestrator = await createTracked()
+    const endpoint = await orchestrator.serve()
+    const member = track(await joinDataset(endpoint, { home: freshHome() }))
+    const memberUrl = await member.serve()
+    const join = await fetch(`${memberUrl}/_minderal/join`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ node: { name: 'x', runtime: 'browser', coreVersion: '0.0.0', capabilities: [] } }),
+    })
+    expect(join.status).toBe(403)
+    await expect.poll(() => orchestrator.cluster.nodes.find((node) => node.id === member.nodeId)?.endpoint).toBe(memberUrl)
+  })
+
+  it('performs capabilities only for nodes of its cluster', async () => {
+    const core = await createTracked()
+    const url = await core.serve()
+    const stranger = await fetch(`${url}/_minderal/invoke/fetch@1`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', 'x-minderal-node': crypto.randomUUID() },
+      body: JSON.stringify({ args: { url: 'http://127.0.0.1:1/' } }),
+    })
+    expect(stranger.status).toBe(403)
   })
 
   it('answers the cluster status endpoint', async () => {

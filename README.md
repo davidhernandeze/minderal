@@ -11,10 +11,11 @@ portability.
 
 ```
 core/     v5 core library — the active work. Start here: core/README.md
+app/      development app: joins a local dev cluster from Chrome and draws it (app/README.md)
 legacy/   every previous implementation, kept for reference only
 ```
 
-`legacy/` is read-only reference material. Nothing in `core/` imports from it.
+`legacy/` is read-only reference material. Nothing in `core/` or `app/` imports from it.
 
 | path | what it was |
 | --- | --- |

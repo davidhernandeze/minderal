@@ -12,7 +12,7 @@ export default defineConfig({
     alias: { '@minderal/core': entry },
   },
   test: {
-    globalSetup: ['tests/setup/httpServer.ts', 'tests/setup/couchdb.ts'],
+    globalSetup: ['tests/setup/httpServer.ts', 'tests/setup/couchdb.ts', 'tests/setup/clusterHarness.ts'],
     projects: [
       {
         extends: true,

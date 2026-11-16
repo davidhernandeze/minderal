@@ -1,4 +1,4 @@
-import { CapabilityUnavailableError, CoreError, NetworkError } from '@minderal/core'
+import { capabilities, CapabilityUnavailableError, CoreError, NetworkError } from '@minderal/core'
 import { describe, expect, inject, it } from 'vitest'
 import { createTracked } from '../support/datasets.js'
 
@@ -66,7 +66,7 @@ describe('core.fetch()', () => {
       const failure = (await createTracked()).fetch(`${server}/hello`)
       await expect(failure).rejects.toThrow(CapabilityUnavailableError)
       await expect(failure).rejects.toThrow(CoreError)
-      await expect(failure).rejects.toMatchObject({ capability: 'fetch' })
+      await expect(failure).rejects.toMatchObject({ capability: capabilities.fetch.id })
     })
   })
 })

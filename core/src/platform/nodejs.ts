@@ -1,16 +1,20 @@
 import { mkdirSync } from 'node:fs'
-import { homedir } from 'node:os'
+import { arch, homedir, hostname, release, type } from 'node:os'
 import { dirname, join } from 'node:path'
 import HttpAdapter from 'pouchdb-adapter-http'
 import LevelDbAdapter from 'pouchdb-adapter-leveldb'
-import PouchDB from 'pouchdb-core'
+import { CapabilitySet } from '../capabilities/CapabilitySet.js'
+import { fetchCapability } from '../capabilities/fetch/contract.js'
+import { fetchFromNodejs } from '../capabilities/fetch/nodejs.js'
+import { serveCapability } from '../capabilities/serve/contract.js'
 import { ServerCore } from '../ServerCore.js'
-import { openCouchDb } from '../storage/couchdb.js'
+import { openCouchDb, openEndpoint } from '../storage/couchdb.js'
 import type { Credentials, DatabaseLocation } from '../storage/DatabaseLocation.js'
 import { DatabasePool } from '../storage/DatabasePool.js'
+import { withReplication } from '../storage/replication.js'
 import type { Platform } from './Platform.js'
 
-const NodejsPouchDB = PouchDB.plugin(HttpAdapter).plugin(LevelDbAdapter)
+const NodejsPouchDB = withReplication().plugin(HttpAdapter).plugin(LevelDbAdapter)
 
 function openDatabase(location: DatabaseLocation): PouchDB.Database {
   switch (location.engine) {
@@ -31,12 +35,23 @@ function credentialsFromEnvironment(): Credentials | undefined {
   return { username, password }
 }
 
+const capabilities = new CapabilitySet<ServerCore>()
+  .with(fetchCapability, async (_core, url, options) => fetchFromNodejs(url, options))
+  .with(serveCapability, async (core, options) => core.startServing(options))
+
 export const nodejsPlatform: Platform = {
   runtime: 'nodejs',
   localEngine: 'leveldb',
   role: 'orchestrator',
   databases: new DatabasePool(openDatabase),
+  capabilities,
+  openRemote: (url) => openEndpoint(NodejsPouchDB, url),
   defaultHome: () => process.env.MINDERAL_HOME ?? join(homedir(), '.minderal'),
   defaultCredentials: credentialsFromEnvironment,
+  describeNode: () => ({
+    defaultName: hostname(),
+    userAgent: `Node.js/${process.versions.node}`,
+    os: `${type()} ${release()} (${arch()})`,
+  }),
   createCore: (context) => ServerCore.create(context),
 }

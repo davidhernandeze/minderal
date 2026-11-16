@@ -28,6 +28,19 @@ async function respond(request: IncomingMessage, response: ServerResponse): Prom
     response.end('hello')
     return
   }
+  if (path === '/stream') {
+    // numbered lines, one every `interval` ms: lets a test cut a forwarded body midway
+    const query = new URL(request.url ?? '/', 'http://localhost').searchParams
+    const chunks = Number(query.get('chunks') ?? '5')
+    const interval = Number(query.get('interval') ?? '20')
+    response.writeHead(200, { 'content-type': 'text/plain' })
+    for (let index = 0; index < chunks && !response.destroyed; index += 1) {
+      response.write(`chunk-${index}\n`)
+      await new Promise((resolve) => setTimeout(resolve, interval))
+    }
+    response.end()
+    return
+  }
   if (path === '/echo') {
     response.writeHead(200, { 'content-type': 'application/json' })
     response.end(

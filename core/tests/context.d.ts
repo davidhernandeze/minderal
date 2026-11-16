@@ -6,6 +6,7 @@ declare module 'vitest' {
     httpServerUrl: string
     closedServerUrl: string
     homeRoot: string
+    clusterHarnessUrl: string
     couchdb?: { url: string; credentials: Credentials }
   }
 }

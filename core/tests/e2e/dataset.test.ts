@@ -1,4 +1,5 @@
 import {
+  CORE_VERSION,
   CoreClosedError,
   createDataset,
   DatasetNotFoundError,
@@ -20,11 +21,30 @@ describe('createDataset()', () => {
     expect(core.isClosed).toBe(false)
   })
 
-  it('creates a cluster with the core as its only node', async () => {
-    const core = await createTracked()
+  it('creates a cluster with the core as its only node, describing itself', async () => {
+    const core = await createTracked({ name: 'Kitchen laptop' })
     expect(core.cluster.nodes).toEqual([
-      { id: core.nodeId, runtime, role: runtime === 'nodejs' ? 'orchestrator' : 'member' },
+      {
+        id: core.nodeId,
+        name: 'Kitchen laptop',
+        runtime,
+        role: runtime === 'nodejs' ? 'orchestrator' : 'member',
+        coreVersion: CORE_VERSION,
+        capabilities: runtime === 'nodejs' ? ['fetch@1', 'serve@1'] : [],
+        userAgent: expect.any(String),
+        os: expect.any(String),
+        joinedAt: expect.any(String),
+        announcedAt: expect.any(String),
+      },
     ])
+    expect(core.cluster.self?.id).toBe(core.nodeId)
+    expect(core.role).toBe(runtime === 'nodejs' ? 'orchestrator' : 'member')
+  })
+
+  it('names the node after where it runs unless told otherwise', async () => {
+    const core = await createTracked()
+    expect(core.cluster.self?.name).toEqual(expect.any(String))
+    expect(core.cluster.self?.name.length).toBeGreaterThan(0)
   })
 
   it('creates a new dataset on every call', async () => {
@@ -62,6 +82,14 @@ describe('openDataset()', () => {
     for (const { datasetId } of created) {
       expect(track(await openDataset(datasetId, { home })).datasetId).toBe(datasetId)
     }
+  })
+
+  it('records a new name given when reopening', async () => {
+    const home = freshHome()
+    const created = await createDataset({ home, name: 'Before' })
+    await created.close()
+    const reopened = track(await openDataset(created.datasetId, { home, name: 'After' }))
+    expect(reopened.cluster.self?.name).toBe('After')
   })
 
   it('lets several cores hold the same dataset, independently of each other', async () => {

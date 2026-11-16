@@ -3,8 +3,11 @@ import { HttpError, sendError, sendJson } from './http.js'
 
 export interface Mount {
   handle(request: IncomingMessage, response: ServerResponse, path: readonly string[], query: URLSearchParams): Promise<void>
+  allowsOrigin(origin: string): boolean
   close(): void
 }
+
+const CORS_MAX_AGE_SECONDS = 600
 
 class Listener {
   readonly server: Server
@@ -108,15 +111,49 @@ async function route(listener: Listener, request: IncomingMessage, response: Ser
     const url = new URL(request.url ?? '/', 'http://localhost')
     const path = url.pathname.split('/').filter((segment) => segment !== '').map(decodeURIComponent)
     const [name, ...rest] = path
+    const mount = name === undefined ? undefined : listener.mounts.get(name)
+    if (!applyCors(listener, mount, request, response)) return
     if (name === undefined) {
       if (request.method !== 'GET' && request.method !== 'HEAD') throw new HttpError(405, 'method_not_allowed', 'Only GET is allowed')
       sendJson(response, 200, { couchdb: 'Welcome', version: '3.4.0', vendor: { name: 'minderal' }, uuid: listener.uuid })
       return
     }
-    const mount = listener.mounts.get(name)
     if (mount === undefined) throw new HttpError(404, 'not_found', 'Database does not exist.')
     await mount.handle(request, response, rest, url.searchParams)
   } catch (error) {
     sendError(response, error)
   }
+}
+
+/**
+ * Cross-origin access for browser nodes. A dataset's own paths follow its mount's allowed origins; the
+ * server root, which replicators read for the server's identity, follows any mount's. Returns false when
+ * the request was a preflight and has been answered.
+ */
+function applyCors(listener: Listener, mount: Mount | undefined, request: IncomingMessage, response: ServerResponse): boolean {
+  const origin = request.headers.origin
+  if (origin === undefined) return true
+  const allowed =
+    mount === undefined ? [...listener.mounts.values()].some((candidate) => candidate.allowsOrigin(origin)) : mount.allowsOrigin(origin)
+  response.setHeader('vary', 'Origin')
+  if (allowed) {
+    response.setHeader('access-control-allow-origin', origin)
+    response.setHeader('access-control-allow-credentials', 'true')
+  }
+  if (request.method !== 'OPTIONS' || request.headers['access-control-request-method'] === undefined) return true
+  if (!allowed) {
+    response.writeHead(403)
+    response.end()
+    return false
+  }
+  response.setHeader('access-control-allow-methods', 'GET, HEAD, POST, PUT, DELETE')
+  const headers = request.headers['access-control-request-headers']
+  if (headers !== undefined) response.setHeader('access-control-allow-headers', headers)
+  if (request.headers['access-control-request-private-network'] === 'true') {
+    response.setHeader('access-control-allow-private-network', 'true')
+  }
+  response.setHeader('access-control-max-age', String(CORS_MAX_AGE_SECONDS))
+  response.writeHead(204)
+  response.end()
+  return false
 }
