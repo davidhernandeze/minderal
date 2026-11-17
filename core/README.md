@@ -83,7 +83,7 @@ const relay = await createDataset({ storage: { engine: 'none' } })     // Node.j
 // in a browser, or another Node.js process
 const member = await joinDataset('http://127.0.0.1:5985/minderal-<id>', { name: 'Phone' })
 const client = await joinDataset(endpoint, { storage: { engine: 'none' } })   // client mode: no copy
-await member.documents.put({ _id: 'note:1', title: 'Hello' })   // local first, synced in the background
+await member.dataset.put({ _id: 'neuron:1', title: 'Hello' })   // local first, synced in the background
 await member.sync()                                             // or right now, both ways
 const response = await member.fetch('https://example.com')      // a browser delegates it to a server node
 
@@ -122,13 +122,13 @@ holding the data, through `database@1`. `core.holdsData` is false, the node anno
 - Requests go to the best node holding the data — its own endpoint, or a relay through the
   orchestrator when it has none — and stick to the node that answered last while it can, so
   a client reads its own writes.
-- `core.documents` keeps its API and its errors (`DocumentConflictError`, `StorageError`). The
+- `core.dataset` keeps its API and its errors (`DocumentConflictError`, `StorageError`). The
   cluster adds its own: `CapabilityUnavailableError` while no node holding the data can be
   reached, and the delegation outcomes, `DelegationError` and `PartialResultError`.
 - `list()` reads the changes feed with documents, the replication API every holder answers;
-  fine for now, to be paged. `watch()` long-polls it; when a different node starts answering,
-  the watch restarts from that node's present, since sequences are per node, so changes made
-  during the switch can be missed but never repeat.
+  fine for now, to be paged. `watch()` holds nothing open: it hears the cluster's change
+  notices (see Changes). After its channel comes back from a gap, it asks each node it heard
+  from for what changed since, so nothing is lost; a change may then be told twice.
 - A client opens offline like any core; its documents throw `CapabilityUnavailableError`
   until the cluster is back.
 
@@ -140,7 +140,7 @@ accepts `{ home }` to use another one. The registry never stores credentials: pa
 `MINDERAL_COUCHDB_PASSWORD` on Node.js. For a joined dataset it also keeps the endpoint
 joined through, to find the cluster again.
 
-**Documents.** `core.documents` gives raw access — `get(id, { conflicts })`, `put`, `remove`,
+**Documents.** `core.dataset` — the dataset's documents — gives raw access — `get(id, { conflicts })`, `put`, `remove`,
 `list`, `watch(listener)` — so sync can be exercised and seen end to end, from the local copy
 or, in client mode, from the cluster. It is provisional and
 gives way to the neuron and template model. Ids starting with `_` are the system's and refused
@@ -189,11 +189,11 @@ founded in a browser has no orchestrator; its only node writes the document itse
   version, capability or endpoint — it announces again (`POST /_minderal/announce`), and the
   orchestrator records it. An announcement that cannot reach the orchestrator stays pending and
   goes out with the next sync.
-- *Sync.* Members replicate with the orchestrator continuously (live, retrying with backoff up
-  to 30 s) and on demand with `core.sync()`, which resolves once both directions are done and
-  throws `NetworkError` when the orchestrator cannot be reached. Writes never wait for the
-  network; conflicts resolve the CouchDB way, with the same winner everywhere and the losers
-  kept in `_conflicts`.
+- *Sync.* Members sync on their own whenever something changed — see Changes — and on demand
+  with `core.sync()`, which resolves once both directions are done and throws `NetworkError`
+  when the orchestrator cannot be reached. Writes never wait for the network; conflicts
+  resolve the CouchDB way, with the same winner everywhere and the losers kept in
+  `_conflicts`.
 
 ### Presence
 
@@ -205,6 +205,7 @@ a long-lived NDJSON response. The orchestrator welcomes it with lease terms, the
 | `welcome` | `{ heartbeatMs, leaseMs }` — the member renews with `POST /_minderal/channel/heartbeat` every `heartbeatMs` |
 | `presence` | who is online and since when, on every change |
 | `cluster` | the cluster document, revision history included, on connect and on every change |
+| `changed` | a change notice — see Changes |
 | `request` / `cancel` | relayed requests — see Relay |
 | `ping` | every heartbeat, so a member notices a dead connection |
 
@@ -217,6 +218,36 @@ to be online. `GET /_minderal/status` lists `online` too.
 
 Presence is live state: it is never written to the cluster document. Members store the
 pushed cluster document with its revisions as they are, so every copy converges.
+
+Presence also says where each copy is: members holding data send their changes feed position
+(`seq`) with every heartbeat — and a quarter second after it moves — and each `presence` entry
+carries the node's `seq` and `changedAt`. `core.cluster.seqOf(id)` answers it, and for the core
+itself from its own feed. Seqs of different nodes do not compare: each copy counts its own
+changes, pulled-in ones included.
+
+### Changes
+
+Nobody holds a request open waiting for changes. A node that applies writes to its copy tells
+the cluster in a **change notice**, `{ node, seq, changes: [{ id, deleted }] }`, gathered over
+100 ms and at most 200 documents each; the others pull when told.
+
+- **Only the node that applied a write tells**, never one relaying it, so each write is told
+  once: the orchestrator when it holds the data, or each member holding a copy when it does
+  not. Changes pulled in from another node are not told again.
+- **The orchestrator holds the data:** members push their writes to it as they happen (live
+  push reads only the member's own changes feed), the orchestrator applies them and sends its
+  notice down every channel, and every member pulls from it once.
+- **The orchestrator holds none:** a member's notice goes up its channel
+  (`POST /_minderal/channel/changed`) and the orchestrator passes it to everyone else. Each
+  holder then pulls **straight from the node that changed** — its endpoint, or
+  `<orchestrator>/_minderal/nodes/<node>/db` relayed over its channel — so a change does not
+  wait for other holders to pass it along. Checkpoints are per source, so this stays exact.
+- **Catching up.** When a member's channel (re)connects, it pulls from the orchestrator holding
+  the data, or from every holder online and tells them where its own copy is, so copies that
+  changed apart meet again. Members also pull every 30 heartbeats (5 min by default) in case a
+  notice was lost.
+- Pulls run one at a time per source; notices arriving meanwhile fold into one more pull.
+- Client-mode watchers take the documents straight from the notices — see Client mode.
 
 ### Relay
 
@@ -245,16 +276,16 @@ member that holds the data:
 Browser B ──sync──▶ Orchestrator (no data) ──relay──▶ Browser A (IndexedDB)
 ```
 
-- Members sync through the orchestrator exactly as before; they cannot tell. A requester is
-  never relayed to itself (members identify themselves with `x-minderal-node`), and keeps
-  being served by the same holder while it can, which keeps replication checkpoints useful.
+- Members pull from each other through it as changes are told — see Changes — and
+  `core.sync()` goes through it like any CouchDB endpoint. A requester is never relayed to
+  itself (members identify themselves with `x-minderal-node`), and keeps being served by the
+  same holder while it can, which keeps replication checkpoints useful.
 - With **no other holder online**, the endpoint answers 503: `core.sync()` throws
-  `CapabilityUnavailableError` for `database@1`, live sync retries, and writes stay local until
-  a peer is back.
+  `CapabilityUnavailableError` for `database@1`, and writes stay local until a peer is back.
 - **Joining** works with nobody holding the data: the newcomer gets the cluster document from
   the orchestrator, and its copy fills in once a holder is online. The first member to join
   is where the data starts.
-- The orchestrator's own `core.documents` works in client mode: through its members, relayed
+- The orchestrator's own `core.dataset` works in client mode: through its members, relayed
   over their channels.
 
 This lets a small server coordinate a cluster while storing nothing of it.
@@ -289,8 +320,11 @@ Endpoints under `/minderal-<id>/_minderal/`:
 | `POST announce` | `{ nodeId, node: announcement }` → `{ cluster }`; orchestrator only |
 | `POST invoke/<capability id>` | performs a capability for a node of the cluster (`x-minderal-node` header) — see Delegation |
 | `GET channel?node=<id>` | a member's channel — see Presence; orchestrator only |
-| `POST channel/heartbeat`, `POST channel/reply` | lease renewal; frames answering a relayed request |
+| `POST channel/heartbeat` | `{ node, seq? }` — lease renewal, and where the member's copy is |
+| `POST channel/changed` | `{ node, seq, changes }` — a member's change notice, passed to the others — see Changes |
+| `POST channel/reply` | frames answering a relayed request |
 | `POST relay/<node>/invoke/<capability id>` | performs a capability on a member through its channel — see Relay |
+| `… nodes/<node>/db/<CouchDB path>` | the CouchDB API of that one member, relayed to it, for pulling from it — see Changes |
 
 **Sync without CouchDB.** The endpoint implements the part of CouchDB's HTTP API that
 PouchDB replication uses (`src/database/couchApi.ts`, runtime-neutral, so a browser answers
@@ -466,8 +500,9 @@ core/
     dataset/
       lifecycle.ts                createDataset, openDataset, joinDataset
       Registry.ts                 the runtime's list of known datasets
-    documents/                    raw document access (provisional): Documents, over LocalStore
+      Dataset.ts                  core.dataset, raw document access (provisional), over LocalStore
                                   (own copy) or ClusterStore (client mode, through database@1)
+      PullScheduler.ts            one-shot pulls, one at a time per source
     database/couchApi.ts          CouchDB replication API over a PouchDB database, any runtime
     platform/
       Platform.ts                 what each runtime provides: engines, capabilities, node description
@@ -487,7 +522,8 @@ core/
       delegate.ts                 performs a capability on another node: routes, outcomes
       frames.ts                   the delegation wire protocol
       produceFrames.ts            runs a capability for another node, as frames
-      channel.ts                  channel messages and presence timing
+      channel.ts                  channel messages, change notices, presence timing
+      NoticeBatcher.ts            gathers writes into change notices
       ChannelClient.ts            a member's channel: reconnects, heartbeats
       RelayHub.ts                 the orchestrator's channels: presence, leases, relayed requests
       QualityLedger.ts            link quality measurements and candidate ranking

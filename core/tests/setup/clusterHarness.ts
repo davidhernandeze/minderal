@@ -128,7 +128,7 @@ async function handle(request: IncomingMessage, response: ServerResponse, cluste
     const member = cluster.members.get(target)
     const documentId = url.pathname.split('/').filter(Boolean).map(decodeURIComponent)[5]
     if (member === undefined || documentId === undefined) return send(response, 404, { error: 'unknown member' })
-    const document = await member.documents.get(documentId, { conflicts: true })
+    const document = await member.dataset.get(documentId, { conflicts: true })
     return document === undefined ? send(response, 404, { error: 'not_found' }) : send(response, 200, document)
   }
   if (action === 'members' && target !== undefined && extra === 'cluster' && method === 'GET') {
@@ -138,8 +138,8 @@ async function handle(request: IncomingMessage, response: ServerResponse, cluste
   }
   if (action === 'documents' && target !== undefined) {
     return withOrchestrator(cluster, async (orchestrator) => {
-      if (method === 'PUT') return send(response, 201, await orchestrator.documents.put({ ...(body as object), _id: target }))
-      const document = await orchestrator.documents.get(target, { conflicts: true })
+      if (method === 'PUT') return send(response, 201, await orchestrator.dataset.put({ ...(body as object), _id: target }))
+      const document = await orchestrator.dataset.get(target, { conflicts: true })
       return document === undefined ? send(response, 404, { error: 'not_found' }) : send(response, 200, document)
     })
   }

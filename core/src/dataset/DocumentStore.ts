@@ -1,6 +1,6 @@
-import type { DocumentChange, NewDocument, StoredDocument } from './Documents.js'
+import type { DocumentChange, NewDocument, StoredDocument } from './Dataset.js'
 
-/** Where `core.documents` reads and writes: the core's own copy, or the cluster's. */
+/** Where `core.dataset` reads and writes: the core's own copy, or the cluster's. */
 export interface DocumentStore {
   get(id: string, conflicts: boolean): Promise<StoredDocument | undefined>
   put(document: NewDocument): Promise<{ id: string; rev: string }>

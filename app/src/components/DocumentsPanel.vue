@@ -15,7 +15,7 @@ let reloading: ReturnType<typeof setTimeout> | undefined
 
 async function reload(): Promise<void> {
   try {
-    documents.value = (await props.core.documents.list()).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
+    documents.value = (await props.core.dataset.list()).sort((a, b) => String(b.createdAt ?? '').localeCompare(String(a.createdAt ?? '')))
   } catch (failure) {
     error.value = describe(failure)
   }
@@ -26,7 +26,7 @@ watch(
   (core) => {
     stopWatching?.()
     void reload()
-    stopWatching = core.documents.watch((change) => {
+    stopWatching = core.dataset.watch((change) => {
       flashed.value = new Set([...flashed.value, change.id])
       setTimeout(() => {
         const next = new Set(flashed.value)
@@ -49,14 +49,14 @@ const shown = computed(() =>
   filter.value === 'all' ? documents.value : documents.value.filter((document) => String(document.type ?? 'untyped') === filter.value),
 )
 
-async function addNote(): Promise<void> {
+async function addNeuron(): Promise<void> {
   const text = title.value.trim()
   if (text === '') return
   error.value = undefined
   try {
-    await props.core.documents.put({
-      _id: `note:${crypto.randomUUID()}`,
-      type: 'note',
+    await props.core.dataset.put({
+      _id: `neuron:${crypto.randomUUID()}`,
+      type: 'neuron',
       title: text,
       body: `Written in ${props.core.cluster.self?.name ?? 'the browser'}.`,
       tags: ['browser'],
@@ -70,7 +70,7 @@ async function addNote(): Promise<void> {
 
 async function toggle(document: StoredDocument): Promise<void> {
   try {
-    await props.core.documents.put({ ...document, done: document.done !== true })
+    await props.core.dataset.put({ ...document, done: document.done !== true })
   } catch (failure) {
     error.value = describe(failure)
   }
@@ -85,8 +85,8 @@ async function toggle(document: StoredDocument): Promise<void> {
         <option v-for="type in types" :key="type" :value="type">{{ type }}</option>
       </select>
     </header>
-    <form @submit.prevent="addNote">
-      <input v-model="title" placeholder="New note title" aria-label="New note title" />
+    <form @submit.prevent="addNeuron">
+      <input v-model="title" placeholder="New neuron title" aria-label="New neuron title" />
       <button type="submit">Add</button>
     </form>
     <p v-if="error" class="error">{{ error }}</p>

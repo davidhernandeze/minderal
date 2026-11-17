@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import type { ClusterNode, LinkQuality } from '@minderal/core'
-import { computed } from 'vue'
+import type { ClusterNode, LinkQuality, NodeSeq } from '@minderal/core'
+import { computed, onBeforeUnmount, ref } from 'vue'
 
 const props = defineProps<{
   node: ClusterNode
@@ -8,7 +8,27 @@ const props = defineProps<{
   quality: LinkQuality | undefined
   online: boolean
   since: string | undefined
+  seq: NodeSeq | undefined
 }>()
+
+const now = ref(Date.now())
+const clock = setInterval(() => (now.value = Date.now()), 1000)
+onBeforeUnmount(() => clearInterval(clock))
+
+/** CouchDB seqs are long opaque strings starting with the change count; local ones are plain numbers. */
+const seqLabel = computed(() => {
+  const seq = props.seq?.seq
+  if (seq === undefined) return undefined
+  return typeof seq === 'number' ? String(seq) : (seq.split('-')[0] ?? seq)
+})
+const changedAgo = computed(() => {
+  const changedAt = props.seq?.changedAt
+  if (changedAt === undefined) return undefined
+  const seconds = Math.max(0, Math.floor((now.value - Date.parse(changedAt)) / 1000))
+  if (seconds < 60) return `${seconds} s ago`
+  const minutes = Math.floor(seconds / 60)
+  return minutes < 60 ? `${minutes} min ago` : `${Math.floor(minutes / 60)} h ago`
+})
 
 const holdsData = computed(() => props.node.capabilities.includes('database@1'))
 const onlineFor = computed(() => {
@@ -69,6 +89,16 @@ const health = computed(() => {
       <dd>{{ online ? `online · ${onlineFor}` : 'offline' }}</dd>
       <dt>data</dt>
       <dd>{{ holdsData ? 'holds a copy' : node.role === 'orchestrator' ? 'none, relays to members' : 'none, client mode' }}</dd>
+      <template v-if="holdsData">
+        <dt>seq</dt>
+        <dd class="seq" :title="seq ? `changes feed at ${seq.seq}` : 'not heard from while online'">
+          <template v-if="seqLabel">
+            <span class="mono">{{ seqLabel }}</span>
+            <span v-if="changedAgo" class="ago"> · changed {{ changedAgo }}</span>
+          </template>
+          <template v-else>—</template>
+        </dd>
+      </template>
       <dt>id</dt>
       <dd class="mono" :title="node.id">{{ node.id.slice(0, 8) }}</dd>
     </dl>
@@ -159,6 +189,9 @@ dd {
 }
 .mono {
   font-family: var(--mono);
+}
+.ago {
+  color: var(--muted);
 }
 .capabilities {
   list-style: none;

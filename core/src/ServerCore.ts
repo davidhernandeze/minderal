@@ -1,11 +1,11 @@
 import { databaseCapability } from './capabilities/database/contract.js'
 import type { ServeOptions } from './capabilities/serve/contract.js'
-import type { Presence } from './cluster/channel.js'
+import type { ChangeNotice, Presence } from './cluster/channel.js'
 import { CLUSTER_DOCUMENT_ID, newNode, withAnnouncement, withNode, type NodeAnnouncement } from './cluster/ClusterDocument.js'
 import { readClusterDocument } from './cluster/clusterStorage.js'
 import { RelayHub } from './cluster/RelayHub.js'
 import { Core, type CoreContext } from './Core.js'
-import { errorResponse, handleCouchRequest, type CouchRequest, type CouchResponse } from './database/couchApi.js'
+import { errorResponse, type CouchRequest, type CouchResponse } from './database/couchApi.js'
 import { CouchError } from './database/CouchError.js'
 import { CapabilityUnavailableError } from './errors.js'
 import { HttpError } from './server/http.js'
@@ -19,6 +19,7 @@ export class ServerCore extends Core {
   private hub: RelayHub | undefined
   private unsubscribeCluster: (() => void) | undefined
   private broadcastRevision: string | undefined
+  private presenceTimer: ReturnType<typeof setTimeout> | undefined
   /** Which data holder each requester was last served by: replication goes smoother when it stays. */
   private readonly affinity: Map<string, string>
 
@@ -48,6 +49,7 @@ export class ServerCore extends Core {
 
   protected override async beforeClose(): Promise<void> {
     this.unsubscribeCluster?.()
+    clearTimeout(this.presenceTimer)
     this.hub?.close()
     this.hub = undefined
     const serving = this.serving
@@ -60,6 +62,18 @@ export class ServerCore extends Core {
       return
     }
     await served.stop()
+  }
+
+  /** As orchestrator, notices go straight down every member's channel. */
+  protected override async deliverNotice(notice: ChangeNotice): Promise<void> {
+    const hub = this.hub
+    if (hub === undefined) return super.deliverNotice(notice)
+    hub.broadcast({ t: 'changed', ...notice })
+  }
+
+  protected override seqMoved(): void {
+    if (this.hub === undefined) super.seqMoved()
+    else this.schedulePresence()
   }
 
   private async launch(options: ServeOptions): Promise<ServedDataset> {
@@ -103,8 +117,38 @@ export class ServerCore extends Core {
   }
 
   private presence(): Presence[] {
-    const self = { id: this.nodeId, since: this.cluster.onlineSince(this.nodeId) ?? new Date().toISOString() }
+    const seq = this.cluster.seqOf(this.nodeId)
+    const self: Presence = {
+      id: this.nodeId,
+      since: this.cluster.onlineSince(this.nodeId) ?? new Date().toISOString(),
+      ...(seq === undefined ? {} : { seq: seq.seq }),
+      ...(seq?.changedAt === undefined ? {} : { changedAt: seq.changedAt }),
+    }
     return [self, ...(this.hub?.presence() ?? [])]
+  }
+
+  /** Seqs move with every write: presence goes out at most every quarter second for them. */
+  private schedulePresence(): void {
+    const hub = this.hub
+    if (hub === undefined || this.presenceTimer !== undefined) return
+    this.presenceTimer = setTimeout(() => {
+      this.presenceTimer = undefined
+      if (this.hub !== hub) return
+      const online = this.presence()
+      this.adoptPresence(online)
+      hub.broadcast({ t: 'presence', online })
+    }, 250)
+    ;(this.presenceTimer as { unref?: () => void }).unref?.()
+  }
+
+  /** A member's copy changed: pass its notice to everyone else, and to this core's own watchers. */
+  private passOn(notice: ChangeNotice): boolean {
+    const hub = this.hub
+    if (hub === undefined || !hub.isOnline(notice.node)) return false
+    if (hub.progress(notice.node, notice.seq)) this.schedulePresence()
+    hub.broadcast({ t: 'changed', ...notice }, notice.node)
+    this.hearNotice({ t: 'notice', notice })
+    return true
   }
 
   private async pushClusterDocument(send: (message: { t: 'cluster'; document: unknown }) => void): Promise<void> {
@@ -128,7 +172,7 @@ export class ServerCore extends Core {
         if (entry === undefined || this.isClosed || (capabilityId === databaseCapability.id && !this.holdsData)) return undefined
         return { capability: entry.capability, run: async (args) => entry.run(this, args) }
       },
-      database: async (request, requester, signal) => this.answer(request, requester, signal),
+      database: async (request, requester, signal, target) => this.answer(request, requester, signal, target),
       channel: (nodeId, sink) => {
         const hub = this.hub
         if (hub === undefined) return undefined
@@ -137,7 +181,13 @@ export class ServerCore extends Core {
         this.inBackground(this.pushClusterDocument((message) => sink.send(message)))
         return disconnect
       },
-      heartbeat: (nodeId) => this.hub?.heartbeat(nodeId) ?? false,
+      heartbeat: (nodeId, seq) => {
+        const hub = this.hub
+        if (hub === undefined || !hub.heartbeat(nodeId)) return false
+        if (seq !== undefined && hub.progress(nodeId, seq)) this.schedulePresence()
+        return true
+      },
+      changed: (notice) => this.passOn(notice),
       reply: (nodeId, requestId, frames) => this.hub?.reply(nodeId, requestId, frames) ?? false,
       relay: async (nodeId, capabilityId, args, signal) => {
         const hub = this.hub
@@ -148,18 +198,17 @@ export class ServerCore extends Core {
   }
 
   /**
-   * Answers the CouchDB API: from the local copy, or — holding none — by relaying the request to an
-   * online member holding the data, other than the requester itself. With none online, 503: replicators
-   * retry, and the data is there again once a holder is.
+   * Answers the CouchDB API: from the local copy, or — holding none, or asked for another node — by
+   * relaying the request to an online member holding the data, other than the requester itself: `target`
+   * only when given. With none online, 503: replicators retry, and the data is there again once a holder is.
    */
-  private async answer(request: CouchRequest, requester: string | undefined, signal: AbortSignal): Promise<CouchResponse> {
-    if (this.holdsData) {
-      return handleCouchRequest({ database: this.database.database, name: `minderal-${this.datasetId}`, signal }, request)
-    }
+  private async answer(request: CouchRequest, requester: string | undefined, signal: AbortSignal, target?: string): Promise<CouchResponse> {
+    if (this.holdsData && (target === undefined || target === this.nodeId)) return this.answerLocally(request, signal)
     const hub = this.hub
     const holders = this.cluster
       .nodesWith(databaseCapability)
       .filter((node) => node.id !== this.nodeId && node.id !== requester && hub?.isOnline(node.id) === true)
+      .filter((node) => target === undefined || node.id === target)
     if (hub === undefined || holders.length === 0) {
       return errorResponse(new CouchError(503, 'unavailable', 'No node holding the data is online'))
     }
@@ -168,10 +217,10 @@ export class ServerCore extends Core {
       open: async (capabilityId: string, args: unknown, _selfId: string, routeSignal?: AbortSignal) =>
         hub.open(node.id, capabilityId, args, routeSignal ?? signal),
     }))
-    const prefer = requester === undefined ? undefined : this.affinity.get(requester)
+    const prefer = target ?? (requester === undefined ? undefined : this.affinity.get(requester))
     try {
       const response = await this.forwardTo(databaseCapability, [request], routes, prefer, signal, request.query.feed !== 'longpoll')
-      if (requester !== undefined) this.affinity.set(requester, response.servedBy)
+      if (requester !== undefined && target === undefined) this.affinity.set(requester, response.servedBy)
       return response.result
     } catch (error) {
       if (error instanceof CapabilityUnavailableError) {

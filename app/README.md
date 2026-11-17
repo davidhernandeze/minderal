@@ -24,16 +24,18 @@ yourself with `npm run cluster`). It runs real cores from `../core/src`:
 | Media box | Node.js member — a second node to delegate to | `127.0.0.1:5986` |
 | Desk | Node.js member that only syncs | — |
 
-- **Seed data.** The first run creates the dataset and seeds 24 notes and 4 tasks
+- **Seed data.** The first run creates the dataset and seeds 24 neurons and 4 tasks
   (`scripts/seed.ts`, deterministic). Later runs reopen the same dataset from `.dev-cluster/`,
   so what you do in the app survives restarts.
 - **Reset.** `npm run cluster:reset` wipes `.dev-cluster/` and seeds again. Then press
-  **Forget this dataset** in the app, since the browser still holds the old one.
+  **Forget this dataset** in the app, since the browser still holds the old one. Clusters
+  seeded before neurons replaced notes still hold `note:` documents; reset to get the new seed.
 - **Live activity.** `MINDERAL_DEV_ACTIVITY=on npm run dev` (or `npm run cluster -- --activity`)
-  writes a note every 5 s from the orchestrator, to watch live sync arrive.
+  writes a neuron every 5 s (from the orchestrator, or Media box in relay mode), to watch changes
+  arrive and every node's seq move.
 - **Relay mode.** `npm run dev:relay` runs the same cluster with an orchestrator that holds no
-  data (state in `.dev-cluster-relay/`): Desk seeds the data, and every sync — the browser's
-  included — is relayed by the orchestrator to an online member holding it. Stop the cluster
+  data (state in `.dev-cluster-relay/`): Desk seeds the data, and members pull from whichever
+  holder told of a change — the browser included, through the orchestrator's relay. Stop the cluster
   with the browser closed and its data waits; `npm run cluster:relay:reset` starts over.
 - **Presence.** Nodes renew a 6 s lease every 2 s here, so the diagram's online dots follow
   within seconds when a node comes or goes.
@@ -43,11 +45,14 @@ yourself with `npm run cluster`). It runs real cores from `../core/src`:
 
 ## Things to try
 
+- **Seq.** Each card holding data shows where its copy's changes feed is and when it last
+  moved — the browser's from its own feed, the others' from presence. Add a neuron and watch
+  every holder's seq follow. Seqs of different nodes do not compare: each counts its own changes.
 - **Client mode.** Untick *Keep a copy of the data in this browser* when joining: nothing is
   stored in the browser, every read and write goes to a node holding the data. The diagram
   draws the link it measured to that node.
-- **Offline.** Stop the dev server, add notes in the app, start it again: they reach the
-  orchestrator. Notes the orchestrator writes meanwhile (`--activity`) arrive in the browser.
+- **Offline.** Stop the dev server, add neurons in the app, start it again: they reach the
+  orchestrator. Neurons the orchestrator writes meanwhile (`--activity`) arrive in the browser.
 - **Delegation.** `core.fetch` in the side panel: the browser cannot fetch other origins freely,
   so it asks the fastest node that announces `fetch@1`. The diagram draws the links it measured,
   with their latency, and marks a node that just failed.

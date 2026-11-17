@@ -54,7 +54,7 @@ async function fetchThroughCluster(): Promise<void> {
     <div class="row">
       <button :disabled="syncing || !core.holdsData" @click="syncNow">{{ syncing ? 'Syncing…' : 'Sync now' }}</button>
       <span class="result">
-        {{ syncResult ?? (core.holdsData ? 'syncs live in the background' : 'client mode: nothing stored here to sync') }}
+        {{ syncResult ?? (core.holdsData ? 'syncs whenever the cluster tells of a change' : 'client mode: nothing stored here to sync') }}
       </span>
     </div>
     <form class="row" @submit.prevent="fetchThroughCluster">

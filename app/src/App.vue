@@ -5,7 +5,7 @@ import ClusterDiagram from './components/ClusterDiagram.vue'
 import DocumentsPanel from './components/DocumentsPanel.vue'
 import { useCore } from './composables/useCore'
 
-const { core, phase, error, devCluster, nodes, quality, isOnline, onlineSince, join, leave } = useCore()
+const { core, phase, error, devCluster, nodes, quality, isOnline, onlineSince, seqOf, join, leave } = useCore()
 const endpoint = ref('')
 const name = ref('')
 const keepCopy = ref(true)
@@ -68,6 +68,7 @@ watch(devCluster, (cluster) => {
       :quality="quality"
       :is-online="isOnline"
       :online-since="onlineSince"
+      :seq-of="seqOf"
     />
     <aside>
       <ActionsPanel :core="core" />

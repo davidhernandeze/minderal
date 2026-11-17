@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import { isSeq, parseChangeNotice, type ChangeNotice, type Presence, type Seq } from '../cluster/channel.js'
 import type { ChannelSink } from '../cluster/RelayHub.js'
 import { parseAnnouncement, type ClusterDocument, type NodeAnnouncement } from '../cluster/ClusterDocument.js'
 import { NODE_HEADER } from '../cluster/delegate.js'
@@ -12,16 +13,21 @@ import { pipeFrames, serveInvocation, type Invocation } from './invoke.js'
 export interface EndpointHost {
   /** Browser origins allowed to call this endpoint; `*` allows any. */
   readonly origins: readonly string[]
-  status(): Promise<{ cluster: ClusterDocument; online: readonly { id: string; since: string }[]; holdsData: boolean }>
+  status(): Promise<{ cluster: ClusterDocument; online: readonly Presence[]; holdsData: boolean }>
   join(announcement: NodeAnnouncement): Promise<{ nodeId: string; cluster: unknown }>
   announce(nodeId: string, announcement: NodeAnnouncement): Promise<unknown>
   isMember(nodeId: string): boolean
   invoke(capabilityId: string): Invocation | undefined
-  /** Answers a CouchDB API request: from the local copy, or relayed to a member holding the data. */
-  database(request: CouchRequest, requester: string | undefined, signal: AbortSignal): Promise<CouchResponse>
+  /**
+   * Answers a CouchDB API request: from the local copy, or relayed to a member holding the data — to
+   * `target` only when given, so a member can pull from one holder in particular.
+   */
+  database(request: CouchRequest, requester: string | undefined, signal: AbortSignal, target?: string): Promise<CouchResponse>
   /** Opens a member's channel; undefined when this node takes no channels (it is not the orchestrator). */
   channel(nodeId: string, sink: ChannelSink): (() => void) | undefined
-  heartbeat(nodeId: string): boolean
+  heartbeat(nodeId: string, seq: Seq | undefined): boolean
+  /** A member's copy changed: tell the others. False when the member has no open channel. */
+  changed(notice: ChangeNotice): boolean
   reply(nodeId: string, requestId: string, frames: readonly Frame[]): boolean
   /** Relays a capability request to a member connected by its channel. */
   relay(nodeId: string, capabilityId: string, args: unknown, signal: AbortSignal): Promise<Response>
@@ -48,7 +54,23 @@ export class DatasetEndpoint implements Mount {
 
   async handle(request: IncomingMessage, response: ServerResponse, path: readonly string[], query: URLSearchParams): Promise<void> {
     const method = request.method ?? 'GET'
+    // /_minderal/nodes/<node>/db/…: the CouchDB API of one node holding the data, relayed to it
+    if (path[0] === '_minderal' && path[1] === 'nodes' && path.length >= 4 && path[3] === 'db') {
+      this.requireMember(request)
+      return this.couch(method, path.slice(4), query, request, response, path[2])
+    }
     if (path[0] === '_minderal') return this.cluster(method, path.slice(1), query, request, response)
+    return this.couch(method, path, query, request, response, undefined)
+  }
+
+  private async couch(
+    method: string,
+    path: readonly string[],
+    query: URLSearchParams,
+    request: IncomingMessage,
+    response: ServerResponse,
+    target: string | undefined,
+  ): Promise<void> {
     const body = method === 'POST' || method === 'PUT' ? await readJson(request) : undefined
     const gone = new AbortController()
     response.on('close', () => gone.abort())
@@ -58,6 +80,7 @@ export class DatasetEndpoint implements Mount {
       { method, path, query: Object.fromEntries(query), ...(body === undefined ? {} : { body }) },
       requester,
       signal,
+      target,
     )
     await sendCouchResponse(response, await withHeartbeat(answer, response, query))
   }
@@ -103,8 +126,18 @@ export class DatasetEndpoint implements Mount {
     }
     if (action === 'channel' && rest.length === 0 && method === 'GET') return this.openChannel(query, request, response)
     if (action === 'channel' && rest[0] === 'heartbeat' && method === 'POST') {
-      const node = field(await readJson(request), 'node')
-      if (typeof node !== 'string' || !this.host.heartbeat(node)) throw new HttpError(404, 'not_found', 'No open channel for this node')
+      const body = await readJson(request)
+      const node = field(body, 'node')
+      const seq = field(body, 'seq')
+      if (typeof node !== 'string' || !this.host.heartbeat(node, isSeq(seq) ? seq : undefined)) {
+        throw new HttpError(404, 'not_found', 'No open channel for this node')
+      }
+      return sendJson(response, 200, { ok: true })
+    }
+    if (action === 'channel' && rest[0] === 'changed' && method === 'POST') {
+      const notice = parseChangeNotice(await readJson(request))
+      if (notice === undefined) throw new HttpError(400, 'bad_request', 'A change notice needs node, seq and changes')
+      if (!this.host.changed(notice)) throw new HttpError(404, 'not_found', 'No open channel for this node')
       return sendJson(response, 200, { ok: true })
     }
     if (action === 'channel' && rest[0] === 'reply' && method === 'POST') {

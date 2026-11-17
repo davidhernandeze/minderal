@@ -2,12 +2,19 @@ import type { Capability } from '../capabilities/Capability.js'
 import { resolveCapability, type CapabilityReference } from '../capabilities/methods.js'
 import { CapabilityUnavailableError } from '../errors.js'
 import type { ClusterDocument, ClusterNode } from './ClusterDocument.js'
-import type { Presence } from './channel.js'
+import type { Presence, Seq } from './channel.js'
 import { delegate, directRoute, relayedRoute, type Route } from './delegate.js'
 import { QualityLedger, type LinkQuality } from './QualityLedger.js'
 
 /** Relays a request to a node connected to this core's own channels — set on a serving orchestrator. */
 export type LocalRelay = (nodeId: string, capabilityId: string, args: unknown, selfId: string, signal?: AbortSignal) => Promise<Response>
+
+/** Where a node's changes feed is: it moves with every change to the node's copy, pulled-in ones included. */
+export interface NodeSeq {
+  readonly seq: Seq
+  /** ISO time it last moved, as far as this core heard. */
+  readonly changedAt: string | undefined
+}
 
 /** A core's live view of its cluster. */
 export interface ClusterView {
@@ -27,6 +34,11 @@ export interface ClusterView {
   isOnline(nodeId: string): boolean
   /** When a node came online, as an ISO time; undefined while it is not. */
   onlineSince(nodeId: string): string | undefined
+  /**
+   * Where a node's changes feed is, for nodes holding a copy that are online, and this core's own.
+   * Positions of different nodes do not compare: each copy counts its own changes.
+   */
+  seqOf(nodeId: string): NodeSeq | undefined
   /** Called whenever the nodes or the measured link qualities change. Returns the unsubscribe function. */
   subscribe(listener: () => void): () => void
 }
@@ -37,7 +49,8 @@ export class Cluster implements ClusterView {
   private readonly listeners: Set<() => void>
   private readonly ledger: QualityLedger
   private readonly startedAt: string
-  private online: ReadonlyMap<string, string>
+  private online: ReadonlyMap<string, Presence>
+  private ownSeq: NodeSeq | undefined
   private relay: LocalRelay | undefined
 
   constructor(document: ClusterDocument, selfId: string) {
@@ -88,15 +101,43 @@ export class Cluster implements ClusterView {
   }
 
   onlineSince(nodeId: string): string | undefined {
-    if (nodeId === this.selfId) return this.online.get(nodeId) ?? this.startedAt
-    return this.online.get(nodeId)
+    if (nodeId === this.selfId) return this.online.get(nodeId)?.since ?? this.startedAt
+    return this.online.get(nodeId)?.since
+  }
+
+  seqOf(nodeId: string): NodeSeq | undefined {
+    if (nodeId === this.selfId) return this.ownSeq
+    const entry = this.online.get(nodeId)
+    return entry?.seq === undefined ? undefined : { seq: entry.seq, changedAt: entry.changedAt }
   }
 
   /** Replaces who is online. */
   setPresence(online: readonly Presence[]): void {
-    const next = new Map(online.map((entry) => [entry.id, entry.since]))
-    const same = next.size === this.online.size && [...next].every(([id, since]) => this.online.get(id) === since)
+    const next = new Map(online.map((entry) => [entry.id, entry]))
+    const same =
+      next.size === this.online.size &&
+      [...next].every(([id, entry]) => {
+        const known = this.online.get(id)
+        return known !== undefined && known.since === entry.since && known.seq === entry.seq && known.changedAt === entry.changedAt
+      })
     if (same) return
+    this.online = next
+    this.notify()
+  }
+
+  /** Where this core's own changes feed is. */
+  setOwnSeq(seq: Seq, changedAt: string | undefined): void {
+    if (this.ownSeq?.seq === seq) return
+    this.ownSeq = { seq, changedAt }
+    this.notify()
+  }
+
+  /** Records a node's seq from a notice it sent, ahead of the next presence update. */
+  noteSeq(nodeId: string, seq: Seq): void {
+    const entry = this.online.get(nodeId)
+    if (entry === undefined || entry.seq === seq) return
+    const next = new Map(this.online)
+    next.set(nodeId, { ...entry, seq, changedAt: new Date().toISOString() })
     this.online = next
     this.notify()
   }

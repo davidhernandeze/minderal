@@ -1,9 +1,10 @@
+import type { WrittenChange } from '../database/couchApi.js'
 import { DocumentConflictError, StorageError } from '../errors.js'
 import type { DocumentStore } from './DocumentStore.js'
-import type { StoredDocument } from './Documents.js'
+import type { StoredDocument } from './Dataset.js'
 
 /** Documents in the core's own copy of the dataset. */
-export function localStore(database: PouchDB.Database, datasetId: string): DocumentStore {
+export function localStore(database: PouchDB.Database, datasetId: string, onWrite: (changes: WrittenChange[]) => void = () => undefined): DocumentStore {
   return {
     async get(id, conflicts) {
       try {
@@ -17,6 +18,7 @@ export function localStore(database: PouchDB.Database, datasetId: string): Docum
     async put(document) {
       try {
         const { id, rev } = await database.put({ ...document })
+        onWrite([{ id, deleted: false }])
         return { id, rev }
       } catch (error) {
         if (statusOf(error) === 409) throw new DocumentConflictError(datasetId, document._id)
@@ -27,6 +29,7 @@ export function localStore(database: PouchDB.Database, datasetId: string): Docum
     async remove(id, rev) {
       try {
         await database.remove(id, rev)
+        onWrite([{ id, deleted: true }])
       } catch (error) {
         if (statusOf(error) === 409) throw new DocumentConflictError(datasetId, id)
         throw new StorageError(datasetId, `remove document ${id}`, error)

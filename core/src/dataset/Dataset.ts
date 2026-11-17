@@ -28,7 +28,7 @@ export interface DocumentChange {
  * The same API whether the core holds a copy or not: a core without one — client mode — reads and writes
  * through a node of its cluster that holds the data.
  */
-export class Documents {
+export class Dataset {
   private readonly store: () => DocumentStore
   private readonly guard: () => void
   private readonly feeds: Set<() => void>

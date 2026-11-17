@@ -1,5 +1,5 @@
 import { encodeFrame, type Frame } from './frames.js'
-import type { ChannelMessage, Presence, PresenceTiming } from './channel.js'
+import type { ChannelMessage, Presence, PresenceTiming, Seq } from './channel.js'
 
 export interface ChannelSink {
   send(message: ChannelMessage): void
@@ -11,6 +11,8 @@ interface Channel {
   readonly sink: ChannelSink
   readonly since: Date
   lastHeartbeat: number
+  seq: Seq | undefined
+  changedAt: Date | undefined
 }
 
 interface Pending {
@@ -22,7 +24,7 @@ interface Pending {
   readonly firstFrame: (started: boolean) => void
 }
 
-/** Requests to a node wait this long for its first frame; long enough for a long-poll it answers. */
+/** Requests to a node wait this long for its first frame; long enough for a long-poll it answers, should anyone send one. */
 const FIRST_FRAME_TIMEOUT_MS = 300_000
 
 /**
@@ -52,7 +54,12 @@ export class RelayHub {
   }
 
   presence(): Presence[] {
-    return [...this.channels.values()].map((channel) => ({ id: channel.nodeId, since: channel.since.toISOString() }))
+    return [...this.channels.values()].map((channel) => ({
+      id: channel.nodeId,
+      since: channel.since.toISOString(),
+      ...(channel.seq === undefined ? {} : { seq: channel.seq }),
+      ...(channel.changedAt === undefined ? {} : { changedAt: channel.changedAt.toISOString() }),
+    }))
   }
 
   isOnline(nodeId: string): boolean {
@@ -66,7 +73,14 @@ export class RelayHub {
       return () => undefined
     }
     const previous = this.channels.get(nodeId)
-    const channel: Channel = { nodeId, sink, since: previous?.since ?? new Date(), lastHeartbeat: Date.now() }
+    const channel: Channel = {
+      nodeId,
+      sink,
+      since: previous?.since ?? new Date(),
+      lastHeartbeat: Date.now(),
+      seq: previous?.seq,
+      changedAt: previous?.changedAt,
+    }
     this.channels.set(nodeId, channel)
     if (previous !== undefined) this.drop(previous, false)
     sink.send({ t: 'welcome', heartbeatMs: this.timing.heartbeatMs, leaseMs: this.timing.leaseMs })
@@ -83,8 +97,17 @@ export class RelayHub {
     return true
   }
 
-  broadcast(message: ChannelMessage): void {
-    for (const channel of this.channels.values()) channel.sink.send(message)
+  /** Records where a member's changes feed is. Returns whether it moved, which presence then shows. */
+  progress(nodeId: string, seq: Seq): boolean {
+    const channel = this.channels.get(nodeId)
+    if (channel === undefined || channel.seq === seq) return false
+    channel.seq = seq
+    channel.changedAt = new Date()
+    return true
+  }
+
+  broadcast(message: ChannelMessage, except?: string): void {
+    for (const channel of this.channels.values()) if (channel.nodeId !== except) channel.sink.send(message)
   }
 
   /**

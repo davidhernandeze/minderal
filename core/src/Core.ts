@@ -4,12 +4,13 @@ import { fetchCapability, parseHttpUrl, type FetchOptions } from './capabilities
 import { bindCapabilityMethod } from './capabilities/methods.js'
 import type { Capability } from './capabilities/Capability.js'
 import { serveCapability, type ServeOptions } from './capabilities/serve/contract.js'
-import { isPresenceList, type ChannelMessage, type Presence, type PresenceTiming } from './cluster/channel.js'
+import { isPresenceList, parseChangeNotice, type ChangeNotice, type ChannelMessage, type Presence, type PresenceTiming } from './cluster/channel.js'
 import { ChannelClient } from './cluster/ChannelClient.js'
 import { Cluster, type ClusterView, type LocalRelay } from './cluster/Cluster.js'
 import type { Route } from './cluster/delegate.js'
 import { callCluster } from './cluster/clusterClient.js'
 import { serializeError } from './cluster/frames.js'
+import { NoticeBatcher } from './cluster/NoticeBatcher.js'
 import { produceFrames } from './cluster/produceFrames.js'
 import {
   CLUSTER_DOCUMENT_ID,
@@ -21,11 +22,12 @@ import {
   type NodeRole,
 } from './cluster/ClusterDocument.js'
 import { updateClusterDocument } from './cluster/clusterStorage.js'
-import { handleCouchRequest, type CouchRequest, type CouchResponse } from './database/couchApi.js'
-import { clusterStore } from './documents/ClusterStore.js'
-import { Documents } from './documents/Documents.js'
-import type { DocumentStore } from './documents/DocumentStore.js'
-import { localStore } from './documents/LocalStore.js'
+import { handleCouchRequest, writtenChanges, type CouchRequest, type CouchResponse, type WrittenChange } from './database/couchApi.js'
+import { clusterStore, type NoticeEvent } from './dataset/ClusterStore.js'
+import { Dataset } from './dataset/Dataset.js'
+import type { DocumentStore } from './dataset/DocumentStore.js'
+import { localStore } from './dataset/LocalStore.js'
+import { PullScheduler } from './dataset/PullScheduler.js'
 import { CapabilityUnavailableError, ClusterError, CoreClosedError, NetworkError } from './errors.js'
 import type { Platform } from './platform/Platform.js'
 import type { Runtime } from './Runtime.js'
@@ -61,12 +63,15 @@ export const answerDatabase: unique symbol = Symbol('answerDatabase')
 
 const LIVE_SYNC_MAX_BACKOFF_MS = 30_000
 
+/** Members pull this many heartbeats apart even without notices, in case one was lost. */
+const FALLBACK_PULL_HEARTBEATS = 30
+
 export abstract class Core {
   abstract readonly runtime: Runtime
   readonly datasetId: string
   readonly nodeId: string
-  /** Raw document access; provisional until the neuron model lands. */
-  readonly documents: Documents
+  /** The dataset's documents: raw access, provisional until the neuron model lands. */
+  readonly dataset: Dataset
   /** Whether this core holds a copy of the dataset. An orchestrator may hold none and serve its members' data. */
   readonly holdsData: boolean
   protected readonly database: DatabaseHandle
@@ -78,7 +83,13 @@ export abstract class Core {
   private readonly lifetime: AbortController
   private readonly background: Set<Promise<unknown>>
   private clusterFeed: PouchDB.Core.Changes<object> | undefined
-  private liveSync: { readonly stop: () => Promise<void> } | undefined
+  private livePush: { readonly stop: () => Promise<void> } | undefined
+  private pulls: PullScheduler | undefined
+  private fallbackTimer: ReturnType<typeof setInterval> | undefined
+  /** Set on (re)connecting without orchestrator data: the next presence tells which holders to catch up from. */
+  private catchUpOnPresence: boolean
+  private readonly notices: NoticeBatcher
+  private readonly noticeListeners: Set<(event: NoticeEvent) => void>
   private channel: ChannelClient | undefined
   private readonly relayed: Map<string, AbortController>
   /** The node holding the data that answered this core last: asked first next time, to read its own writes. */
@@ -101,10 +112,20 @@ export abstract class Core {
     this.relayed = new Map()
     this.announcementPending = false
     this.closed = false
+    this.catchUpOnPresence = false
+    this.notices = new NoticeBatcher(async (changes) => this.sendNotice(changes))
+    this.noticeListeners = new Set()
     const store: DocumentStore = this.holdsData
-      ? localStore(this.database.database, this.datasetId)
-      : clusterStore(async (request, signal) => this.askForData(request, signal), this.datasetId)
-    this.documents = new Documents(
+      ? localStore(this.database.database, this.datasetId, (changes) => this.noteWrites(changes))
+      : clusterStore(
+          async (request, signal, node) => this.askForData(request, signal, node),
+          (listener) => {
+            this.noticeListeners.add(listener)
+            return () => this.noticeListeners.delete(listener)
+          },
+          this.datasetId,
+        )
+    this.dataset = new Dataset(
       () => store,
       () => this.ensureOpen(),
     )
@@ -131,9 +152,10 @@ export abstract class Core {
   }
 
   /**
-   * Syncs with the cluster now, both ways, and resolves once done. Members also sync continuously in the
-   * background while they can reach the cluster; this is for when you need to know it happened. A core
-   * with nowhere to sync to — an orchestrator, a dataset of one — reports nothing moved.
+   * Syncs with the cluster now, both ways, and resolves once done. Members also sync on their own while
+   * they can reach the cluster — pulling whenever a change notice arrives — so this is for when you need
+   * to know it happened. A core with nowhere to sync to — an orchestrator, a dataset of one — reports
+   * nothing moved.
    */
   async sync(): Promise<SyncReport> {
     this.ensureOpen()
@@ -158,11 +180,15 @@ export abstract class Core {
     this.closed = true
     this.lifetime.abort()
     try {
-      this.documents.stopWatching()
+      this.dataset.stopWatching()
+      this.noticeListeners.clear()
+      this.notices.close()
+      clearInterval(this.fallbackTimer)
       this.clusterFeed?.cancel()
       for (const relayed of this.relayed.values()) relayed.abort()
       await this.channel?.stop()
-      await this.liveSync?.stop()
+      await this.pulls?.close()
+      await this.livePush?.stop()
       await Promise.allSettled([...this.background])
       await this.beforeClose()
     } finally {
@@ -171,20 +197,77 @@ export abstract class Core {
   }
 
   async [startCore](): Promise<void> {
-    this.watchClusterDocument()
+    await this.followOwnChanges()
     if (this.writesClusterDocument()) {
       await this.announce()
       return
     }
-    this.startLiveSync()
+    if (this.holdsData) {
+      this.pulls = new PullScheduler(this.database.database, (url) => this.platform.openRemote(url, this.nodeId))
+      if (this.orchestratorHoldsData()) this.startLivePush()
+    }
     this.openChannel()
     this.inBackground(this.announce())
   }
 
   async [answerDatabase](request: CouchRequest): Promise<CouchResponse> {
     if (!this.holdsData) throw new CapabilityUnavailableError(databaseCapability.id)
+    return this.answerLocally(request, this.lifetime.signal)
+  }
+
+  /** Answers a CouchDB API request from this core's copy, telling the cluster about what it wrote. */
+  protected async answerLocally(request: CouchRequest, signal: AbortSignal): Promise<CouchResponse> {
     // long-polls end when the core closes; a cancelled relay is not passed down yet, so its wait runs out instead
-    return handleCouchRequest({ database: this.database.database, name: `minderal-${this.datasetId}`, signal: this.lifetime.signal }, request)
+    const response = await handleCouchRequest({ database: this.database.database, name: `minderal-${this.datasetId}`, signal }, request)
+    this.noteWrites(writtenChanges(request, response))
+    return response
+  }
+
+  /**
+   * Writes applied to this core's copy, to tell the cluster about. Only the node that applies a write
+   * tells: the orchestrator when it holds the data — members' writes reach it by their push — or, when
+   * it holds none, each member holding a copy, whose notices it passes on.
+   */
+  protected noteWrites(changes: readonly WrittenChange[]): void {
+    if (changes.length > 0 && this.emitsNotices()) this.notices.add(changes)
+  }
+
+  /** Passes a notice on to this core's own listeners: client-mode watchers. */
+  protected hearNotice(event: NoticeEvent): void {
+    for (const listener of [...this.noticeListeners]) {
+      try {
+        listener(event)
+      } catch {
+        // a failing listener must not break the others
+      }
+    }
+  }
+
+  /** Sends this core's notice where it goes: up its channel; an orchestrator overrides it to broadcast. */
+  protected async deliverNotice(notice: ChangeNotice): Promise<void> {
+    await this.channel?.notify(notice)
+  }
+
+  /** Where this core's changes feed moved: members report it on their heartbeat; an orchestrator overrides. */
+  protected seqMoved(): void {
+    this.channel?.reportSoon()
+  }
+
+  protected orchestratorHoldsData(): boolean {
+    return this.clusterState.orchestrator?.capabilities.includes(databaseCapability.id) === true
+  }
+
+  private emitsNotices(): boolean {
+    if (!this.holdsData) return false
+    const orchestrator = this.clusterState.orchestrator
+    if (orchestrator === undefined) return false
+    return orchestrator.id === this.nodeId || !this.orchestratorHoldsData()
+  }
+
+  private async sendNotice(changes: readonly WrittenChange[]): Promise<void> {
+    if (this.closed) return
+    const { update_seq: seq } = await this.database.database.info()
+    await this.deliverNotice({ node: this.nodeId, seq, changes })
   }
 
   /** How this node is set up, for capability availability probes. */
@@ -254,16 +337,16 @@ export abstract class Core {
   }
 
   /**
-   * Client mode: a CouchDB API request answered by a node holding the data, the one that answered last
-   * when it still can, so this core reads what it just wrote.
+   * Client mode: a CouchDB API request answered by a node holding the data — `node` when given, else
+   * the one that answered last when it still can, so this core reads what it just wrote.
    */
-  private async askForData(request: CouchRequest, signal?: AbortSignal): Promise<{ response: CouchResponse; servedBy: string }> {
+  private async askForData(request: CouchRequest, signal?: AbortSignal, node?: string): Promise<{ response: CouchResponse; servedBy: string }> {
     const lifetime = this.lifetime.signal
     const combined = signal === undefined ? lifetime : AbortSignal.any([signal, lifetime])
-    const routes = this.clusterState.routesFor(databaseCapability.id)
+    const routes = this.clusterState.routesFor(databaseCapability.id).filter((route) => node === undefined || route.node.id === node)
     if (routes.length === 0) throw new CapabilityUnavailableError(databaseCapability.id)
-    const { result, servedBy } = await this.forwardTo(databaseCapability, [request], routes, this.dataNode, combined, !isLongPoll(request))
-    this.dataNode = servedBy
+    const { result, servedBy } = await this.forwardTo(databaseCapability, [request], routes, node ?? this.dataNode, combined, !isLongPoll(request))
+    if (node === undefined) this.dataNode = servedBy
     return { response: result, servedBy }
   }
 
@@ -326,14 +409,7 @@ export abstract class Core {
     return this.clusterState.orchestrator?.endpoint ?? this.bootstrap[0]
   }
 
-  private watchClusterDocument(): void {
-    const feed = this.database.database.changes({ since: 'now', live: true, doc_ids: [CLUSTER_DOCUMENT_ID], include_docs: true })
-    feed.on('change', (change) => {
-      if (isClusterDocument(change.doc) && change.doc.dataset === this.datasetId) this.clusterState.update(change.doc)
-    })
-    feed.on('error', () => undefined)
-    this.clusterFeed = feed
-  }
+
 
   /**
    * The member's channel to its orchestrator: presence, cluster changes and relayed requests arrive on
@@ -344,20 +420,58 @@ export abstract class Core {
       nodeId: this.nodeId,
       endpoint: () => this.upstream(),
       onMessage: (message) => this.onChannelMessage(message),
-      onConnection: (connected) => {
-        if (!connected) this.clusterState.setPresence([])
-        else if (this.announcementPending && !this.closed) this.inBackground(this.announce())
-      },
+      onConnection: (connected) => (connected ? this.onConnected() : this.onDisconnected()),
+      ...(this.holdsData ? { seq: () => this.clusterState.seqOf(this.nodeId)?.seq } : {}),
     })
     this.channel = channel
     channel.start()
   }
 
+  /**
+   * The channel is up, maybe after a gap: catch up on what changed meanwhile — from the orchestrator
+   * when it holds the data; else from every holder online, which the presence list arriving next names,
+   * while telling them where this copy is so they pull from it — and keep pulling now and then.
+   */
+  private onConnected(): void {
+    if (this.closed) return
+    if (this.announcementPending) this.inBackground(this.announce())
+    this.hearNotice({ t: 'reconnected' })
+    if (this.pulls === undefined) return
+    if (this.orchestratorHoldsData()) this.pullFromOrchestrator()
+    else {
+      this.catchUpOnPresence = true
+      if (this.emitsNotices()) this.inBackground(this.sendNotice([]))
+    }
+  }
+
+  private onDisconnected(): void {
+    this.clusterState.setPresence([])
+    clearInterval(this.fallbackTimer)
+    this.fallbackTimer = undefined
+    this.catchUpOnPresence = false
+  }
+
   private onChannelMessage(message: ChannelMessage): void {
     switch (message.t) {
-      case 'presence':
-        if (isPresenceList(message.online)) this.clusterState.setPresence(message.online)
+      case 'welcome':
+        clearInterval(this.fallbackTimer)
+        if (this.pulls !== undefined) {
+          this.fallbackTimer = setInterval(() => this.pullEverywhere(), message.heartbeatMs * FALLBACK_PULL_HEARTBEATS)
+        }
         return
+      case 'presence':
+        if (!isPresenceList(message.online)) return
+        this.clusterState.setPresence(message.online)
+        if (this.catchUpOnPresence) {
+          this.catchUpOnPresence = false
+          this.pullEverywhere()
+        }
+        return
+      case 'changed': {
+        const notice = parseChangeNotice(message)
+        if (notice !== undefined) this.onNotice(notice)
+        return
+      }
       case 'cluster':
         this.inBackground(this.storePushedClusterDocument(message.document))
         return
@@ -399,30 +513,101 @@ export abstract class Core {
     }
   }
 
-  private startLiveSync(): void {
+  /**
+   * Another node's copy changed. Holding a copy, pull: from the orchestrator when it holds the data
+   * (its notices are the only ones), else straight from the node that changed — through the relay
+   * when it has no endpoint — so the change does not wait for other holders to pass it along.
+   */
+  private onNotice(notice: ChangeNotice): void {
+    if (notice.node === this.nodeId) return
+    this.clusterState.noteSeq(notice.node, notice.seq)
+    this.hearNotice({ t: 'notice', notice })
+    if (this.pulls === undefined) return
+    if (this.orchestratorHoldsData()) {
+      if (notice.node === this.clusterState.orchestrator?.id) this.pullFromOrchestrator()
+      return
+    }
+    this.pullFrom(notice.node)
+  }
+
+  private pullFromOrchestrator(): void {
     const upstream = this.upstream()
-    if (upstream === undefined || !this.holdsData) return
+    if (upstream !== undefined) this.pulls?.request(upstream)
+  }
+
+  private pullFrom(nodeId: string): void {
+    const node = this.clusterState.nodes.find((candidate) => candidate.id === nodeId)
+    const upstream = this.upstream()
+    if (node === undefined || !node.capabilities.includes(databaseCapability.id)) return
+    if (node.endpoint !== undefined) this.pulls?.request(node.endpoint)
+    else if (upstream !== undefined) this.pulls?.request(`${upstream.replace(/\/+$/, '')}/_minderal/nodes/${encodeURIComponent(nodeId)}/db`)
+  }
+
+  /** Catch-up and fallback: pull from the orchestrator holding the data, or from every holder online. */
+  private pullEverywhere(): void {
+    if (this.closed || this.pulls === undefined) return
+    if (this.orchestratorHoldsData()) {
+      this.pullFromOrchestrator()
+      return
+    }
+    for (const node of this.clusterState.nodesWith(databaseCapability)) {
+      if (node.id !== this.nodeId && this.clusterState.isOnline(node.id)) this.pullFrom(node.id)
+    }
+  }
+
+  /**
+   * With an orchestrator holding the data, members push their writes to it as they happen — reading
+   * only their own changes feed, so nothing is held open on the network — and it tells everyone.
+   */
+  private startLivePush(): void {
+    const upstream = this.upstream()
+    if (upstream === undefined) return
     const remote = this.platform.openRemote(upstream, this.nodeId)
-    const sync = this.database.database.sync(remote, {
+    const push = this.database.database.replicate.to(remote, {
       live: true,
       retry: true,
       back_off_function: (delay) => (delay === 0 ? 1000 : Math.min(delay * 2, LIVE_SYNC_MAX_BACKOFF_MS)),
     })
     const completed = new Promise<void>((resolve) => {
-      sync.on('complete', () => resolve())
-      sync.on('error', () => resolve())
+      push.on('complete', () => resolve())
+      push.on('error', () => resolve())
     })
-    sync.on('active', () => {
+    push.on('active', () => {
       if (this.announcementPending && !this.closed) this.inBackground(this.announce())
     })
-    this.liveSync = {
+    this.livePush = {
       stop: async () => {
-        sync.cancel()
+        push.cancel()
         await Promise.race([completed, new Promise((resolve) => setTimeout(resolve, 2000))])
         await remote.close().catch(() => undefined)
       },
     }
   }
+
+  /**
+   * Follows this core's own changes feed — local, nothing on the network — for two things: the cluster
+   * document, which every core keeps current from its copy, and where the feed is, which the cluster
+   * shows for every node holding a copy. One feed for both: each live feed costs a query per write.
+   */
+  private async followOwnChanges(): Promise<void> {
+    const database = this.database.database
+    if (this.holdsData) this.clusterState.setOwnSeq((await database.info()).update_seq, undefined)
+    const feed = database.changes({ since: 'now', live: true })
+    feed.on('change', (change) => {
+      if (change.id === CLUSTER_DOCUMENT_ID) this.inBackground(this.reloadClusterDocument())
+      if (!this.holdsData) return
+      this.clusterState.setOwnSeq(change.seq, new Date().toISOString())
+      this.seqMoved()
+    })
+    feed.on('error', () => undefined)
+    this.clusterFeed = feed
+  }
+
+  private async reloadClusterDocument(): Promise<void> {
+    const document: unknown = await this.database.database.get(CLUSTER_DOCUMENT_ID)
+    if (isClusterDocument(document) && document.dataset === this.datasetId) this.clusterState.update(document)
+  }
+
 
   private ensureOpen(): void {
     if (this.closed) throw new CoreClosedError(this.datasetId)

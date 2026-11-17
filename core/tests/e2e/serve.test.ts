@@ -115,7 +115,7 @@ describe.runIf(runtime === 'nodejs')('core.serve() on a ServerCore', () => {
     const url = await core.serve()
     const response = await fetch(`${url}/_minderal/status`)
     expect(response.status).toBe(200)
-    expect(await response.json()).toEqual({ dataset: core.datasetId, nodes: core.cluster.nodes, online: [{ id: core.nodeId, since: expect.any(String) }], holdsData: true })
+    expect(await response.json()).toEqual({ dataset: core.datasetId, nodes: core.cluster.nodes, online: [expect.objectContaining({ id: core.nodeId, since: expect.any(String), seq: expect.anything() })], holdsData: true })
   })
 
   it('identifies itself like a CouchDB server', async () => {

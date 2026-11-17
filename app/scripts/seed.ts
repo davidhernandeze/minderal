@@ -7,14 +7,14 @@ const verbs = ['Plan', 'Review', 'Sketch', 'Fix', 'Collect', 'Try']
 
 export function seedDocuments(): ({ _id: string } & Record<string, unknown>)[] {
   const createdAt = Date.parse('2026-11-01T09:00:00Z')
-  const notes = Array.from({ length: 24 }, (_, index) => {
+  const neurons = Array.from({ length: 24 }, (_, index) => {
     const topic = topics[index % topics.length] ?? 'Misc'
-    const verb = verbs[Math.floor(index / topics.length) % verbs.length] ?? 'Note'
+    const verb = verbs[Math.floor(index / topics.length) % verbs.length] ?? 'Neuron'
     return {
-      _id: `note:seed-${String(index + 1).padStart(2, '0')}`,
-      type: 'note',
+      _id: `neuron:seed-${String(index + 1).padStart(2, '0')}`,
+      type: 'neuron',
       title: `${verb} ${topic.toLowerCase()} ideas`,
-      body: `Seeded note ${index + 1} about ${topic.toLowerCase()}.`,
+      body: `Seeded neuron ${index + 1} about ${topic.toLowerCase()}.`,
       tags: [topic.toLowerCase(), index % 3 === 0 ? 'pinned' : 'inbox'],
       createdAt: new Date(createdAt + index * 3_600_000).toISOString(),
     }
@@ -26,5 +26,5 @@ export function seedDocuments(): ({ _id: string } & Record<string, unknown>)[] {
     done: index % 2 === 1,
     createdAt: new Date(createdAt + index * 86_400_000).toISOString(),
   }))
-  return [...notes, ...tasks]
+  return [...neurons, ...tasks]
 }

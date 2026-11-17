@@ -6,7 +6,7 @@
  *   member        "Desk"               Node.js member, not serving — a node that only syncs
  *
  * The first run creates the dataset and seeds it; later runs reopen the same dataset, so whatever you
- * do in the app survives restarts. `--reset` wipes it and starts over. `--activity` writes a note every
+ * do in the app survives restarts. `--reset` wipes it and starts over. `--activity` writes a neuron every
  * few seconds, to watch live sync arrive in the browser.
  *
  * DEV_CLUSTER_MODE=relay runs the orchestrator without a copy of the data: Desk holds and seeds it, and
@@ -70,16 +70,16 @@ async function main(): Promise<void> {
     let tick = 0
     setInterval(() => {
       tick += 1
-      void writer.documents.put({
-        _id: `note:activity-${Date.now()}`,
-        type: 'note',
+      void writer.dataset.put({
+        _id: `neuron:activity-${Date.now()}`,
+        type: 'neuron',
         title: `Activity #${tick}`,
         body: `Written by ${writer.cluster.self?.name ?? 'the dev cluster'} to show live sync.`,
         tags: ['activity'],
         createdAt: new Date().toISOString(),
       })
     }, activityMs)
-    console.log(`writing a note every ${activityMs} ms`)
+    console.log(`writing a neuron every ${activityMs} ms`)
   }
 
   const shutdown = async (): Promise<void> => {
@@ -98,12 +98,12 @@ async function create(): Promise<Core[]> {
     ...(relayMode ? { storage: { engine: 'none' } as const } : {}),
   })
   const endpoint = await orchestrator.serve({ host, port, origins })
-  if (!relayMode) for (const document of seedDocuments()) await orchestrator.documents.put(document)
+  if (!relayMode) for (const document of seedDocuments()) await orchestrator.dataset.put(document)
   const members: Core[] = []
   // relay mode: Desk joins first and seeds, so the next member already finds data to copy
   for (const plan of relayMode ? [...memberPlans].reverse() : memberPlans) {
     const member = await joinDataset(endpoint, { home: join(root, slug(plan.name)), name: plan.name })
-    if (relayMode && plan.name === 'Desk') for (const document of seedDocuments()) await member.documents.put(document)
+    if (relayMode && plan.name === 'Desk') for (const document of seedDocuments()) await member.dataset.put(document)
     if (plan.port !== undefined) await member.serve({ host, port: plan.port, origins })
     members.push(member)
   }

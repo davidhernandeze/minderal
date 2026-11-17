@@ -320,3 +320,35 @@ function parseJsonParameter(value: string | undefined): unknown {
     throw new CouchError(400, 'bad_request', 'Query parameter is not valid JSON')
   }
 }
+
+/** A document a request wrote: what a change notice tells others about. */
+export interface WrittenChange {
+  readonly id: string
+  readonly deleted: boolean
+}
+
+/**
+ * The documents a successful write request changed, system documents (`_local`, `_design`) left out.
+ * Empty for reads and refused writes.
+ */
+export function writtenChanges(request: CouchRequest, response: CouchResponse): WrittenChange[] {
+  if (response.status >= 400 || request.method === 'GET' || request.method === 'HEAD') return []
+  const [first, ...rest] = request.path
+  const body = typeof request.body === 'object' && request.body !== null ? (request.body as Record<string, unknown>) : {}
+  if (first === undefined) {
+    const id = typeof response.json === 'object' && response.json !== null ? (response.json as { id?: unknown }).id : undefined
+    return request.method === 'POST' && typeof id === 'string' && !id.startsWith('_') ? [{ id, deleted: body._deleted === true }] : []
+  }
+  if (first === '_bulk_docs') {
+    const docs = Array.isArray(body.docs) ? (body.docs as unknown[]) : []
+    return docs.flatMap((doc) => {
+      if (typeof doc !== 'object' || doc === null) return []
+      const { _id: id, _deleted: deleted } = doc as { _id?: unknown; _deleted?: unknown }
+      return typeof id === 'string' && !id.startsWith('_') ? [{ id, deleted: deleted === true }] : []
+    })
+  }
+  if (first.startsWith('_')) return []
+  if (rest.length > 0) return [{ id: first, deleted: false }]
+  if (request.method === 'DELETE') return [{ id: first, deleted: true }]
+  return [{ id: first, deleted: body._deleted === true }]
+}

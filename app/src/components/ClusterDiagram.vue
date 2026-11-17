@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ClusterNode, LinkQuality } from '@minderal/core'
+import type { ClusterNode, LinkQuality, NodeSeq } from '@minderal/core'
 import { computed } from 'vue'
 import NodeCard from './NodeCard.vue'
 
@@ -9,6 +9,7 @@ const props = defineProps<{
   quality: (nodeId: string) => LinkQuality | undefined
   isOnline: (nodeId: string) => boolean
   onlineSince: (nodeId: string) => string | undefined
+  seqOf: (nodeId: string) => NodeSeq | undefined
 }>()
 
 interface Placed {
@@ -94,6 +95,7 @@ function failing(quality: LinkQuality): boolean {
         :quality="quality(entry.node.id)"
         :online="isOnline(entry.node.id)"
         :since="onlineSince(entry.node.id)"
+        :seq="seqOf(entry.node.id)"
       />
     </div>
     <p class="legend">

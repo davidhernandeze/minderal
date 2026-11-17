@@ -1,4 +1,4 @@
-import { joinDataset, openDataset, type ClusterNode, type Core, type LinkQuality } from '@minderal/core'
+import { joinDataset, openDataset, type ClusterNode, type Core, type LinkQuality, type NodeSeq } from '@minderal/core'
 import { computed, onScopeDispose, ref, shallowRef, type ComputedRef, type Ref, type ShallowRef } from 'vue'
 
 const REMEMBERED = 'minderal-app:dataset'
@@ -19,6 +19,7 @@ export interface CoreState {
   readonly quality: (nodeId: string) => LinkQuality | undefined
   readonly isOnline: (nodeId: string) => boolean
   readonly onlineSince: (nodeId: string) => string | undefined
+  readonly seqOf: (nodeId: string) => NodeSeq | undefined
   join(endpoint: string, name: string, keepCopy: boolean): Promise<void>
   leave(): Promise<void>
 }
@@ -59,6 +60,11 @@ export function useCore(): CoreState {
   function onlineSince(nodeId: string): string | undefined {
     void revision.value
     return core.value?.cluster.onlineSince(nodeId)
+  }
+
+  function seqOf(nodeId: string): NodeSeq | undefined {
+    void revision.value
+    return core.value?.cluster.seqOf(nodeId)
   }
 
   async function join(endpoint: string, name: string, keepCopy: boolean): Promise<void> {
@@ -107,7 +113,7 @@ export function useCore(): CoreState {
     void core.value?.close()
   })
 
-  return { core, phase, error, devCluster, nodes, quality, isOnline, onlineSince, join, leave }
+  return { core, phase, error, devCluster, nodes, quality, isOnline, onlineSince, seqOf, join, leave }
 }
 
 async function loadDevCluster(): Promise<DevCluster | undefined> {

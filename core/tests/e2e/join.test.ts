@@ -30,9 +30,9 @@ describe('joinDataset()', () => {
 
   it('copies the dataset into local storage', async () => {
     const cluster = await HarnessCluster.start()
-    await cluster.put('note:1', { title: 'Written before joining' })
+    await cluster.put('neuron:1', { title: 'Written before joining' })
     const core = await joinTracked(cluster.endpoint)
-    expect(await core.documents.get('note:1')).toMatchObject({ title: 'Written before joining' })
+    expect(await core.dataset.get('neuron:1')).toMatchObject({ title: 'Written before joining' })
   })
 
   it('opens the dataset instead when this runtime already joined it', async () => {
@@ -81,21 +81,21 @@ describe('sync between a member and its orchestrator', () => {
   it('pushes and pulls documents on core.sync()', async () => {
     const cluster = await HarnessCluster.start()
     const core = await joinTracked(cluster.endpoint)
-    await core.documents.put({ _id: 'from:member', value: 1 })
+    await core.dataset.put({ _id: 'from:member', value: 1 })
     await cluster.put('from:orchestrator', { value: 2 })
 
     await core.sync()
     expect(await cluster.get('from:member')).toMatchObject({ value: 1 })
-    expect(await core.documents.get('from:orchestrator')).toMatchObject({ value: 2 })
+    expect(await core.dataset.get('from:orchestrator')).toMatchObject({ value: 2 })
   })
 
   it('syncs live in the background', async () => {
     const cluster = await HarnessCluster.start()
     const core = await joinTracked(cluster.endpoint)
     await cluster.put('live:1', { value: 'arrives by itself' })
-    await expect.poll(async () => core.documents.get('live:1'), { timeout: 5000 }).toMatchObject({ value: 'arrives by itself' })
+    await expect.poll(async () => core.dataset.get('live:1'), { timeout: 5000 }).toMatchObject({ value: 'arrives by itself' })
 
-    await core.documents.put({ _id: 'live:2', value: 'and leaves by itself' })
+    await core.dataset.put({ _id: 'live:2', value: 'and leaves by itself' })
     await expect.poll(async () => cluster.get('live:2'), { timeout: 5000 }).toMatchObject({ value: 'and leaves by itself' })
   })
 
@@ -104,8 +104,8 @@ describe('sync between a member and its orchestrator', () => {
     const core = await joinTracked(cluster.endpoint)
     await cluster.stop()
 
-    await core.documents.put({ _id: 'offline:1', value: 'written offline' })
-    expect(await core.documents.get('offline:1')).toMatchObject({ value: 'written offline' })
+    await core.dataset.put({ _id: 'offline:1', value: 'written offline' })
+    expect(await core.dataset.get('offline:1')).toMatchObject({ value: 'written offline' })
     await expect(core.sync()).rejects.toThrow(NetworkError)
 
     await cluster.restart()
@@ -116,17 +116,17 @@ describe('sync between a member and its orchestrator', () => {
   it('ends with the same winner and the conflict on both sides after concurrent edits', async () => {
     const cluster = await HarnessCluster.start()
     const core = await joinTracked(cluster.endpoint)
-    const { rev } = await core.documents.put({ _id: 'shared', value: 'original' })
+    const { rev } = await core.dataset.put({ _id: 'shared', value: 'original' })
     await core.sync()
     await cluster.stop()
 
-    await core.documents.put({ _id: 'shared', _rev: rev, value: 'edited by the member' })
+    await core.dataset.put({ _id: 'shared', _rev: rev, value: 'edited by the member' })
     const remote = await cluster.get('shared')
     await cluster.put('shared', { _rev: remote?._rev, value: 'edited by the orchestrator' })
     await cluster.restart()
     await core.sync()
 
-    const mine = await core.documents.get('shared', { conflicts: true })
+    const mine = await core.dataset.get('shared', { conflicts: true })
     const theirs = await cluster.get('shared')
     expect(mine?._rev).toBe(theirs?._rev)
     expect(mine?.value).toBe(theirs?.value)
