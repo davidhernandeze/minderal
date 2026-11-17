@@ -36,11 +36,17 @@ export class QualityLedger {
     return this.links.get(nodeId)
   }
 
-  recordSuccess(nodeId: string, latencyMs: number, now: number = Date.now()): void {
+  /** A request the node answered; `latencyMs` undefined when its time says nothing about the link, like a long-poll's. */
+  recordSuccess(nodeId: string, latencyMs: number | undefined, now: number = Date.now()): void {
     const link = this.links.get(nodeId) ?? empty()
     this.links.set(nodeId, {
       ...link,
-      latencyMs: link.latencyMs === undefined ? latencyMs : link.latencyMs * (1 - SMOOTHING) + latencyMs * SMOOTHING,
+      latencyMs:
+        latencyMs === undefined
+          ? link.latencyMs
+          : link.latencyMs === undefined
+            ? latencyMs
+            : link.latencyMs * (1 - SMOOTHING) + latencyMs * SMOOTHING,
       successes: link.successes + 1,
       lastSuccessAt: now,
     })

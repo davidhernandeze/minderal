@@ -37,7 +37,13 @@ export interface CreateDatasetOptions extends DatasetOptions {
   readonly storage?: StorageOptions
 }
 
-export type JoinDatasetOptions = Omit<DatasetOptions, 'credentials'>
+export interface JoinDatasetOptions extends Omit<DatasetOptions, 'credentials'> {
+  /**
+   * `{ engine: 'local' }` (default) copies the dataset and keeps it in sync. `{ engine: 'none' }` is client
+   * mode: no copy, every read and write goes to a node of the cluster holding the data.
+   */
+  readonly storage?: { readonly engine: 'local' } | { readonly engine: 'none' }
+}
 
 export async function createDataset(options: CreateDatasetOptions = {}): Promise<Core> {
   const platform = await loadPlatform(detectRuntime())
@@ -104,7 +110,9 @@ export async function joinDataset(endpoint: string, options: JoinDatasetOptions 
   if ((await lookUp(platform, home, datasetId)) !== undefined) return openDataset(datasetId, options)
   const orchestratorHoldsData = !(typeof status.value === 'object' && status.value !== null && 'holdsData' in status.value && status.value.holdsData === false)
 
-  const storage: StorageDescriptor = { engine: platform.localEngine }
+  const storage: StorageDescriptor =
+    options.storage?.engine === 'none' ? { engine: 'none', clusterStore: platform.localEngine } : { engine: platform.localEngine }
+  const holdsData = storage.engine !== 'none'
   const admission = await callCluster(base, 'join', { node: await announce(platform, options.name, setupOf(storage)) })
   const nodeId = stringField(admission.value, 'nodeId', base, 'join')
   const admittedCluster = admitted(admission.value, datasetId, base)
@@ -112,12 +120,14 @@ export async function joinDataset(endpoint: string, options: JoinDatasetOptions 
   try {
     // the orchestrator's revision, history included, so this copy converges with every other
     await handle.database.bulkDocs([admittedCluster as unknown as PouchDB.Core.PutDocument<object>], { new_edits: false })
-    try {
-      await copyFrom(platform, handle, base, nodeId)
-    } catch (error) {
-      // an orchestrator without data has nothing to copy while no member holding it is online:
-      // this node starts with the cluster document and catches up once one is
-      if (orchestratorHoldsData) throw error
+    if (holdsData) {
+      try {
+        await copyFrom(platform, handle, base, nodeId)
+      } catch (error) {
+        // an orchestrator without data has nothing to copy while no member holding it is online:
+        // this node starts with the cluster document and catches up once one is
+        if (orchestratorHoldsData) throw error
+      }
     }
     const cluster = await readClusterDocument(handle.database, datasetId)
     await register(platform, home, { datasetId, nodeId, storage, bootstrap: [base] })
@@ -127,7 +137,7 @@ export async function joinDataset(endpoint: string, options: JoinDatasetOptions 
       cluster,
       bootstrap: [base],
       name: undefined,
-      holdsData: true,
+      holdsData,
       presence: presenceOf(options),
     })
   } catch (error) {

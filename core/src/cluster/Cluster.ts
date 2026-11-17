@@ -7,7 +7,7 @@ import { delegate, directRoute, relayedRoute, type Route } from './delegate.js'
 import { QualityLedger, type LinkQuality } from './QualityLedger.js'
 
 /** Relays a request to a node connected to this core's own channels — set on a serving orchestrator. */
-export type LocalRelay = (nodeId: string, capabilityId: string, args: unknown, selfId: string) => Promise<Response>
+export type LocalRelay = (nodeId: string, capabilityId: string, args: unknown, selfId: string, signal?: AbortSignal) => Promise<Response>
 
 /** A core's live view of its cluster. */
 export interface ClusterView {
@@ -114,7 +114,7 @@ export class Cluster implements ClusterView {
       if (node.id === this.selfId || !node.capabilities.includes(capabilityId)) continue
       if (node.endpoint !== undefined) routes.push(directRoute(node, node.endpoint))
       else if (relay !== undefined && this.online.has(node.id)) {
-        routes.push({ node, open: async (capability, args, selfId) => relay(node.id, capability, args, selfId) })
+        routes.push({ node, open: async (capability, args, selfId, signal) => relay(node.id, capability, args, selfId, signal) })
       } else if (orchestratorEndpoint !== undefined && this.online.has(node.id)) routes.push(relayedRoute(node, orchestratorEndpoint))
     }
     return routes
@@ -139,7 +139,13 @@ export class Cluster implements ClusterView {
   async forward<Args extends readonly unknown[], Result>(
     capability: Capability<Args, Result>,
     args: Args,
-    options: { readonly routes?: readonly Route[]; readonly prefer?: string; readonly onServed?: (nodeId: string) => void } = {},
+    options: {
+      readonly routes?: readonly Route[]
+      readonly prefer?: string
+      readonly onServed?: (nodeId: string) => void
+      readonly signal?: AbortSignal
+      readonly measureLatency?: boolean
+    } = {},
   ): Promise<Result> {
     const routes = options.routes ?? this.routesFor(capability.id)
     if (routes.length === 0 || capability.wire === undefined) throw new CapabilityUnavailableError(capability.id)
@@ -148,6 +154,8 @@ export class Cluster implements ClusterView {
       ledger: this.ledger,
       ...(options.prefer === undefined ? {} : { prefer: options.prefer }),
       ...(options.onServed === undefined ? {} : { onServed: options.onServed }),
+      ...(options.signal === undefined ? {} : { signal: options.signal }),
+      ...(options.measureLatency === undefined ? {} : { measureLatency: options.measureLatency }),
     })
   }
 

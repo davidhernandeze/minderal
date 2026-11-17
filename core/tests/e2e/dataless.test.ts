@@ -13,6 +13,7 @@ describe('an orchestrator without a copy of its dataset', () => {
     expect(core.role).toBe('orchestrator')
     expect(core.cluster.self?.capabilities).not.toContain(capabilities.database.id)
     expect(core.cluster.nodesWith(capabilities.database)).toEqual([])
+    // no member holding the data is connected yet
     await expect(core.documents.list()).rejects.toThrow(CapabilityUnavailableError)
   })
 

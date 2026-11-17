@@ -68,7 +68,7 @@ const health = computed(() => {
       <dt>status</dt>
       <dd>{{ online ? `online · ${onlineFor}` : 'offline' }}</dd>
       <dt>data</dt>
-      <dd>{{ holdsData ? 'holds a copy' : 'none, relays' }}</dd>
+      <dd>{{ holdsData ? 'holds a copy' : node.role === 'orchestrator' ? 'none, relays to members' : 'none, client mode' }}</dd>
       <dt>id</dt>
       <dd class="mono" :title="node.id">{{ node.id.slice(0, 8) }}</dd>
     </dl>

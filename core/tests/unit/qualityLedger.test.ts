@@ -57,3 +57,12 @@ describe('QualityLedger', () => {
     expect(changes).toBe(2)
   })
 })
+
+describe('QualityLedger without a latency', () => {
+  it('counts a success that says nothing about latency, such as a long-poll, without moving the average', () => {
+    const ledger = new QualityLedger()
+    ledger.recordSuccess('a', 40, 1)
+    ledger.recordSuccess('a', undefined, 2)
+    expect(ledger.get('a')).toMatchObject({ latencyMs: 40, successes: 2 })
+  })
+})

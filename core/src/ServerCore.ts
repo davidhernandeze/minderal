@@ -165,11 +165,12 @@ export class ServerCore extends Core {
     }
     const routes = holders.map((node) => ({
       node,
-      open: async (capabilityId: string, args: unknown) => hub.open(node.id, capabilityId, args, signal),
+      open: async (capabilityId: string, args: unknown, _selfId: string, routeSignal?: AbortSignal) =>
+        hub.open(node.id, capabilityId, args, routeSignal ?? signal),
     }))
     const prefer = requester === undefined ? undefined : this.affinity.get(requester)
     try {
-      const response = await this.forwardTo(databaseCapability, [request], routes, prefer)
+      const response = await this.forwardTo(databaseCapability, [request], routes, prefer, signal, request.query.feed !== 'longpoll')
       if (requester !== undefined) this.affinity.set(requester, response.servedBy)
       return response.result
     } catch (error) {

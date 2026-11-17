@@ -8,6 +8,7 @@ import { useCore } from './composables/useCore'
 const { core, phase, error, devCluster, nodes, quality, isOnline, onlineSince, join, leave } = useCore()
 const endpoint = ref('')
 const name = ref('')
+const keepCopy = ref(true)
 
 watch(devCluster, (cluster) => {
   if (cluster !== undefined && endpoint.value === '') endpoint.value = cluster.endpoint
@@ -18,7 +19,9 @@ watch(devCluster, (cluster) => {
   <header class="top">
     <h1>Minderal <span>cluster</span></h1>
     <template v-if="core">
-      <span class="dataset mono" :title="core.datasetId">dataset {{ core.datasetId.slice(0, 8) }}</span>
+      <span class="dataset mono" :title="core.datasetId">
+        dataset {{ core.datasetId.slice(0, 8) }} · {{ core.holdsData ? 'local copy' : 'client mode' }}
+      </span>
       <button class="quiet" @click="leave">Forget this dataset</button>
     </template>
   </header>
@@ -26,7 +29,7 @@ watch(devCluster, (cluster) => {
   <main v-if="phase === 'starting'" class="center muted">Opening…</main>
 
   <main v-else-if="!core" class="center">
-    <form class="join" @submit.prevent="join(endpoint, name)">
+    <form class="join" @submit.prevent="join(endpoint, name, keepCopy)">
       <h2>Join a cluster</h2>
       <p class="muted">
         This browser becomes a member node: it copies the dataset into IndexedDB, keeps it in sync, and delegates what it
@@ -42,6 +45,17 @@ watch(devCluster, (cluster) => {
         Node name
         <input v-model="name" placeholder="defaults to browser and OS" />
       </label>
+      <label class="check">
+        <input v-model="keepCopy" type="checkbox" />
+        Keep a copy of the data in this browser
+      </label>
+      <p class="muted small">
+        {{
+          keepCopy
+            ? 'Works offline; syncs both ways.'
+            : 'Client mode: nothing stored here, every read and write goes to a node holding the data.'
+        }}
+      </p>
       <button type="submit" :disabled="phase === 'joining'">{{ phase === 'joining' ? 'Joining…' : 'Join' }}</button>
       <p v-if="error" class="error">{{ error }}</p>
     </form>
@@ -106,6 +120,11 @@ label {
   gap: 4px;
   font-size: 13px;
 }
+label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
 .layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -126,7 +145,12 @@ aside {
   margin: 0;
 }
 @media (max-width: 1080px) {
-  .layout {
+  label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+}
+.layout {
     grid-template-columns: minmax(0, 1fr);
     padding: 16px;
   }

@@ -22,7 +22,10 @@ import {
 } from './cluster/ClusterDocument.js'
 import { updateClusterDocument } from './cluster/clusterStorage.js'
 import { handleCouchRequest, type CouchRequest, type CouchResponse } from './database/couchApi.js'
+import { clusterStore } from './documents/ClusterStore.js'
 import { Documents } from './documents/Documents.js'
+import type { DocumentStore } from './documents/DocumentStore.js'
+import { localStore } from './documents/LocalStore.js'
 import { CapabilityUnavailableError, ClusterError, CoreClosedError, NetworkError } from './errors.js'
 import type { Platform } from './platform/Platform.js'
 import type { Runtime } from './Runtime.js'
@@ -78,6 +81,8 @@ export abstract class Core {
   private liveSync: { readonly stop: () => Promise<void> } | undefined
   private channel: ChannelClient | undefined
   private readonly relayed: Map<string, AbortController>
+  /** The node holding the data that answered this core last: asked first next time, to read its own writes. */
+  private dataNode: string | undefined
   private announcementPending: boolean
   private closed: boolean
 
@@ -96,10 +101,13 @@ export abstract class Core {
     this.relayed = new Map()
     this.announcementPending = false
     this.closed = false
-    this.documents = new Documents(() => this.database.database, this.datasetId, () => {
-      this.ensureOpen()
-      if (!this.holdsData) throw new CapabilityUnavailableError(databaseCapability.id)
-    })
+    const store: DocumentStore = this.holdsData
+      ? localStore(this.database.database, this.datasetId)
+      : clusterStore(async (request, signal) => this.askForData(request, signal), this.datasetId)
+    this.documents = new Documents(
+      () => store,
+      () => this.ensureOpen(),
+    )
   }
 
   get cluster(): ClusterView {
@@ -130,7 +138,7 @@ export abstract class Core {
   async sync(): Promise<SyncReport> {
     this.ensureOpen()
     const upstream = this.upstream()
-    if (upstream === undefined) return { pushed: 0, pulled: 0 }
+    if (upstream === undefined || !this.holdsData) return { pushed: 0, pulled: 0 }
     if (this.announcementPending) await this.announce().catch(() => undefined)
     const remote = this.platform.openRemote(upstream, this.nodeId)
     try {
@@ -231,14 +239,32 @@ export abstract class Core {
     args: Args,
     routes: readonly Route[],
     prefer: string | undefined,
+    signal?: AbortSignal,
+    measureLatency = true,
   ): Promise<{ result: Result; servedBy: string }> {
     let servedBy = ''
     const result = await this.clusterState.forward(capability, args, {
       routes,
+      measureLatency,
       ...(prefer === undefined ? {} : { prefer }),
+      ...(signal === undefined ? {} : { signal }),
       onServed: (nodeId) => (servedBy = nodeId),
     })
     return { result, servedBy }
+  }
+
+  /**
+   * Client mode: a CouchDB API request answered by a node holding the data, the one that answered last
+   * when it still can, so this core reads what it just wrote.
+   */
+  private async askForData(request: CouchRequest, signal?: AbortSignal): Promise<{ response: CouchResponse; servedBy: string }> {
+    const lifetime = this.lifetime.signal
+    const combined = signal === undefined ? lifetime : AbortSignal.any([signal, lifetime])
+    const routes = this.clusterState.routesFor(databaseCapability.id)
+    if (routes.length === 0) throw new CapabilityUnavailableError(databaseCapability.id)
+    const { result, servedBy } = await this.forwardTo(databaseCapability, [request], routes, this.dataNode, combined, !isLongPoll(request))
+    this.dataNode = servedBy
+    return { response: result, servedBy }
   }
 
   /**
@@ -415,6 +441,10 @@ export abstract class Core {
     if (local === undefined) throw new CapabilityUnavailableError(capability.id)
     return local(this, ...args)
   }
+}
+
+function isLongPoll(request: CouchRequest): boolean {
+  return request.query.feed === 'longpoll'
 }
 
 function statusOf(error: unknown): number | undefined {

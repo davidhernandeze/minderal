@@ -82,6 +82,7 @@ const relay = await createDataset({ storage: { engine: 'none' } })     // Node.j
 
 // in a browser, or another Node.js process
 const member = await joinDataset('http://127.0.0.1:5985/minderal-<id>', { name: 'Phone' })
+const client = await joinDataset(endpoint, { storage: { engine: 'none' } })   // client mode: no copy
 await member.documents.put({ _id: 'note:1', title: 'Hello' })   // local first, synced in the background
 await member.sync()                                             // or right now, both ways
 const response = await member.fetch('https://example.com')      // a browser delegates it to a server node
@@ -108,11 +109,28 @@ A dataset is a CouchDB-compatible database, accessed through PouchDB.
 | `{ engine: 'local' }` (default) | Node.js | LevelDB under `<home>/datasets/<id>` |
 | `{ engine: 'local' }` (default) | browser | IndexedDB, named `<home>/datasets/<id>` |
 | `{ engine: 'couchdb', url }` | both | database `minderal-<id>` on that server |
-| `{ engine: 'none' }` | Node.js orchestrator | no copy: the cluster document only, under `<home>/clusters/<id>` — see below |
+| `{ engine: 'none' }` | Node.js orchestrator (create), any member (join) | no copy: the cluster document only, under `<home>/clusters/<id>` — see below |
 
 A CouchDB server still counts as *local* storage for the core using it: local means the
-core reads and writes the storage itself. Client mode — a core with no storage, using
-the cluster's — comes later.
+core reads and writes the storage itself.
+
+**Client mode.** `joinDataset(endpoint, { storage: { engine: 'none' } })` joins without a
+copy: nothing is stored but the cluster document, and every read and write goes to a node
+holding the data, through `database@1`. `core.holdsData` is false, the node announces no
+`database@1`, and `core.sync()` reports nothing moved.
+
+- Requests go to the best node holding the data — its own endpoint, or a relay through the
+  orchestrator when it has none — and stick to the node that answered last while it can, so
+  a client reads its own writes.
+- `core.documents` keeps its API and its errors (`DocumentConflictError`, `StorageError`). The
+  cluster adds its own: `CapabilityUnavailableError` while no node holding the data can be
+  reached, and the delegation outcomes, `DelegationError` and `PartialResultError`.
+- `list()` reads the changes feed with documents, the replication API every holder answers;
+  fine for now, to be paged. `watch()` long-polls it; when a different node starts answering,
+  the watch restarts from that node's present, since sequences are per node, so changes made
+  during the switch can be missed but never repeat.
+- A client opens offline like any core; its documents throw `CapabilityUnavailableError`
+  until the cluster is back.
 
 **Registry.** Each runtime keeps a registry of the datasets it knows, so `openDataset(id)`
 knows how to reach a dataset. It lives in `<home>/registry`. The default home is
@@ -123,7 +141,8 @@ accepts `{ home }` to use another one. The registry never stores credentials: pa
 joined through, to find the cluster again.
 
 **Documents.** `core.documents` gives raw access — `get(id, { conflicts })`, `put`, `remove`,
-`list`, `watch(listener)` — so sync can be exercised and seen end to end. It is provisional and
+`list`, `watch(listener)` — so sync can be exercised and seen end to end, from the local copy
+or, in client mode, from the cluster. It is provisional and
 gives way to the neuron and template model. Ids starting with `_` are the system's and refused
 with `TypeError`; writing over a stale revision throws `DocumentConflictError`.
 
@@ -235,8 +254,8 @@ Browser B ──sync──▶ Orchestrator (no data) ──relay──▶ Browse
 - **Joining** works with nobody holding the data: the newcomer gets the cluster document from
   the orchestrator, and its copy fills in once a holder is online. The first member to join
   is where the data starts.
-- The orchestrator's own `core.documents` throws `CapabilityUnavailableError`: it has no copy.
-  Reading a cluster's data from a core without a copy is client mode, next.
+- The orchestrator's own `core.documents` works in client mode: through its members, relayed
+  over their channels.
 
 This lets a small server coordinate a cluster while storing nothing of it.
 
@@ -367,6 +386,7 @@ Every core measures its links on real traffic — delegated requests and announc
 and keeps per node a moving average of latency, successes, failures and the last failure
 (`cluster.qualityOf(nodeId)`). Delegation ranks candidates with it: healthy nodes by latency,
 then nodes never measured, then nodes that failed in the last 30 s; ties go to the orchestrator.
+Long-polls count as successes but not toward latency, since they wait on purpose.
 A node that fails goes to the back of the line for 30 s, or until it succeeds again, without
 anyone configuring anything.
 
@@ -446,7 +466,8 @@ core/
     dataset/
       lifecycle.ts                createDataset, openDataset, joinDataset
       Registry.ts                 the runtime's list of known datasets
-    documents/Documents.ts        raw document access (provisional)
+    documents/                    raw document access (provisional): Documents, over LocalStore
+                                  (own copy) or ClusterStore (client mode, through database@1)
     database/couchApi.ts          CouchDB replication API over a PouchDB database, any runtime
     platform/
       Platform.ts                 what each runtime provides: engines, capabilities, node description

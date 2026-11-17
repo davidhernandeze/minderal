@@ -52,8 +52,10 @@ async function fetchThroughCluster(): Promise<void> {
   <section class="panel">
     <h2>This node</h2>
     <div class="row">
-      <button :disabled="syncing" @click="syncNow">{{ syncing ? 'Syncing…' : 'Sync now' }}</button>
-      <span class="result">{{ syncResult ?? 'syncs live in the background' }}</span>
+      <button :disabled="syncing || !core.holdsData" @click="syncNow">{{ syncing ? 'Syncing…' : 'Sync now' }}</button>
+      <span class="result">
+        {{ syncResult ?? (core.holdsData ? 'syncs live in the background' : 'client mode: nothing stored here to sync') }}
+      </span>
     </div>
     <form class="row" @submit.prevent="fetchThroughCluster">
       <input v-model="url" aria-label="URL to fetch through the cluster" />

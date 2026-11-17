@@ -43,6 +43,9 @@ yourself with `npm run cluster`). It runs real cores from `../core/src`:
 
 ## Things to try
 
+- **Client mode.** Untick *Keep a copy of the data in this browser* when joining: nothing is
+  stored in the browser, every read and write goes to a node holding the data. The diagram
+  draws the link it measured to that node.
 - **Offline.** Stop the dev server, add notes in the app, start it again: they reach the
   orchestrator. Notes the orchestrator writes meanwhile (`--activity`) arrive in the browser.
 - **Delegation.** `core.fetch` in the side panel: the browser cannot fetch other origins freely,

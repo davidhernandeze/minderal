@@ -19,7 +19,7 @@ export interface CoreState {
   readonly quality: (nodeId: string) => LinkQuality | undefined
   readonly isOnline: (nodeId: string) => boolean
   readonly onlineSince: (nodeId: string) => string | undefined
-  join(endpoint: string, name: string): Promise<void>
+  join(endpoint: string, name: string, keepCopy: boolean): Promise<void>
   leave(): Promise<void>
 }
 
@@ -61,11 +61,16 @@ export function useCore(): CoreState {
     return core.value?.cluster.onlineSince(nodeId)
   }
 
-  async function join(endpoint: string, name: string): Promise<void> {
+  async function join(endpoint: string, name: string, keepCopy: boolean): Promise<void> {
     phase.value = 'joining'
     error.value = undefined
     try {
-      adopt(await joinDataset(endpoint, name.trim() === '' ? {} : { name }))
+      adopt(
+        await joinDataset(endpoint, {
+          ...(name.trim() === '' ? {} : { name }),
+          storage: keepCopy ? { engine: 'local' } : { engine: 'none' },
+        }),
+      )
     } catch (failure) {
       error.value = describe(failure)
       phase.value = 'disconnected'

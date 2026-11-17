@@ -19,22 +19,26 @@ export function relayUrl(orchestratorEndpoint: string, nodeId: string, capabilit
 export interface Route {
   readonly node: ClusterNode
   /** Sends the encoded arguments; answers like an invoke endpoint: 200 and frames, or a refusal. */
-  open(capabilityId: string, args: unknown, selfId: string): Promise<Response>
+  open(capabilityId: string, args: unknown, selfId: string, signal?: AbortSignal): Promise<Response>
 }
 
 export function directRoute(node: ClusterNode, endpoint: string): Route {
-  return { node, open: async (capabilityId, args, selfId) => post(invokeUrl(endpoint, capabilityId), args, selfId) }
+  return { node, open: async (capabilityId, args, selfId, signal) => post(invokeUrl(endpoint, capabilityId), args, selfId, signal) }
 }
 
 export function relayedRoute(node: ClusterNode, orchestratorEndpoint: string): Route {
-  return { node, open: async (capabilityId, args, selfId) => post(relayUrl(orchestratorEndpoint, node.id, capabilityId), args, selfId) }
+  return {
+    node,
+    open: async (capabilityId, args, selfId, signal) => post(relayUrl(orchestratorEndpoint, node.id, capabilityId), args, selfId, signal),
+  }
 }
 
-async function post(url: string, args: unknown, selfId: string): Promise<Response> {
+async function post(url: string, args: unknown, selfId: string, signal: AbortSignal | undefined): Promise<Response> {
   return fetch(url, {
     method: 'POST',
     headers: { 'content-type': 'application/json', [NODE_HEADER]: selfId },
     body: JSON.stringify({ args }),
+    ...(signal === undefined ? {} : { signal }),
   })
 }
 
@@ -59,6 +63,10 @@ export async function delegate<Args extends readonly unknown[], Result>(
     readonly ledger: QualityLedger
     readonly prefer?: string
     readonly onServed?: (nodeId: string) => void
+    /** Abandons the request: no further node is tried, and an answer in progress stops. */
+    readonly signal?: AbortSignal
+    /** False for requests that wait on purpose, like long-polls: their time is not the link's latency. */
+    readonly measureLatency?: boolean
   },
 ): Promise<Result> {
   const wire = capability.wire
@@ -73,6 +81,7 @@ export async function delegate<Args extends readonly unknown[], Result>(
   for (const node of ranked) {
     const route = byNode.get(node.id)
     if (route === undefined) continue
+    context.signal?.throwIfAborted()
     const startedAt = Date.now()
     const refuse = (reason: string): void => {
       attempts.push({ nodeId: node.id, reason })
@@ -81,8 +90,9 @@ export async function delegate<Args extends readonly unknown[], Result>(
 
     let response: Response
     try {
-      response = await route.open(capability.id, encoded, context.selfId)
+      response = await route.open(capability.id, encoded, context.selfId, context.signal)
     } catch (error) {
+      if (context.signal?.aborted === true) throw error
       refuse(`is unreachable (${error instanceof Error ? error.message : String(error)})`)
       continue
     }
@@ -112,11 +122,11 @@ export async function delegate<Args extends readonly unknown[], Result>(
         refuse('can no longer perform it')
         continue
       }
-      context.ledger.recordSuccess(node.id, Date.now() - startedAt)
+      context.ledger.recordSuccess(node.id, latency(startedAt, context.measureLatency))
       throw deserializeError(error)
     }
 
-    context.ledger.recordSuccess(node.id, Date.now() - startedAt)
+    context.ledger.recordSuccess(node.id, latency(startedAt, context.measureLatency))
     context.onServed?.(node.id)
     const body = resultBody(frames, capability.id, node.id, context.ledger)
     try {
@@ -129,6 +139,10 @@ export async function delegate<Args extends readonly unknown[], Result>(
   }
 
   throw new CapabilityUnavailableError(capability.id, attempts)
+}
+
+function latency(startedAt: number, measure: boolean | undefined): number | undefined {
+  return measure === false ? undefined : Date.now() - startedAt
 }
 
 async function* resultBody(
